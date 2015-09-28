@@ -1,4 +1,7 @@
+# coding: utf-8
+
 import os
+import platform
 from os.path import expanduser
 from threading import Timer
 from zhihu import ZhihuClient
@@ -10,9 +13,12 @@ password = 'laike9mzhihu'
 
 def check_and_open_captcha():
     if os.path.isfile('captcha.gif'):
-        os.system('open captcha.gif')
+        if platform.system() == 'Darwin':
+            os.system('open captcha.gif')
+        elif platform.system() == 'Windows':
+            os.system('captcha.gif')
     else:
-        Timer(5, check_captcha).start()
+        Timer(5, check_and_open_captcha).start()
 
 
 def login():
@@ -28,7 +34,7 @@ def login():
         
 
 def display_vzch():
-    url = 'http://www.zhihu.com/people/zord-vczh'
+    url = 'http://www.zhihu.com/people/excited-vczh'
     author = client.author(url)
 
     print('用户名 %s' % author.name)
@@ -42,7 +48,9 @@ def display_vzch():
     
     
 if __name__ == '__main__':
-    #check_and_open_captcha()
+    if os.path.isfile('captcha.gif'):
+        os.remove('captcha.gif')
+    # check_and_open_captcha()
     login()
     display_vzch()
     
