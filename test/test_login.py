@@ -26,7 +26,7 @@ def login():
         
 
 def display_vzch():
-    url = 'http://www.zhihu.com/people/zord-vczh'
+    url = 'http://www.zhihu.com/people/excited-vczh'
     author = client.author(url)
 
     print('用户名 %s' % author.name)
