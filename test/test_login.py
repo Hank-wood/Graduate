@@ -5,8 +5,6 @@ from zhihu import ZhihuClient
 
 cookie = expanduser('~/.zhihucookie.json')
 client = ZhihuClient()
-email = 'laike9m@gmail.com'
-password = 'laike9mzhihu'
 
 def check_and_open_captcha():
     if os.path.isfile('captcha.gif'):
