@@ -1,3 +1,4 @@
+# coding: UTF-8
 import os
 from os.path import expanduser
 from threading import Timer
