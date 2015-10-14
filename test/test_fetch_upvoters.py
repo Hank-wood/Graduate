@@ -1,7 +1,5 @@
-from zhihu import ZhihuClient
-from settings import cookie
+from client import client
 
-client = ZhihuClient(cookie)
 ans_url = 'http://www.zhihu.com/question/35107886/answer/61219684'
 
 ans = client.answer(ans_url)
