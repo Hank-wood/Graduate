@@ -1,3 +1,4 @@
+# coding: utf-8
 from client import client
 
 ans_url = 'http://www.zhihu.com/question/35107886/answer/61219684'

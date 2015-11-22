@@ -2,11 +2,11 @@
 
 import os
 import platform
-from os.path import expanduser
 from threading import Timer
 from zhihu import ZhihuClient
 
-cookie = expanduser('~/.zhihucookie.json')
+cookie = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                      'cookies/zhangyang.json')
 client = ZhihuClient()
 
 def check_and_open_captcha():
@@ -51,4 +51,3 @@ if __name__ == '__main__':
     # check_and_open_captcha()
     login()
     display_vzch()
-    

@@ -1,5 +1,4 @@
 # coding: utf-8
-
 """
 把一个问题里所有关注/评论/点赞/回答的人收集起来
 """
@@ -22,7 +21,8 @@ for answer in question.answers:
     for upvoter in answer.upvoters:
         cnt += 1
         user_collection.add(upvoter.name)
-        print(cnt)
+        if cnt % 1000 == 0:
+            print(cnt)
         # TODO: 关键是替换 session
 
 
