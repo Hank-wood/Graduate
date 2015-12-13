@@ -1,3 +1,3 @@
 from os.path import expanduser
 
-cookie = expanduser('~/.zhihucookie.json')
+cookie = expanduser('../cookies/zhuoyi.json')

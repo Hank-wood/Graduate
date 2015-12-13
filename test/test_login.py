@@ -5,9 +5,9 @@ import platform
 from threading import Timer
 from zhihu import ZhihuClient
 
-cookie = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                      'cookies/zhangyang.json')
+cookie = expanduser('../cookies/zhuoyi.json')
 client = ZhihuClient()
+
 
 def check_and_open_captcha():
     if os.path.isfile('captcha.gif'):
