@@ -4,31 +4,33 @@
 定期爬话题页面
 """
 
+import ezcf
+
+from config.dynamic_config import topics
 from task import *
+from model import Question
 
 
 class TopicMonitor:
 
-    topic_links = [
-        'https://www.zhihu.com/topic/19552330'  # 程序员
-    ]
-    # TODO: 应该初始化最新问题
-    latest_questions = {link: None for link in topic_links}  # question id
+    PREFIX = "http://www.zhihu.com/topic/"
 
     def __init__(self, client, queue):
         self.client = client
         self.task_queue = queue
-        self.topics = [client.Topic(link) for link in self.topic_links]
+        self.Topics = [
+            client.Topic(self.PREFIX+topic_id) for topic_id in topics
+        ]
 
     def detect_new_question(self):
         """
         爬取话题页面，寻找新问题
         :return:
         """
-        for topic in self.topics:
-            for question in topic.questions:
-                if question.id == self.latest_questions[topic.url]:
+        for Topic in self.Topics:
+            for q in Topic.questions:
+                if q.id == self.latest_questions[Topic.url]:
                     break
                 else:
-                    self.task_queue.append(FetchNewAnswer(question))
+                    self.task_queue.append(FetchNewAnswer(q))
 
