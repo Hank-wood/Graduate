@@ -19,7 +19,7 @@ class TopicMonitor:
         self.client = client
         self.task_queue = queue
         self.Topics = [
-            client.Topic(self.PREFIX+topic_id) for topic_id in topics
+            client.Topic(self.PREFIX+tid) for tid in topics
         ]
 
     def detect_new_question(self):
