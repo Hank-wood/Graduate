@@ -13,21 +13,22 @@ import db
 class Question:
 
     latest_question = {
-        topic_id: None for topic_id in topics  # for cache
+        tid: None for tid in topics  # for cache
     }
 
     def __init__(self, qid):
         self.qid = qid
 
     @classmethod
-    def get_latest_question(self, topic_id):
-        if self.latest_question[topic_id] is None:
-            self.latest_question[topic_id] = db.find_latest_question(topic_id)
+    def get_latest_question(self, tid):
+        if self.latest_question[tid] is None:
+            self.latest_question[tid] = db.find_latest_question(tid)
 
-        return self.latest_question[topic_id]
+        return self.latest_question[tid]
 
     def save(self):
         pass
+
 
 
 class Answer:

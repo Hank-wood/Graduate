@@ -33,6 +33,5 @@ def main():
         m.detect_new_question()
 
 
-
 if __name__ == '__main__':
     main()

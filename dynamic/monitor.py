@@ -19,7 +19,7 @@ class TopicMonitor:
         self.client = client
         self.task_queue = queue
         self.Topics = [
-            client.Topic(self.PREFIX+topic_id) for topic_id in topics
+            client.Topic(self.PREFIX+tid) for tid in topics
         ]
 
     def detect_new_question(self):
@@ -29,7 +29,7 @@ class TopicMonitor:
         """
         for Topic in self.Topics:
             for q in Topic.questions:
-                if q.id == self.latest_questions[Topic.url]:
+                if q.id == Question.get_latest_question(Topic.id):
                     break
                 else:
                     self.task_queue.append(FetchNewAnswer(q))
