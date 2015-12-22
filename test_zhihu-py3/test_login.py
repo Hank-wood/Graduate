@@ -5,7 +5,7 @@ import platform
 from threading import Timer
 from zhihu import ZhihuClient
 
-cookie = expanduser('../cookies/zhuoyi.json')
+cookie = '../cookies/zhuoyi.json'
 client = ZhihuClient()
 
 
@@ -29,7 +29,7 @@ def login():
             print(cookies)
             f.write(cookies)
         # code, msg, cookies = client.login(email, password, captcha)
-        
+
 
 def display_vzch():
     url = 'http://www.zhihu.com/people/excited-vczh'
@@ -43,8 +43,8 @@ def display_vzch():
     print('用户得到感谢数 %d' % author.thank_num)
     print('用户提问数 %d' % author.question_num)
     print('用户答题数 %d' % author.answer_num)
-    
-    
+
+
 if __name__ == '__main__':
     if os.path.isfile('captcha.gif'):
         os.remove('captcha.gif')

@@ -7,31 +7,53 @@ ORM-like class
 import ezcf
 
 from config.dynamic_config import topics
-import db
+from db import DB
 
 
-class Question:
+db = DB()
+
+
+class QuestionModel:
 
     latest_question = {
         tid: None for tid in topics  # for cache
     }
 
-    def __init__(self, qid):
-        self.qid = qid
+    def __init__(self, Question=None, qid=None, time=None):
+        if Question:
+            self.qid = Question.id
+            self.time = Question.creation_time
+        else:
+            self.qid = qid
+            self.time = time
+        self.answers = []
 
     @classmethod
-    def get_latest_question(self, tid):
-        if self.latest_question[tid] is None:
-            self.latest_question[tid] = db.find_latest_question(tid)
+    def is_latest(cls, tid, Question):
+        if cls.latest_question[tid]:
+            print(topics[tid], str(cls.latest_question[tid].qid), str(Question.id))
+            return cls.latest_question[tid].qid == Question.id
+        else:
+            doc = db.find_latest_question(tid)
+            if doc:
+                cls.latest_question[tid] = cls(qid=doc['qid'], time=doc['time'])
+                return doc['qid'] == Question.id
+            else:
+                # 第一次执行, 外部 set_latest 不会调用, 在这里初始化
+                cls.set_latest(tid, Question)
+                return True
 
-        return self.latest_question[tid]
+    @classmethod
+    def set_latest(cls, tid, Question):
+        print("set latest question of tid: %s to %s" % (tid, Question.id))
+        cls.latest_question[tid] = cls(Question)
 
     def save(self):
         pass
 
 
 
-class Answer:
+class AnswerModel:
     def __init__(self, aid, qid):
         self.aid = aid
         self.qid = qid

@@ -4,7 +4,10 @@
 定义任务类
 """
 
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+
+from utils import *
 
 
 class Task:
@@ -13,11 +16,12 @@ class Task:
 
 
 class FetchNewAnswer(Task):
-    def __init__(self):
-        pass
+    def __init__(self, question):
+        self.question = question
 
     def execute(self):
-        print("execute task: fetch new answer")
+        print("%s Fetch new answer from question: %s" %
+              (now_string(), self.question.title))
 
 
 class FetchAnswerInfo(Task):
