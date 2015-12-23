@@ -9,15 +9,15 @@ import ezcf
 from config.dynamic_config import topics
 from task import *
 from model import QuestionModel
+from utils import task_queue
 
 
 class TopicMonitor:
 
     PREFIX = "http://www.zhihu.com/topic/"
 
-    def __init__(self, client, queue):
+    def __init__(self, client):
         self.client = client
-        self.task_queue = queue
         self.topics = [
             client.topic(self.PREFIX+tid) for tid in topics
         ]
@@ -35,9 +35,9 @@ class TopicMonitor:
 
             while not QuestionModel.is_latest(tid, question):
                 new_questions.append(question)
-                self.task_queue.append(FetchNewAnswer(question))
+                task_queue.append(FetchNewAnswer(question))
                 QuestionModel(question).save()
                 question = next(it)
 
-            if new_questions:  # TODO: 第一次有问题
+            if new_questions:
                 QuestionModel.set_latest(tid, latest_question)

@@ -1,7 +1,12 @@
 from datetime import datetime
+from collections import deque
+
+task_queue = deque()
+
 
 def q_col(tid):
     return qid + '_q'
+
 
 def a_col(tid):
     return tid + '_a'

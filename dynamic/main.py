@@ -3,16 +3,12 @@
 import time
 import threading
 from datetime import datetime
-from collections import deque
 
 import zhihu
 
 from monitor import TopicMonitor
 from utils import *
-
-
-task_queue = deque()
-
+from utils import task_queue
 
 class TaskLoop(threading.Thread):
 
@@ -28,7 +24,7 @@ class TaskLoop(threading.Thread):
 def main():
     client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
     TaskLoop().start()
-    m = TopicMonitor(client, task_queue)
+    m = TopicMonitor(client)
     while True:
         # TODO: 考虑新问题页面采集消耗的时间，不能 sleep 60s
         time.sleep(5)

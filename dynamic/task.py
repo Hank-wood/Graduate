@@ -8,6 +8,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
 from utils import *
+from utils import task_queue
 
 
 class Task:
@@ -22,6 +23,7 @@ class FetchNewAnswer(Task):
     def execute(self):
         print("%s Fetch new answer from question: %s" %
               (now_string(), self.question.title))
+        task_queue.append(FetchNewAnswer(self.question))
 
 
 class FetchAnswerInfo(Task):

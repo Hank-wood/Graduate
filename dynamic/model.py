@@ -31,7 +31,6 @@ class QuestionModel:
     @classmethod
     def is_latest(cls, tid, Question):
         if cls.latest_question[tid]:
-            print(topics[tid], str(cls.latest_question[tid].qid), str(Question.id))
             return cls.latest_question[tid].qid == Question.id
         else:
             doc = db.find_latest_question(tid)
@@ -45,7 +44,7 @@ class QuestionModel:
 
     @classmethod
     def set_latest(cls, tid, Question):
-        print("set latest question of tid: %s to %s" % (tid, Question.id))
+        print("set latest question of tid: %s to %s" % (topics[tid], Question.id))
         cls.latest_question[tid] = cls(Question)
 
     def save(self):
