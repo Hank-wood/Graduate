@@ -36,7 +36,7 @@ class TopicMonitor:
             while not QuestionModel.is_latest(tid, question):
                 new_questions.append(question)
                 task_queue.append(FetchNewAnswer(question))
-                QuestionModel(question).save()
+                QuestionModel(question=question).save(tid)
                 question = next(it)
 
             if new_questions:

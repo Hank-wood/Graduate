@@ -19,13 +19,17 @@ class QuestionModel:
         tid: None for tid in topics  # for cache
     }
 
-    def __init__(self, Question=None, qid=None, time=None):
+    def __init__(self, url=None, qid=None, asker=None, time=None, question=None):
         if Question:
-            self.qid = Question.id
-            self.time = Question.creation_time
+            self.url = question.url
+            self.qid = question.id
+            self.time = question.creation_time
+            # self.asker = question.asker  TODO: add asker attr
         else:
+            self.url = url
             self.qid = qid
             self.time = time
+            # self.asker = asker
         self.answers = []
 
     @classmethod
@@ -35,7 +39,8 @@ class QuestionModel:
         else:
             doc = db.find_latest_question(tid)
             if doc:
-                cls.latest_question[tid] = cls(qid=doc['qid'], time=doc['time'])
+                cls.latest_question[tid] = cls(doc['url'], doc['qid'],
+                                               doc['asker'], doc['time'])
                 return doc['qid'] == Question.id
             else:
                 # 第一次执行, 外部 set_latest 不会调用, 在这里初始化
@@ -45,10 +50,10 @@ class QuestionModel:
     @classmethod
     def set_latest(cls, tid, Question):
         print("set latest question of tid: %s to %s" % (topics[tid], Question.id))
-        cls.latest_question[tid] = cls(Question)
+        cls.latest_question[tid] = cls(question=Question)
 
-    def save(self):
-        pass
+    def save(self, tid):
+        db.save_question(self, tid)
 
 
 

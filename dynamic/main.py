@@ -10,6 +10,9 @@ from monitor import TopicMonitor
 from utils import *
 from utils import task_queue
 
+# TODO: logging
+
+
 class TaskLoop(threading.Thread):
 
     def run(self):
