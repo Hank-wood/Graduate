@@ -10,8 +10,6 @@ from config.dynamic_config import topics
 from db import DB
 
 
-db = DB()
-
 
 class QuestionModel:
 
@@ -20,16 +18,17 @@ class QuestionModel:
     }
 
     def __init__(self, url=None, qid=None, asker=None, time=None, question=None):
-        if Question:
+        if question:
             self.url = question.url
             self.qid = question.id
             self.time = question.creation_time
             # self.asker = question.asker  TODO: add asker attr
+            self.asker = "non-exist asker"
         else:
             self.url = url
             self.qid = qid
             self.time = time
-            # self.asker = asker
+            self.asker = asker
         self.answers = []
 
     @classmethod
@@ -37,7 +36,7 @@ class QuestionModel:
         if cls.latest_question[tid]:
             return cls.latest_question[tid].qid == Question.id
         else:
-            doc = db.find_latest_question(tid)
+            doc = DB.find_latest_question(tid)
             if doc:
                 cls.latest_question[tid] = cls(doc['url'], doc['qid'],
                                                doc['asker'], doc['time'])
@@ -53,7 +52,7 @@ class QuestionModel:
         cls.latest_question[tid] = cls(question=Question)
 
     def save(self, tid):
-        db.save_question(self, tid)
+        DB.save_question(self, tid)
 
 
 

@@ -5,10 +5,12 @@ task_queue = deque()
 
 
 def q_col(tid):
-    return qid + '_q'
+    # get question collection name
+    return tid + '_q'
 
 
 def a_col(tid):
+    # get answer collection name
     return tid + '_a'
 
 

@@ -12,24 +12,27 @@ from utils import *
 
 
 class DB:
-    def __init__(self):
-        self.db = MongoClient('localhost', 27017).zhihu_data
+    db = MongoClient('127.0.0.1', 27017).zhihu_data
 
-    def find_user(self):
+    @classmethod
+    def find_user(cls):
         pass
 
-    def find_latest_question(self, tid):
+    @classmethod
+    def find_latest_question(cls, tid):
         # TODO: so ask: 如何建索引?
-        return self.db[q_col(tid)].sort({time:1}).limit(1)
+        return cls.db[q_col(tid)].find().sort('time', -1).limit(1)
 
-    def save_question(self, question, tid):
-        self.db[q_col(tid)].insert({
+    @classmethod
+    def save_question(cls, question, tid):
+        cls.db[q_col(tid)].insert({
             'url': question.url,
             'qid': question.qid,
             'time': question.time,
-            'asker': 'test_user',
+            'asker': question.asker,
             'answers': question.answers
         })
 
-    def bulk_save(self):
+    @classmethod
+    def bulk_save(cls):
         pass
