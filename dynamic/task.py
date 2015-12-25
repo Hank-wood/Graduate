@@ -21,7 +21,7 @@ class FetchNewAnswer(Task):
         self.question = question
 
     def execute(self):
-        print("%s Fetch new answer from question: %s" %
+        print("%s Fetch answer from: %s" %
               (now_string(), self.question.title))
         task_queue.append(FetchNewAnswer(self.question))
 

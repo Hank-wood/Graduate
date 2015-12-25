@@ -2,6 +2,7 @@
 
 import time
 import threading
+import atexit
 from datetime import datetime
 
 import zhihu
@@ -35,5 +36,16 @@ def main():
         m.detect_new_question()
 
 
+def cleaning():
+    """
+    Only for testing
+    """
+    from db import DB
+    print("exit")
+    for collection in DB.db.collection_names():
+        db[collection].drop()
+
+
 if __name__ == '__main__':
     main()
+    # atexit.register(cleaning)

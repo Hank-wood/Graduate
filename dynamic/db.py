@@ -21,7 +21,11 @@ class DB:
     @classmethod
     def find_latest_question(cls, tid):
         # TODO: so ask: 如何建索引?
-        return cls.db[q_col(tid)].find().sort('time', -1).limit(1)
+        cursor = cls.db[q_col(tid)].find().sort('time', -1)
+        if cursor.count() > 0:
+            return cursor[0]
+        else:
+            return None
 
     @classmethod
     def save_question(cls, question, tid):
@@ -30,6 +34,7 @@ class DB:
             'qid': question.qid,
             'time': question.time,
             'asker': question.asker,
+            'title': question.title,
             'answers': question.answers
         })
 

@@ -19,7 +19,7 @@ def get_time_string(t):
 
 
 def now_string():
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now().strftime("%H:%M:%S")
 
 
 def get_datetime(time_string):
