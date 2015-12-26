@@ -36,6 +36,8 @@ def main(routine=None):
     if restart:
         DB.drop_all_collections()
 
+    check_valid_config()
+
     client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
     TaskLoop(daemon=True).start()
     m = TopicMonitor(client)
