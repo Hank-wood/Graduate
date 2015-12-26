@@ -6,6 +6,7 @@
 
 import os
 import time
+import json
 from datetime import datetime
 from unittest.mock import patch, PropertyMock
 
@@ -27,6 +28,26 @@ def setup_module(module):
 def teardown_module(module):
     for collection in db.collection_names():
         db[collection].drop()
+
+
+def test_config_validator():
+    config = json.load(open(dynamic_config_file, encoding='utf-8'))
+
+    assert check_valid_config(config)
+
+    config['topics']['11111'] = 'non-existent'
+    with pytest.raises(InvalidTopicId):
+        check_valid_config(config)
+    del config['topics']['11111']
+
+    config['restart'] = 10
+    with pytest.raises(AssertionError):
+        check_valid_config(config)
+        config['restart'] = True
+
+    del config['topics']
+    with pytest.raises(LackConfig):
+        check_valid_config(config)
 
 
 @pytest.mark.skipif(True, reason="testing others")
