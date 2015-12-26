@@ -1,0 +1,3 @@
+jsonschema
+zhihu-py3
+pytest
