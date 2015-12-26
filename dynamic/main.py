@@ -10,14 +10,19 @@ import zhihu
 from monitor import TopicMonitor
 from utils import *
 from utils import task_queue
-
-# TODO: logging
+from common import *
 
 
 class TaskLoop(threading.Thread):
 
+    def __init__(self, routine=None, *args, **kwargs):
+        self.routine = routine
+        super().__init__(*args, **kwargs)
+
     def run(self):
         while True:
+            if self.routine and callable(self.routine):
+                self.routine()
             time.sleep(10)  # TODO: set to 60s
             count = len(task_queue)
             for _ in range(count):
@@ -25,15 +30,24 @@ class TaskLoop(threading.Thread):
                 task.execute()
 
 
-def main():
+def main(routine=None):
     client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
-    TaskLoop().start()
+    TaskLoop(daemon=True).start()
     m = TopicMonitor(client)
+    count = 0
     while True:
         # TODO: 考虑新问题页面采集消耗的时间，不能 sleep 60s
+        try:
+            if routine and callable(routine):
+                print("invoke routine with count: " + str(count))
+                routine(count)
+        except EndProgramException:
+            break
+
         time.sleep(5)
         print(now_string())
         m.detect_new_question()
+        count += 1
 
 
 def cleaning():
