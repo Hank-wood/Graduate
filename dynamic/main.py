@@ -11,6 +11,8 @@ from monitor import TopicMonitor
 from utils import *
 from utils import task_queue
 from common import *
+from config.dynamic_config import restart
+from db import DB
 
 
 class TaskLoop(threading.Thread):
@@ -31,6 +33,9 @@ class TaskLoop(threading.Thread):
 
 
 def main(routine=None):
+    if restart:
+        DB.drop_all_collections()
+
     client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
     TaskLoop(daemon=True).start()
     m = TopicMonitor(client)

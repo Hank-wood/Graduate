@@ -41,3 +41,8 @@ class DB:
     @classmethod
     def bulk_save(cls):
         pass
+
+    @classmethod
+    def drop_all_collections(cls):
+        for collection in cls.db.collection_names():
+            cls.db[collection].drop()
