@@ -51,7 +51,7 @@ def main(routine=None):
         except EndProgramException:
             break
 
-        time.sleep(5)
+        time.sleep(2)
         print(now_string())
         m.detect_new_question()
         count += 1

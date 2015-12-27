@@ -19,6 +19,10 @@ class DB:
         pass
 
     @classmethod
+    def get_questions(cls, tid):
+        return cls.db[q_col(tid)].find()
+
+    @classmethod
     def find_latest_question(cls, tid):
         # TODO: so ask: 如何建索引?
         cursor = cls.db[q_col(tid)].find().sort('time', -1)

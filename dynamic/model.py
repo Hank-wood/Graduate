@@ -39,14 +39,13 @@ class QuestionModel:
     @classmethod
     def is_latest(cls, tid, question):
         if cls.latest_question[tid]:
+            print(question)
             print("latest: ", cls.latest_question[tid])
             return cls.latest_question[tid].qid == question.id
         else:
             doc = DB.find_latest_question(tid)
             if doc:
-                cls.latest_question[tid] = cls(doc['url'], doc['qid'],
-                                               doc['asker'], doc['time'],
-                                               doc['title'])
+                cls.latest_question[tid] = cls.doc2question(doc)
                 print("latest: ", cls.latest_question[tid])
                 return doc['qid'] == question.id
             else:
@@ -62,6 +61,17 @@ class QuestionModel:
 
     def save(self, tid):
         DB.save_question(self, tid)
+
+    @classmethod
+    def get_all(cls, tid):
+        questions = []
+        for doc in DB.get_questions(tid):
+            questions.append(cls.doc2question(doc))
+        return questions
+
+    @classmethod
+    def doc2question(cls, doc):
+        return cls(doc['url'], doc['qid'], doc['asker'], doc['time'], doc['title'])
 
     def __eq__(self, other):
         # title may change
