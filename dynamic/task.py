@@ -4,11 +4,14 @@
 定义任务类
 """
 
+import logging
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
 from utils import *
 from utils import task_queue
+
+logger = logging.getLogger(__name__)
 
 
 class Task:
@@ -21,7 +24,7 @@ class FetchNewAnswer(Task):
         self.question = question
 
     def execute(self):
-        print("%s Fetch answer from: %s" %
+        logger.debug("%s Fetch answer from: %s" %
               (now_string(), self.question.title))
         task_queue.append(FetchNewAnswer(self.question))
 

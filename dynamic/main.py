@@ -3,6 +3,9 @@
 import time
 import threading
 import atexit
+import json
+import logging
+import logging.config
 from datetime import datetime
 
 import zhihu
@@ -32,29 +35,36 @@ class TaskLoop(threading.Thread):
                 task.execute()
 
 
-def main(routine=None):
+def main(preroutine=None, postroutine=None):
     if restart:
         DB.drop_all_collections()
 
     check_valid_config()
 
+    if os.path.isfile(logging_config_file):
+        with open(logging_config_file, 'rt') as f:
+            config = json.load(f)
+            logging.config.dictConfig(config)
+
+    logger = logging.getLogger(__name__)
+
     client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
     TaskLoop(daemon=True).start()
     m = TopicMonitor(client)
-    count = 0
     while True:
         # TODO: 考虑新问题页面采集消耗的时间，不能 sleep 60s
-        try:
-            if routine and callable(routine):
-                print("invoke routine with count: " + str(count))
-                routine(count)
-        except EndProgramException:
-            break
+        if preroutine and callable(preroutine):
+            preroutine()
 
         time.sleep(2)
-        print(now_string())
+        logger.debug(now_string())
         m.detect_new_question()
-        count += 1
+
+        try:
+            if postroutine and callable(postroutine):
+                postroutine()
+        except EndProgramException:
+            break
 
 
 def cleaning():
@@ -62,7 +72,6 @@ def cleaning():
     Only for testing
     """
     from db import DB
-    print("exit")
     for collection in DB.db.collection_names():
         db[collection].drop()
 

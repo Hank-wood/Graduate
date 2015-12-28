@@ -4,11 +4,14 @@
 ORM-like class
 """
 
+import logging
+
 import ezcf
 
 from config.dynamic_config import topics
 from db import DB
 
+logger = logging.getLogger(__name__)
 
 
 class QuestionModel:
@@ -39,24 +42,23 @@ class QuestionModel:
     @classmethod
     def is_latest(cls, tid, question):
         if cls.latest_question[tid]:
-            print(question)
             print("latest: ", cls.latest_question[tid])
             return cls.latest_question[tid].qid == question.id
         else:
             doc = DB.find_latest_question(tid)
             if doc:
                 cls.latest_question[tid] = cls.doc2question(doc)
-                print("latest: ", cls.latest_question[tid])
+                logger.debug("latest: " + str(cls.latest_question[tid]))
                 return doc['qid'] == question.id
             else:
                 # 第一次执行, 外部 set_latest 不会调用, 在这里初始化
                 cls.set_latest(tid, question)
-                print("latest: ", cls.latest_question[tid])
+                logger.debug("latest: " + str(cls.latest_question[tid]))
                 return True
 
     @classmethod
     def set_latest(cls, tid, question):
-        print("Set latest question of %s to %s" % (topics[tid], question.id))
+        logger.debug("Set latest question of %s to %s" % (topics[tid], question.id))
         cls.latest_question[tid] = cls(question=question)
 
     def save(self, tid):

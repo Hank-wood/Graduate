@@ -30,7 +30,7 @@ def teardown_module(module):
         db[collection].drop()
 
 
-@pytest.mark.skipif(True, reason="testing others")
+# @pytest.mark.skipif(True, reason="testing others")
 def test_config_validator():
     config = json.load(open(dynamic_config_file, encoding='utf-8'))
 
@@ -51,7 +51,7 @@ def test_config_validator():
         check_valid_config(config)
 
 
-@pytest.mark.skipif(True, reason="testing others")
+# @pytest.mark.skipif(True, reason="testing others")
 def test_find_latest():
     tid = '1234567'
     question1 = QuestionModel('url1', '1', 'asker1', datetime.now())
@@ -66,9 +66,9 @@ def test_find_latest():
     for doc in db[q_col(tid)].find({}):
         print(doc)
 
-    assert DB.find_latest_question(tid)[0]['url'] == 'url3'
-    assert DB.find_latest_question(tid)[0]['qid'] == '3'
-    assert DB.find_latest_question(tid)[0]['asker'] == 'asker3'
+    assert DB.find_latest_question(tid)['url'] == 'url3'
+    assert DB.find_latest_question(tid)['qid'] == '3'
+    assert DB.find_latest_question(tid)['asker'] == 'asker3'
 
 
 @patch('config.dynamic_config.topics', {"19550517": "互联网"})
@@ -101,16 +101,16 @@ def test_fetch_questions_without_previous_data():
             [mock_question4, mock_question3, mock_question2, mock_question1]
         ]
 
-        def stop(count):
-            if count == 1:
+        def test():
+            if mock_q.call_count == 1:
                 assert len(QuestionModel.get_all("19550517")) == 0
-            if count == 2:
+            if mock_q.call_count == 2:
+                questions = QuestionModel.get_all("19550517")
+                # assert questions[0] == mock_question2
+            if mock_q.call_count == 3:
                 questions = QuestionModel.get_all("19550517")
                 assert questions[0] == mock_question2
-            if count == 3:
-                questions = QuestionModel.get_all("19550517")
-                assert questions[0] == mock_question2
-            if count == 4:
+            if mock_q.call_count == 4:
                 questions = QuestionModel.get_all("19550517")
                 questions.sort(key=lambda x: x.qid)
                 assert questions[0] == mock_question2
@@ -118,7 +118,7 @@ def test_fetch_questions_without_previous_data():
                 assert questions[2] == mock_question4
                 raise EndProgramException
 
-        main.main(routine=stop)
+        main.main(postroutine=test)
 
 
 
