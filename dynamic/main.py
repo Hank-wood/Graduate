@@ -36,11 +36,6 @@ class TaskLoop(threading.Thread):
 
 
 def main(preroutine=None, postroutine=None):
-    if restart:
-        DB.drop_all_collections()
-
-    check_valid_config()
-
     if os.path.isfile(logging_config_file):
         with open(logging_config_file, 'rt') as f:
             config = json.load(f)
@@ -48,7 +43,14 @@ def main(preroutine=None, postroutine=None):
 
     logger = logging.getLogger(__name__)
 
-    client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
+    if restart:
+        DB.drop_all_collections()
+
+    validate_config(dynamic_config_file)
+    if not validate_cookie(test_cookie):
+        logger.error("invalid cookie")
+
+    client = zhihu.ZhihuClient(test_cookie)
     TaskLoop(daemon=True).start()
     m = TopicMonitor(client)
     while True:

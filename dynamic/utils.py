@@ -32,7 +32,7 @@ def get_datetime(time_string):
     datetime.strptime(time_string, "%Y-%m-%d %H:%M:%S")
 
 
-def check_valid_config(config=None):
+def validate_config(config=None):
     import json
     import requests
     config = config if config else \
