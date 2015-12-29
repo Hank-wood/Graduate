@@ -35,7 +35,7 @@ def get_datetime(time_string):
 def validate_config(config=None):
     import json
     import requests
-    config = config if config else \
+    config = config if (config and isinstance(config, dict)) else \
              json.load(open(dynamic_config_file, encoding='utf-8'))
 
     if 'topics' not in config:

@@ -46,7 +46,7 @@ def main(preroutine=None, postroutine=None):
     if restart:
         DB.drop_all_collections()
 
-    validate_config(dynamic_config_file)
+    validate_config()
     if not validate_cookie(test_cookie):
         logger.error("invalid cookie")
 

@@ -27,7 +27,8 @@ def setup_module(module):
 
 def teardown_module(module):
     for collection in db.collection_names():
-        db[collection].drop()
+        if collection != 'system.indexes_copy':
+            db[collection].drop()
 
 
 # @pytest.mark.skipif(True, reason="testing others")
@@ -120,7 +121,6 @@ def test_fetch_questions_without_previous_data():
                 raise EndProgramException
 
         main.main(postroutine=test)
-
 
 
 def test_fetch_questions_with_previous_data():
