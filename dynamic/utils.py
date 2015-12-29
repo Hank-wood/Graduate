@@ -2,6 +2,9 @@ import os
 from datetime import datetime
 from collections import deque
 
+import requests
+import json
+
 from common import *
 
 task_queue = deque()
@@ -50,3 +53,23 @@ def check_valid_config(config=None):
 
     assert config['restart'] == False or config['restart'] == True
     return True
+
+
+def validate_cookie(cookie_file):
+    """
+    :param cookie_file: file path of cookie
+    :return: True for valid, False for invalid
+    """
+    session = requests.Session()
+    if os.path.isfile(cookie_file):
+        with open(cookie_file) as f:
+            cookies = f.read()
+            cookies_dict = json.loads(cookies)
+            session.cookies.update(cookies_dict)
+            res = session.get('https://zhihu.com')
+            history = res.history
+            session.close()
+            return res.status_code == 200 and history[0].status_code == 301 \
+                    and history[1].status_code == 302
+    else:
+        raise IOError("no such cookie file:" + cookie_file)

@@ -75,6 +75,7 @@ def test_find_latest():
 def test_fetch_questions_without_previous_data():
     """测试数据库中没有数据的情况"""
     import main
+
     class MockQuestion:
         """
         Act as QuestionModel and zhihu.Question
