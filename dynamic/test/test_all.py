@@ -26,9 +26,9 @@ def setup_module(module):
 
 
 def teardown_module(module):
-    for collection in db.collection_names():
-        if collection != 'system.indexes_copy':
-            db[collection].drop()
+    for collection_name in db.collection_names():
+        if 'system' not in collection_name:
+            db[collection_name].drop()
 
 
 # @pytest.mark.skipif(True, reason="testing others")
