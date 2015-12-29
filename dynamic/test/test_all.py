@@ -34,21 +34,21 @@ def teardown_module(module):
 def test_config_validator():
     config = json.load(open(dynamic_config_file, encoding='utf-8'))
 
-    assert check_valid_config(config)
+    assert validate_config(config)
 
     config['topics']['11111'] = 'non-existent'
     with pytest.raises(InvalidTopicId):
-        check_valid_config(config)
+        validate_config(config)
     del config['topics']['11111']
 
     config['restart'] = 10
     with pytest.raises(AssertionError):
-        check_valid_config(config)
+        validate_config(config)
         config['restart'] = True
 
     del config['topics']
     with pytest.raises(LackConfig):
-        check_valid_config(config)
+        validate_config(config)
 
 
 # @pytest.mark.skipif(True, reason="testing others")
