@@ -34,6 +34,7 @@ class DB:
     @classmethod
     def save_question(cls, question, tid):
         cls.db[q_col(tid)].insert({
+            'topic': question.tid,
             'url': question.url,
             'qid': question.qid,
             'time': question.time,
@@ -41,6 +42,10 @@ class DB:
             'title': question.title,
             'answers': question.answers
         })
+
+    @classmethod
+    def save_answer(cls, answer, tid):
+        pass
 
     @classmethod
     def bulk_save(cls):

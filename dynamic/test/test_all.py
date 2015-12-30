@@ -21,11 +21,11 @@ from common import *
 db = MongoClient('127.0.0.1', 27017).test
 
 
-def setup_module(module):
+def setup_function(function):
     DB.db = db  # replace db with test db
 
 
-def teardown_module(module):
+def teardown_function(function):
     for collection_name in db.collection_names():
         if 'system' not in collection_name:
             db[collection_name].drop()
@@ -55,14 +55,14 @@ def test_config_validator():
 # @pytest.mark.skipif(True, reason="testing others")
 def test_find_latest():
     tid = '1234567'
-    question1 = QuestionModel('url1', '1', 'asker1', datetime.now())
-    question1.save(tid)
+    question1 = QuestionModel(tid, 'url1', '1', 'asker1', datetime.now())
+    question1.save()
     time.sleep(1)
-    question2 = QuestionModel('url2', '2', 'asker2', datetime.now())
-    question2.save(tid)
+    question2 = QuestionModel(tid, 'url2', '2', 'asker2', datetime.now())
+    question2.save()
     time.sleep(1)
-    question3 = QuestionModel('url3', '3', 'asker3', datetime.now())
-    question3.save(tid)
+    question3 = QuestionModel(tid, 'url3', '3', 'asker3', datetime.now())
+    question3.save()
 
     for doc in db[q_col(tid)].find({}):
         print(doc)
@@ -77,11 +77,14 @@ def test_fetch_questions_without_previous_data():
     """测试数据库中没有数据的情况"""
     import main
 
+    tid = "19550517"
+
     class MockQuestion:
         """
         Act as QuestionModel and zhihu.Question
         """
         def __init__(self, url, id, creation_time, title, author=''):
+            self.tid = tid
             self.url = url
             self.id = self.qid = id
             self.creation_time = self.time = creation_time
@@ -105,15 +108,15 @@ def test_fetch_questions_without_previous_data():
 
         def test():
             if mock_q.call_count == 1:
-                assert len(QuestionModel.get_all("19550517")) == 0
+                assert len(QuestionModel.get_all(tid)) == 0
             if mock_q.call_count == 2:
-                questions = QuestionModel.get_all("19550517")
-                # assert questions[0] == mock_question2
+                questions = QuestionModel.get_all(tid)
+                assert questions[0] == mock_question2
             if mock_q.call_count == 3:
-                questions = QuestionModel.get_all("19550517")
+                questions = QuestionModel.get_all(tid)
                 assert questions[0] == mock_question2
             if mock_q.call_count == 4:
-                questions = QuestionModel.get_all("19550517")
+                questions = QuestionModel.get_all(tid)
                 questions.sort(key=lambda x: x.qid)
                 assert questions[0] == mock_question2
                 assert questions[1] == mock_question3
