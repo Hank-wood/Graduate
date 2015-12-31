@@ -81,7 +81,7 @@ class QuestionModel:
         cls.latest_question[tid] = cls(tid, question=question)
 
     def save(self):
-        DB.save_question(self, self.tid)
+        DB.save_question(self)
 
     @classmethod
     def get_all(cls, tid):
@@ -106,14 +106,15 @@ class QuestionModel:
 
 
 class AnswerModel:
-    def __init__(self, tid, url=None, aid=None, qid=None, answerer=None, upvoters=None,
-                 commenters=None, collectors=None, answer=None):
+    def __init__(self, tid, url=None, aid=None, qid=None, answerer=None, time=None,
+                 upvoters=None, commenters=None, collectors=None, answer=None):
         """
         :param tid: fetched from which topic
         :param url: answer url
         :param aid: answer id
         :param qid: question id
         :param answerer: answer author's uid
+        :param time: time when answer is posted
         :param upvoters: current upvoters
         :param commenters: current commenters
         :param collectors: current collectors
@@ -126,10 +127,9 @@ class AnswerModel:
                 self.aid = answer.id
                 self.qid = answer.question.id
                 self.answerer = answer.author.id
+                self.time = answer.creation_time
                 self.upvoters = [author.id for author in answer.upvoters]
-                self.commenters = [
-                    comment.author.id for comment in answer.comments
-                ]
+                self.commenters = [comment.author.id for comment in answer.comments]
                 self.collectors = [coll.owner.id for coll in answer.collections]
             except AttributeError:
                 logging.exception("Error init AnswerModel\n")
@@ -138,6 +138,7 @@ class AnswerModel:
             self.aid = aid
             self.qid = qid
             self.answerer = answerer
+            self.time = time
             self.upvoters = upvoters
             self.commenters = commenters
             self.collectors = collectors
@@ -147,13 +148,14 @@ class AnswerModel:
         return cls(doc['url'], doc['qid'], doc['asker'], doc['time'], doc['title'])
 
     def __eq__(self, other):
-        # title may change
-        return self.url == other.url and self.qid == other.qid and \
-               self.time == other.time and self.asker == other.asker
+        return self.url == other.url and self.aid == other.aid and \
+               self.qid == other.qid and self.time == other.time and \
+               self.answerer == other.answerer
 
     def __str__(self):
         time_tuple = (self.time.hour, self.time.minute, self.time.second)
-        return "{0}:{1}:{2} {3}".format(*time_tuple, self.title)
+        question_title = db.get_question(self.tid, self.qid)
+        return "{0}:{1}:{2} {3} {4}".format(*time_tuple, self.answerer, question_title)
 
     def save(self):
         # save to db

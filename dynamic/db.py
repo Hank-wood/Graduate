@@ -32,8 +32,9 @@ class DB:
             return None
 
     @classmethod
-    def save_question(cls, question, tid):
-        cls.db[q_col(tid)].insert({
+    def save_question(cls, question):
+        # TODO: 到底需不需要存 tid, 因为 collection 都确定了
+        cls.db[q_col(question.tid)].insert({
             'topic': question.tid,
             'url': question.url,
             'qid': question.qid,
@@ -44,8 +45,22 @@ class DB:
         })
 
     @classmethod
-    def save_answer(cls, answer, tid):
-        pass
+    def save_answer(cls, answer):
+        cls.db[a_col(answer.tid)].insert({
+            'url': answer.url,
+            'qid': answer.qid,
+            'aid': answer.aid,
+            'topic': answer.tid,
+            'time': answer.time,
+            'answerer': answer.answerer,
+            'upvoters': answer.upvoters,
+            'commenters': answer.commenters,
+            'collectors': answer.collectors
+        })
+
+    @classmethod
+    def get_question(cls, tid, qid):
+        return cls.db[q_col(tid)].find_one({'qid': qid})  # None or dict
 
     @classmethod
     def bulk_save(cls):
