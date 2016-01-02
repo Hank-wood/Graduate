@@ -144,8 +144,10 @@ class AnswerModel:
             self.collectors = collectors
 
     @classmethod
-    def doc2question(cls, doc):
-        return cls(doc['url'], doc['qid'], doc['asker'], doc['time'], doc['title'])
+    def doc2answer(cls, doc):
+        return cls(doc['topic'], doc['url'], doc['aid'], doc['qid'],
+                   doc['answerer'], doc['time'], doc['upvoters'],
+                   doc['commenters'], doc['collectors'])
 
     def __eq__(self, other):
         return self.url == other.url and self.aid == other.aid and \

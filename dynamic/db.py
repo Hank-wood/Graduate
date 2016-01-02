@@ -33,7 +33,6 @@ class DB:
 
     @classmethod
     def save_question(cls, question):
-        # TODO: 到底需不需要存 tid, 因为 collection 都确定了
         cls.db[q_col(question.tid)].insert({
             'topic': question.tid,
             'url': question.url,
