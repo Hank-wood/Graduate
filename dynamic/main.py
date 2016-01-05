@@ -28,7 +28,7 @@ class TaskLoop(threading.Thread):
         while True:
             if self.routine and callable(self.routine):
                 self.routine()
-            time.sleep(10)  # TODO: set to 60s
+            time.sleep(2)  # TODO: set to 60s
             count = len(task_queue)
             for _ in range(count):
                 task = task_queue.popleft()

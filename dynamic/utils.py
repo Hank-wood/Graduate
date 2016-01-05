@@ -1,13 +1,10 @@
 import os
 from datetime import datetime
-from collections import deque
 
 import requests
 import json
 
 from common import *
-
-task_queue = deque()
 
 
 def q_col(tid):

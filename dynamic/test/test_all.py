@@ -72,11 +72,13 @@ def test_find_latest():
     assert DB.find_latest_question(tid)['asker'] == 'asker3'
 
 
+@patch('task.FetchNewAnswer.execute')
 @patch('config.dynamic_config.topics', {"19550517": "互联网"})
-def test_fetch_questions_without_previous_data():
+def test_fetch_questions_without_previous_data(mk_execute):
     """测试数据库中没有数据的情况"""
     import main
 
+    mk_execute.return_value = None
     tid = "19550517"
 
     class MockQuestion:
@@ -126,8 +128,16 @@ def test_fetch_questions_without_previous_data():
         main.main(postroutine=test)
 
 
+def test_fetch_answers_without_previous_data():
+    pass
+
+
 def test_fetch_questions_with_previous_data():
     """测试数据库有之前保存的 question 的情况"""
+    pass
+
+
+def test_fetch_answers_with_previous_data():
     pass
 
 
