@@ -128,12 +128,12 @@ def test_fetch_questions_without_previous_data(mk_execute):
         main.main(postroutine=test)
 
 
-def test_fetch_answers_without_previous_data():
+def test_fetch_questions_with_previous_data():
+    """测试数据库有之前保存的 question 的情况"""
     pass
 
 
-def test_fetch_questions_with_previous_data():
-    """测试数据库有之前保存的 question 的情况"""
+def test_fetch_answers_without_previous_data():
     pass
 
 

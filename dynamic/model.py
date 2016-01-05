@@ -160,12 +160,22 @@ class AnswerModel:
         return "{0}:{1}:{2} {3} {4}".format(*time_tuple, self.answerer, question_title)
 
     def save(self):
-        # save to db
         DB.save_answer(self)
 
-    def update(self):
-        # TODO
-        pass
+    def update(self, new_upvoters, new_commenters, new_collectors):
+        """格式
+        [{'uid': uid1, 'time': timestamp1},
+        {'uid': uid2, 'time': timestamp2}, ...]
+        """
+        # TODO: update self.upvoters, self.commenters, self.collectors
+        if new_collectors:
+            db.add_upvoters(self.tid, self.aid, new_upvoters)
+
+        if new_commenters:
+            db.add_commenters(self.tid, self.aid, new_commenters)
+
+        if new_collectors:
+            db.add_collectors(self.tid, self.aid, new_collectors)
 
 
 class User:

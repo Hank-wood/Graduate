@@ -66,6 +66,37 @@ class DB:
         pass
 
     @classmethod
+    def add_upvoters(cls, tid, aid, new_upvoters):
+        # TODO: date 可以直接插入吗??
+        self.db[a_col(tid)],update({'qid': aid}, {
+            '$push': {
+                'upvoters': {
+                    '$each': new_upvoters
+                }
+            }
+        })
+
+    @classmethod
+    def add_commenters(cls, tid, aid, new_commenters):
+        self.db[a_col(tid)],update({'qid': aid}, {
+            '$push': {
+                'commenters': {
+                    '$each': new_commenters
+                }
+            }
+        })
+
+    @classmethod
+    def add_collectors(cls, tid, aid, new_collectors):
+        self.db[a_col(tid)],update({'qid': aid}, {
+           '$push': {
+               'collectors': {
+                   '$each': new_collectors
+               }
+           }
+       })
+
+    @classmethod
     def drop_all_collections(cls):
         for collection in cls.db.collection_names():
             cls.db[collection].drop()

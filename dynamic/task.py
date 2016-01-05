@@ -62,7 +62,27 @@ class FetchAnswerInfo(Task):
         self.answer_model.save()
 
     def execute(self):
-        self.answer_model.update()
+        new_upvoters = []
+        new_commenters = []
+        new_collectors = []
+        self.answer.refresh()
+
+        for upvoter in self.answer.upvoters:
+            lastest_upvoter_id = self.answer_model.upvoters[-1]['uid']
+            lastest_upvote_time = self.answer_model.upvoters[-1]['time']
+
+            if upvoter.id == lastest_upvoter_id:
+                break
+            # TODO, 实现逻辑
+            upvote_time = get_upvote_time(upvoter, answer)
+            if upvote_time <= lastest_upvote_time:
+                break
+            else:
+                new_upvoters.append({'uid': upvoter.id, 'time': upvote_time})
+
+        # TODO: same with the other two
+
+        self.answer_model.update(new_upvoters, new_commenters, new_collectors)
         task_queue.append(self)
 
 
