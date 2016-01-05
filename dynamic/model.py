@@ -163,6 +163,10 @@ class AnswerModel:
         # save to db
         DB.save_answer(self)
 
+    def update(self):
+        # TODO
+        pass
+
 
 class User:
     def __init__(self):

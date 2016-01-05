@@ -73,3 +73,7 @@ def validate_cookie(cookie_file):
                     and history[1].status_code == 302
     else:
         raise IOError("no such cookie file:" + cookie_file)
+
+
+def answer_deleted(answer_url):
+    return requests.get(answer_url).history[0].status_code == 302

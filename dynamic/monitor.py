@@ -10,16 +10,15 @@ from config.dynamic_config import topics
 from task import *
 from model import QuestionModel
 from utils import task_queue
+from common import *
 
 
 class TopicMonitor:
 
-    PREFIX = "http://www.zhihu.com/topic/"
-
     def __init__(self, client):
         self.client = client
         self.topics = [
-            client.topic(self.PREFIX+tid) for tid in topics
+            client.topic(TOPIC_PREFIX + tid) for tid in topics
         ]
 
     def detect_new_question(self):
@@ -34,10 +33,12 @@ class TopicMonitor:
             new_questions = []
 
             while not QuestionModel.is_latest(tid, question):
+                question._url = question.url[:-1] + '?sort=created'
                 new_questions.append(question)
-                task_queue.append(FetchNewAnswer(question))
+                task_queue.append(FetchNewAnswer(tid, question))
                 QuestionModel(tid, question=question).save()
                 question = next(it)
 
             if new_questions:
                 QuestionModel.set_latest(tid, latest_question)
+
