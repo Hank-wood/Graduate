@@ -109,13 +109,12 @@ class FetchAnswerInfo(Task):
         :return: datatime.datetime
         """
         time_string = comment.time_string
-        if ':' in time_string:
-            # hour:minute, 19:58
-            pass
-        else:
-            # year-month-day, 2016-01-04. Shouldn't be here
+
+        if ':' in time_string:  # hour:minute, 19:58
+            return get_datetime_hour_min_sec(time_string + ':00')
+        else:  # year-month-day, 2016-01-04. Shouldn't be here
             logger.warning('comment time_string: ' + time_string)
-            return datetime()  # TODO: create a util function
+            return get_datetime_day_month_year(time_string)
 
     @staticmethod
     def get_collector_time(collector, collection):

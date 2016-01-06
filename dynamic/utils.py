@@ -25,8 +25,31 @@ def now_string():
     return datetime.now().strftime("%H:%M:%S")
 
 
-def get_datetime(time_string):
-    datetime.strptime(time_string, "%Y-%m-%d %H:%M:%S")
+def get_datetime_full_string(time_string):
+    """
+    :param time_string: 2016-01-01 04:35:45
+    """
+    return datetime.strptime(time_string, "%Y-%m-%d %H:%M:%S")
+
+
+def get_datetime_hour_min_sec(time_string):
+    """
+    :param time_string: 04:35:45
+    :return: datetime(now.year, now.month, now.day, 4, 35, 45)
+    """
+    # TODO: 跨天需要特殊处理
+    time = datetime.strptime(time_string, "%H:%M:%S").time()
+    day = datetime.now().date()
+    return datetime.combine(day, time)
+
+
+def get_datetime_day_month_year(time_string):
+    """
+    :param time_string: 2016-01-01
+    :return: datetime(2016, 1, 1, 0, 0, 0)
+    """
+    year, month, day = time_string.split('-')
+    return datetime(int(year), int(month), int(day), 0, 0, 0)
 
 
 def validate_config(config=None):
