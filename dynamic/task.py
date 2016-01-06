@@ -8,6 +8,8 @@ import logging
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
+from zhihu import acttype
+
 from utils import *
 from utils import task_queue
 from model import AnswerModel
@@ -85,7 +87,44 @@ class FetchAnswerInfo(Task):
         self.answer_model.update(new_upvoters, new_commenters, new_collectors)
         task_queue.append(self)
 
+    @staticmethod
+    def get_upvote_time(upvoter, answer):
+        """
+        :param upvoter: zhihu.Author
+        :param answer: zhihu.Answer
+        :return: datatime.datetime
+        """
+        for i, act in enumerate(upvoter.activities):
+            if act.type == acttype.UPVOTE_ANSWER:
+                if act.content.url == answer.url:
+                    return act.time
+            if i > 10:
+                logger.error("Can't find upvote activity")
+                raise NoSuchActivity
 
+    @staticmethod
+    def get_comment_time(comment):
+        """
+        :param answer: zhihu.Comment
+        :return: datatime.datetime
+        """
+        time_string = comment.time_string
+        if ':' in time_string:
+            # hour:minute, 19:58
+            pass
+        else:
+            # year-month-day, 2016-01-04. Shouldn't be here
+            logger.warning('comment time_string: ' + time_string)
+            return datetime()  # TODO: create a util function
+
+    @staticmethod
+    def get_collector_time(collector, collection):
+        """
+        :param collector: zhihu.Author
+        :param answer: zhihu.Answer
+        :return: datatime.datetime
+        """
+        pass
 
 __all__ = [
     'FetchNewAnswer',

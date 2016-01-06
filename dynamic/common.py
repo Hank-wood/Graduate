@@ -25,3 +25,6 @@ class InvalidTopicId(Exception):
 
 class LackConfig(Exception):
     pass
+
+class NoSuchActivity(Exception):
+    pass
