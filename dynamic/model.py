@@ -144,6 +144,7 @@ class AnswerModel:
             except AttributeError:
                 logging.exception("Error init AnswerModel\n")
         else:
+            # mainly for testing
             self.url = url
             self.aid = aid
             self.qid = qid
@@ -152,7 +153,6 @@ class AnswerModel:
             self.upvoters = upvoters
             self.commenters = commenters
             self.collectors = collectors
-            # TODO: restore from db. DO WE really need this?
 
     @classmethod
     def doc2answer(cls, doc):
@@ -186,13 +186,13 @@ class AnswerModel:
             self.comments.add(comment_id)
 
         if new_collectors:
-            db.add_upvoters(self.tid, self.aid, new_upvoters)
+            DB.add_upvoters(self.tid, self.aid, new_upvoters)
 
         if new_commenters:
-            db.add_commenters(self.tid, self.aid, new_commenters)
+            DB.add_commenters(self.tid, self.aid, new_commenters)
 
         if new_collectors:
-            db.add_collectors(self.tid, self.aid, new_collectors)
+            DB.add_collectors(self.tid, self.aid, new_collectors)
 
 
 class User:

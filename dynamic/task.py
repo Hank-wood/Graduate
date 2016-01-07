@@ -11,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from zhihu import acttype
 
 from utils import *
-from utils import task_queue
 from model import AnswerModel
 
 logger = logging.getLogger(__name__)
@@ -99,7 +98,7 @@ class FetchAnswerInfo(Task):
         # 收藏夹不是按时间返回, 所以只能全部扫一遍
         if self.answer.collect_num > len(self.answer_model.collectors):
             for collection in self.answer.collections:
-                if collection.author.id not in self.answer_model.collectors:
+                if collection.owner.id not in self.answer_model.collectors:
                     new_collectors.append({
                         'uid': collection.owner.id,
                         'time': self.get_collect_time(self.answer, collection),

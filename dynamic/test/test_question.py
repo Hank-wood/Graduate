@@ -30,27 +30,6 @@ def teardown_function(function):
 
 
 # @pytest.mark.skipif(True, reason="testing others")
-def test_config_validator():
-    config = json.load(open(dynamic_config_file, encoding='utf-8'))
-
-    assert validate_config(config)
-
-    config['topics']['11111'] = 'non-existent'
-    with pytest.raises(InvalidTopicId):
-        validate_config(config)
-    del config['topics']['11111']
-
-    config['restart'] = 10
-    with pytest.raises(AssertionError):
-        validate_config(config)
-        config['restart'] = True
-
-    del config['topics']
-    with pytest.raises(LackConfig):
-        validate_config(config)
-
-
-# @pytest.mark.skipif(True, reason="testing others")
 def test_find_latest():
     tid = '1234567'
     question1 = QuestionModel(tid, 'url1', '1', 'asker1', datetime.now())
