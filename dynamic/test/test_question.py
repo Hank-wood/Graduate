@@ -1,5 +1,5 @@
 """
-数据库相关测试
+抓取问题相关测试
 """
 
 import os
@@ -108,15 +108,3 @@ def test_fetch_questions_without_previous_data(mk_execute):
 def test_fetch_questions_with_previous_data():
     """测试数据库有之前保存的 question 的情况"""
     pass
-
-
-def test_fetch_answers_without_previous_data():
-    pass
-
-
-def test_fetch_answers_with_previous_data():
-    pass
-
-
-if __name__ == '__main__':
-    test_monitor()
