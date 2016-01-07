@@ -139,10 +139,8 @@ class AnswerModel:
                     self.comments.add(comment.cid)
 
                 self.collectors = set()
-                self.collections = set()
                 for collection in answer.collections:
                     self.collectors.add(collection.owner.id)
-                    self.collections.add(collection.id)
             except AttributeError:
                 logging.exception("Error init AnswerModel\n")
         else:
@@ -175,12 +173,18 @@ class AnswerModel:
     def save(self):
         DB.save_answer(self)
 
-    def update(self, new_upvoters, new_commenters, new_collectors):
-        """格式
-        [{'uid': uid1, 'time': timestamp1},
-        {'uid': uid2, 'time': timestamp2}, ...]
+    def update(self, new_upvoters=None, new_commenters=None, new_comments=None,
+               new_collectors=None):
         """
-        # TODO: update self.upvoters, self.commenters/comments, self.collectors/collections
+        :param new_upvoters: [{'uid': uid1, 'time': timestamp1}, ...]
+        :param new_commenters: [{'uid': uid1, 'time': timestamp1}, ...]
+        :param new_comments: [cid, cid, ...]
+        :param new_collectors: [{'uid': uid1, 'time': timestamp1}, ...]
+        :return:
+        """
+        for comment_id in new_comments:
+            self.comments.add(comment_id)
+
         if new_collectors:
             db.add_upvoters(self.tid, self.aid, new_upvoters)
 

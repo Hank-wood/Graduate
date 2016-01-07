@@ -67,7 +67,6 @@ class DB:
 
     @classmethod
     def add_upvoters(cls, tid, aid, new_upvoters):
-        # TODO: date 可以直接插入吗??
         self.db[a_col(tid)],update({'qid': aid}, {
             '$push': {
                 'upvoters': {

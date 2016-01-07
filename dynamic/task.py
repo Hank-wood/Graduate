@@ -66,6 +66,7 @@ class FetchAnswerInfo(Task):
     def execute(self):
         new_upvoters = []
         new_commenters = []
+        new_comments = []
         new_collectors = []
         self.answer.refresh()
 
@@ -80,27 +81,35 @@ class FetchAnswerInfo(Task):
                 })
 
         # add commenters
+        # 同一个人可能发表多条评论, 所以还得 check 不是同一个 commenter
         for comment in reversed(list(self.answer.comments)):
             if comment.cid in self.answer_model.comments:
                 break
-            elif comment.author.id not in self.answer_model.commenters:
+            else:
+                new_comments.append(comment.cid)
+
+            if comment.author.id not in self.answer_model.commenters:
                 new_commenters.append({
                     'uid': comment.author.id,
-                    'time': self.get_comment_time(comment)
+                    'time': self.get_comment_time(comment),
+                    'cid': comment.cid
                 })
 
         # add collectors
         # 收藏夹不是按时间返回, 所以只能全部扫一遍
-        if self.answer.collect_num > len(self.answer_model.collections):
+        if self.answer.collect_num > len(self.answer_model.collectors):
             for collection in self.answer.collections:
-                if collection.id not in self.answer_model.collections:
+                if collection.author.id not in self.answer_model.collectors:
                     new_collectors.append({
                         'uid': collection.owner.id,
-                        'time': self.get_collect_time(self.answer, collection)
+                        'time': self.get_collect_time(self.answer, collection),
+                        'cid': collection.id
                     })
 
-        # TODO: also update comment_id, collection_id
-        self.answer_model.update(new_upvoters, new_commenters, new_collectors)
+        self.answer_model.update(new_upvoters=new_upvoters,
+                                 new_commenters=new_commenters,
+                                 new_comments=new_comments,
+                                 new_collectors=new_collectors,)
         task_queue.append(self)
 
     @staticmethod
