@@ -69,21 +69,37 @@ class FetchAnswerInfo(Task):
         new_collectors = []
         self.answer.refresh()
 
+        # add upvoters
         for upvoter in self.answer.upvoters:
-            lastest_upvoter_id = self.answer_model.upvoters[-1]['uid']
-            lastest_upvote_time = self.answer_model.upvoters[-1]['time']
-
-            if upvoter.id == lastest_upvoter_id:
-                break
-            # TODO, 实现逻辑
-            upvote_time = get_upvote_time(upvoter, answer)
-            if upvote_time <= lastest_upvote_time:
+            if upvoter.id in self.answer_model.upvoters:
                 break
             else:
-                new_upvoters.append({'uid': upvoter.id, 'time': upvote_time})
+                new_upvoters.append({
+                    'uid': upvoter.id,
+                    'time': self.get_upvote_time(upvoter, self.answer)
+                })
 
-        # TODO: same with the other two
+        # add commenters
+        for comment in reversed(list(self.answer.comments)):
+            if comment.cid in self.answer_model.comments:
+                break
+            elif comment.author.id not in self.answer_model.commenters:
+                new_commenters.append({
+                    'uid': comment.author.id,
+                    'time': self.get_comment_time(comment)
+                })
 
+        # add collectors
+        # 收藏夹不是按时间返回, 所以只能全部扫一遍
+        if self.answer.collect_num > len(self.answer_model.collections):
+            for collection in self.answer.collections:
+                if collection.id not in self.answer_model.collections:
+                    new_collectors.append({
+                        'uid': collection.owner.id,
+                        'time': self.get_collect_time(self.answer, collection)
+                    })
+
+        # TODO: also update comment_id, collection_id
         self.answer_model.update(new_upvoters, new_commenters, new_collectors)
         task_queue.append(self)
 
@@ -105,7 +121,7 @@ class FetchAnswerInfo(Task):
     @staticmethod
     def get_comment_time(comment):
         """
-        :param answer: zhihu.Comment
+        :param comment: zhihu.Comment
         :return: datatime.datetime
         """
         time_string = comment.time_string
@@ -117,13 +133,20 @@ class FetchAnswerInfo(Task):
             return get_datetime_day_month_year(time_string)
 
     @staticmethod
-    def get_collector_time(collector, collection):
+    def get_collect_time(answer, collection):
         """
-        :param collector: zhihu.Author
         :param answer: zhihu.Answer
+        :param collection: zhihu.Collection
         :return: datatime.datetime
         """
-        pass
+        for log in collection.logs:
+            if log.answer is None:  # create collection
+                continue
+            if answer.url == log.answer.url:
+                return log.time
+        else:
+            logger.error("Can't find collect activity")
+            raise NoSuchActivity
 
 __all__ = [
     'FetchNewAnswer',

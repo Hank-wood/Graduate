@@ -119,6 +119,8 @@ class AnswerModel:
         :param commenters: current commenters
         :param collectors: current collectors
         :param answer: zhihu.Answer object
+        upvote 没有唯一标识, comment 和 collection 都有
+        所以 upvote 只记录 upvoter, comment/collection 记录 id
         """
         self.tid = tid
         if answer:
@@ -128,9 +130,19 @@ class AnswerModel:
                 self.qid = answer.question.id
                 self.answerer = answer.author.id
                 self.time = answer.creation_time
-                self.upvoters = [author.id for author in answer.upvoters]
-                self.commenters = [comment.author.id for comment in answer.comments]
-                self.collectors = [coll.owner.id for coll in answer.collections]
+                self.upvoters = set(author.id for author in answer.upvoters)
+
+                self.commenters = set()
+                self.comments = set()
+                for comment in answer.comments:
+                    self.commenters.add(comment.author.id)
+                    self.comments.add(comment.cid)
+
+                self.collectors = set()
+                self.collections = set()
+                for collection in answer.collections:
+                    self.collectors.add(collection.owner.id)
+                    self.collections.add(collection.id)
             except AttributeError:
                 logging.exception("Error init AnswerModel\n")
         else:
@@ -142,6 +154,7 @@ class AnswerModel:
             self.upvoters = upvoters
             self.commenters = commenters
             self.collectors = collectors
+            # TODO: restore from db. DO WE really need this?
 
     @classmethod
     def doc2answer(cls, doc):
@@ -167,7 +180,7 @@ class AnswerModel:
         [{'uid': uid1, 'time': timestamp1},
         {'uid': uid2, 'time': timestamp2}, ...]
         """
-        # TODO: update self.upvoters, self.commenters, self.collectors
+        # TODO: update self.upvoters, self.commenters/comments, self.collectors/collections
         if new_collectors:
             db.add_upvoters(self.tid, self.aid, new_upvoters)
 
