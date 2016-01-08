@@ -60,7 +60,7 @@ class FetchAnswerInfo(Task):
     def __init__(self, tid, answer):
         self.tid = tid
         self.answer = answer
-        self.manager = AnswerManager(tid, answer.aid)
+        self.manager = AnswerManager(tid, answer.id)
         self.manager.sync_basic_info(
                 qid=answer.question.id, url=answer.url,
                 answerer=answer.author.id, time=answer.time)

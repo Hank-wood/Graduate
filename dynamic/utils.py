@@ -97,3 +97,14 @@ def validate_cookie(cookie_file):
 
 def answer_deleted(answer_url):
     return requests.get(answer_url).history[0].status_code == 302
+
+
+def dict_equal(dict_more_key, dict_less_key):
+    try:
+        for key in dict_less_key:
+            if not dict_more_key[key] == dict_less_key[key]:
+                return False
+    except KeyError:
+        return False
+
+    return True

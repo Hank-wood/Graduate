@@ -75,17 +75,18 @@ class DB:
         cls.db[a_col(tid)].update({'aid': aid}, {
             '$push': {
                 'upvoters': {
-                    '$each': new_upvoters
+                    '$each': list(new_upvoters)
                 }
             }
         })
 
     @classmethod
     def add_commenters(cls, tid, aid, new_commenters):
+        # pymongo不识别deque,只能转为list
         cls.db[a_col(tid)].update({'aid': aid}, {
             '$push': {
                 'commenters': {
-                    '$each': new_commenters
+                    '$each': list(new_commenters)
                 }
             }
         })
@@ -95,7 +96,7 @@ class DB:
         cls.db[a_col(tid)].update({'aid': aid}, {
            '$push': {
                'collectors': {
-                   '$each': new_collectors
+                   '$each': list(new_collectors)
                }
            }
        })

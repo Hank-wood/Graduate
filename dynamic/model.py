@@ -141,7 +141,7 @@ class AnswerManager:
         :param new_collectors: [{'uid': uid1, 'time': timestamp1}, ...]
         :return:
         """
-        if new_collectors:
+        if new_upvoters:
             for upvoter in new_upvoters:
                 self.upvoters.add(upvoter['uid'])
             DB.add_upvoters(self.tid, self.aid, new_upvoters)
