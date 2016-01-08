@@ -1,7 +1,8 @@
 # coding: utf-8
 
 """
-ORM-like class
+This is not ORM, it's (cache)manager, handles pure data,
+not aware of zhihu.XXX object
 """
 
 import logging
@@ -105,9 +106,8 @@ class QuestionModel:
         return "{0}:{1}:{2} {3}".format(*time_tuple, self.title)
 
 
-class AnswerModel:
-    def __init__(self, tid, url=None, aid=None, qid=None, answerer=None, time=None,
-                 upvoters=None, commenters=None, collectors=None, answer=None):
+class AnswerManager:
+    def __init__(self, tid, aid):
         """
         :param tid: fetched from which topic
         :param url: answer url
@@ -122,6 +122,7 @@ class AnswerModel:
         upvote 没有唯一标识, comment 和 collection 都有
         所以 upvote 只记录 upvoter, comment/collection 记录 id
         """
+        # TODO: if this answer exists in db, load all info from db including users
         self.tid = tid
         if answer:
             try:
@@ -170,11 +171,13 @@ class AnswerModel:
         question_title = db.get_question(self.tid, self.qid)
         return "{0}:{1}:{2} {3} {4}".format(*time_tuple, self.answerer, question_title)
 
-    def save(self):
-        DB.save_answer(self)
+    def sync_basic_info(self, aid, url):
+        # TODO: sync aid, url, ... those info that won't change
+        pass
 
-    def update(self, new_upvoters=None, new_commenters=None, new_comments=None,
+    def sync_affected_users(self, new_upvoters=None, new_commenters=None, new_comments=None,
                new_collectors=None):
+        # TODO: if managers'
         """
         :param new_upvoters: [{'uid': uid1, 'time': timestamp1}, ...]
         :param new_commenters: [{'uid': uid1, 'time': timestamp1}, ...]

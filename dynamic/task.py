@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from zhihu import acttype
 
 from utils import *
-from model import AnswerModel
+from model import AnswerManager
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,8 @@ class FetchAnswerInfo(Task):
     def __init__(self, tid, answer):
         self.tid = tid
         self.answer = answer
-        self.answer_model = AnswerModel(self.tid, answer=answer)
-        self.answer_model.save()
+        self.answer_model = AnswerManager(self.tid, answer.id)
+        self.answer_model.sync_basic_info('TODO')
 
     def execute(self):
         new_upvoters = []
@@ -105,7 +105,7 @@ class FetchAnswerInfo(Task):
                         'cid': collection.id
                     })
 
-        self.answer_model.update(new_upvoters=new_upvoters,
+        self.answer_model.sync_affected_users(new_upvoters=new_upvoters,
                                  new_commenters=new_commenters,
                                  new_comments=new_comments,
                                  new_collectors=new_collectors,)
