@@ -34,9 +34,9 @@ class DB:
     @classmethod
     def save_question(cls, question):
         cls.db[q_col(question.tid)].insert({
-            'topic': question.tid,
+            'topic': str(question.tid),
             'url': question.url,
-            'qid': question.qid,
+            'qid': str(question.qid),
             'time': question.time,
             'asker': question.asker,
             'title': question.title,
@@ -44,17 +44,22 @@ class DB:
         })
 
     @classmethod
-    def save_answer(cls, answer):
-        cls.db[a_col(answer.tid)].insert({
-            'url': answer.url,
-            'qid': answer.qid,
-            'aid': answer.aid,
-            'topic': answer.tid,
-            'time': answer.time,
-            'answerer': answer.answerer,
-            'upvoters': answer.upvoters,
-            'commenters': answer.commenters,
-            'collectors': answer.collectors
+    def save_answer(cls, tid, aid, url, qid, time, answerer, upvoters=None,
+                    commenters=None, collectors=None):
+        upvoters = [] if upvoters is None else upvoters
+        commenters = [] if commenters is None else commenters
+        collectors = [] if collectors is None else collectors
+
+        cls.db[a_col(tid)].insert({
+            'topic': str(tid),
+            'aid': str(aid),
+            'url': url,
+            'qid': str(qid),
+            'time': time,
+            'answerer': answerer,
+            'upvoters': upvoters,
+            'commenters': commenters,
+            'collectors': collectors
         })
 
     @classmethod
@@ -67,7 +72,7 @@ class DB:
 
     @classmethod
     def add_upvoters(cls, tid, aid, new_upvoters):
-        self.db[a_col(tid)],update({'qid': aid}, {
+        cls.db[a_col(tid)].update({'aid': aid}, {
             '$push': {
                 'upvoters': {
                     '$each': new_upvoters
@@ -77,7 +82,7 @@ class DB:
 
     @classmethod
     def add_commenters(cls, tid, aid, new_commenters):
-        self.db[a_col(tid)],update({'qid': aid}, {
+        cls.db[a_col(tid)].update({'aid': aid}, {
             '$push': {
                 'commenters': {
                     '$each': new_commenters
@@ -87,13 +92,17 @@ class DB:
 
     @classmethod
     def add_collectors(cls, tid, aid, new_collectors):
-        self.db[a_col(tid)],update({'qid': aid}, {
+        cls.db[a_col(tid)].update({'aid': aid}, {
            '$push': {
                'collectors': {
                    '$each': new_collectors
                }
            }
        })
+
+    @classmethod
+    def find_one_answer(cls, tid, aid):
+        return cls.db[a_col(tid)].find_one({'aid': aid})
 
     @classmethod
     def drop_all_collections(cls):

@@ -1,11 +1,12 @@
 # coding: utf-8
 
 """
-This is not ORM, it's (cache)manager, handles pure data,
+This is not ORM, it's (cache)manager, handles pure data but don't store them,
 not aware of zhihu.XXX object
 """
 
 import logging
+from datetime import datetime
 
 import ezcf
 import zhihu
@@ -108,93 +109,51 @@ class QuestionModel:
 
 class AnswerManager:
     def __init__(self, tid, aid):
-        """
-        :param tid: fetched from which topic
-        :param url: answer url
-        :param aid: answer id
-        :param qid: question id
-        :param answerer: answer author's uid
-        :param time: time when answer is posted
-        :param upvoters: current upvoters
-        :param commenters: current commenters
-        :param collectors: current collectors
-        :param answer: zhihu.Answer object
-        upvote 没有唯一标识, comment 和 collection 都有
-        所以 upvote 只记录 upvoter, comment/collection 记录 id
-        """
-        # TODO: if this answer exists in db, load all info from db including users
         self.tid = tid
-        if answer:
-            try:
-                self.url = answer.url
-                self.aid = answer.id
-                self.qid = answer.question.id
-                self.answerer = answer.author.id
-                self.time = answer.creation_time
-                self.upvoters = set(author.id for author in answer.upvoters)
-
-                self.commenters = set()
-                self.comments = set()
-                for comment in answer.comments:
-                    self.commenters.add(comment.author.id)
-                    self.comments.add(comment.cid)
-
-                self.collectors = set()
-                for collection in answer.collections:
-                    self.collectors.add(collection.owner.id)
-            except AttributeError:
-                logging.exception("Error init AnswerModel\n")
+        self.aid = aid
+        self.new_answer = True
+        answer_doc = DB.find_one_answer(tid, aid)
+        if answer_doc:
+            self.new_answer = False
+            self.upvoters = set(u['uid'] for u in answer_doc['upvoters'])
+            self.commenters = set(u['uid'] for u in answer_doc['commenters'])
+            self.collectors = set(u['uid'] for u in answer_doc['collectors'])
+            self.lastest_comment_time = answer_doc['commenters'][-1]['time']
         else:
-            # mainly for testing
-            self.url = url
-            self.aid = aid
-            self.qid = qid
-            self.answerer = answerer
-            self.time = time
-            self.upvoters = upvoters
-            self.commenters = commenters
-            self.collectors = collectors
-
-    @classmethod
-    def doc2answer(cls, doc):
-        return cls(doc['topic'], doc['url'], doc['aid'], doc['qid'],
-                   doc['answerer'], doc['time'], doc['upvoters'],
-                   doc['commenters'], doc['collectors'])
+            self.upvoters = set()
+            self.commenters = set()
+            self.collectors = set()
+            self.lastest_comment_time = datetime(1970, 1, 1, 0, 0, 0)
 
     def __eq__(self, other):
-        return self.url == other.url and self.aid == other.aid and \
-               self.qid == other.qid and self.time == other.time and \
-               self.answerer == other.answerer
+        return self.aid == other.aid
 
-    def __str__(self):
-        time_tuple = (self.time.hour, self.time.minute, self.time.second)
-        question_title = db.get_question(self.tid, self.qid)
-        return "{0}:{1}:{2} {3} {4}".format(*time_tuple, self.answerer, question_title)
+    def sync_basic_info(self, qid, url, answerer, time):
+        if self.new_answer:
+            DB.save_answer(tid=self.tid, aid=self.aid, url=url, qid=qid,
+                           time=time, answerer=answerer)
 
-    def sync_basic_info(self, aid, url):
-        # TODO: sync aid, url, ... those info that won't change
-        pass
-
-    def sync_affected_users(self, new_upvoters=None, new_commenters=None, new_comments=None,
-               new_collectors=None):
-        # TODO: if managers'
+    def sync_affected_users(self, new_upvoters=None, new_commenters=None,
+                            new_collectors=None):
         """
         :param new_upvoters: [{'uid': uid1, 'time': timestamp1}, ...]
         :param new_commenters: [{'uid': uid1, 'time': timestamp1}, ...]
-        :param new_comments: [cid, cid, ...]
         :param new_collectors: [{'uid': uid1, 'time': timestamp1}, ...]
         :return:
         """
-        for comment_id in new_comments:
-            self.comments.add(comment_id)
-
         if new_collectors:
+            for upvoter in new_upvoters:
+                self.upvoters.add(upvoter['uid'])
             DB.add_upvoters(self.tid, self.aid, new_upvoters)
 
         if new_commenters:
+            for commenter in new_commenters:
+                self.commenters.add(commenter['uid'])
             DB.add_commenters(self.tid, self.aid, new_commenters)
 
         if new_collectors:
+            for collector in new_collectors:
+                self.collectors.add(collector['uid'])
             DB.add_collectors(self.tid, self.aid, new_collectors)
 
 

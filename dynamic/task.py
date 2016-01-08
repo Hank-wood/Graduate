@@ -6,6 +6,7 @@
 
 import logging
 from datetime import datetime
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
 from zhihu import acttype
@@ -59,22 +60,25 @@ class FetchAnswerInfo(Task):
     def __init__(self, tid, answer):
         self.tid = tid
         self.answer = answer
-        self.answer_model = AnswerManager(self.tid, answer.id)
-        self.answer_model.sync_basic_info('TODO')
+        self.manager = AnswerManager(tid, answer.aid)
+        self.manager.sync_basic_info(
+                qid=answer.question.id, url=answer.url,
+                answerer=answer.author.id, time=answer.time)
 
     def execute(self):
-        new_upvoters = []
-        new_commenters = []
-        new_comments = []
-        new_collectors = []
+        new_upvoters = deque()
+        new_commenters = deque()
+        new_collectors = deque()
         self.answer.refresh()
+
+        # Note: put older event in lower index, use appendleft
 
         # add upvoters
         for upvoter in self.answer.upvoters:
-            if upvoter.id in self.answer_model.upvoters:
+            if upvoter.id in self.manager.upvoters:
                 break
             else:
-                new_upvoters.append({
+                new_upvoters.appendleft({
                     'uid': upvoter.id,
                     'time': self.get_upvote_time(upvoter, self.answer)
                 })
@@ -82,13 +86,11 @@ class FetchAnswerInfo(Task):
         # add commenters
         # 同一个人可能发表多条评论, 所以还得 check 不是同一个 commenter
         for comment in reversed(list(self.answer.comments)):
-            if comment.cid in self.answer_model.comments:
-                break
+            if comment.author.id in self.manager.commenters:
+                if comment.time <= self.manager.lastest_comment_time:
+                    break
             else:
-                new_comments.append(comment.cid)
-
-            if comment.author.id not in self.answer_model.commenters:
-                new_commenters.append({
+                new_commenters.appendleft({
                     'uid': comment.author.id,
                     'time': self.get_comment_time(comment),
                     'cid': comment.cid
@@ -96,19 +98,18 @@ class FetchAnswerInfo(Task):
 
         # add collectors
         # 收藏夹不是按时间返回, 所以只能全部扫一遍
-        if self.answer.collect_num > len(self.answer_model.collectors):
+        if self.answer.collect_num > len(self.manager.collectors):
             for collection in self.answer.collections:
-                if collection.owner.id not in self.answer_model.collectors:
+                if collection.owner.id not in self.manager.collectors:
                     new_collectors.append({
                         'uid': collection.owner.id,
                         'time': self.get_collect_time(self.answer, collection),
                         'cid': collection.id
                     })
 
-        self.answer_model.sync_affected_users(new_upvoters=new_upvoters,
-                                 new_commenters=new_commenters,
-                                 new_comments=new_comments,
-                                 new_collectors=new_collectors,)
+        self.manager.sync_affected_users(new_upvoters=new_upvoters,
+                                         new_commenters=new_commenters,
+                                         new_collectors=new_collectors)
         task_queue.append(self)
 
     @staticmethod
