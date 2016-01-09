@@ -39,7 +39,7 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     t2 = t1+timedelta(1)
     t3 = t2+timedelta(1)
     mock_upvote_time.side_effect = [t1, t2, t3]
-    mock_comment_time.side_effect = [t1, t2, t3]
+    mock_comment_time.side_effect = [t1, t2, t3]  # invoked every time
     mock_collect_time.side_effect = [t1, t2, t3]
 
     mock_answer = Mock(url=None, id=aid, time=None, collect_num=0,
@@ -58,7 +58,7 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
         elif refresh.call_count == 3:
             mock_answer.upvoters.appendleft(Mock(id='up3'))
             mock_answer.comments.appendleft(Mock(cid=2, author=Mock(id='cm2')))
-            mock_answer.collections.appendleft(Mock(id=2, onwer=Mock(id='cl1')))
+            mock_answer.collections.appendleft(Mock(id=1, owner=Mock(id='cl1')))
             mock_answer.collect_num += 1
 
     refresh.side_effect = update_attrs
@@ -75,10 +75,38 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     task.execute()
     assert dict_equal(DB.find_one_answer(tid, aid), {
         'topic': tid, 'aid': aid, 'qid': 'question_id', 'answerer': 'author_id',
-        'upvoters': [{'uid':'up1', 'time':t1}], 'commenters': [], 'collectors': []
+        'upvoters': [
+            {'uid':'up1', 'time':t1}],
+        'commenters': [],
+        'collectors': []
     })
 
-    # TODO: more tests
+    task.execute()
+    assert dict_equal(DB.find_one_answer(tid, aid), {
+        'topic': tid, 'aid': aid, 'qid': 'question_id', 'answerer': 'author_id',
+        'upvoters': [
+            {'uid':'up1', 'time':t1},
+            {'uid':'up2', 'time':t2}],
+        'commenters': [
+            {'uid':'cm1', 'time':t1, 'cid':1}],
+        'collectors': []
+    })
+
+    task.execute()
+    assert dict_equal(DB.find_one_answer(tid, aid), {
+        'topic': tid, 'aid': aid, 'qid': 'question_id', 'answerer': 'author_id',
+        'upvoters': [
+            {'uid':'up1', 'time':t1},
+            {'uid':'up2', 'time':t2},
+            {'uid':'up3', 'time':t3}],
+        'commenters': [
+            {'uid':'cm1', 'time':t1, 'cid':1},
+            {'uid':'cm2', 'time':t3, 'cid':2}],
+        'collectors': [
+            {'uid':'cl1', 'time':t1, 'cid':1}],
+    })
+
+    # TODO: test comment by same person
 
 
 def test_fetch_answers_with_previous_data():

@@ -86,13 +86,14 @@ class FetchAnswerInfo(Task):
         # add commenters
         # 同一个人可能发表多条评论, 所以还得 check 不是同一个 commenter
         for comment in reversed(list(self.answer.comments)):
+            comment_time = self.get_comment_time(comment)
             if comment.author.id in self.manager.commenters:
-                if comment.time <= self.manager.lastest_comment_time:
+                if comment_time <= self.manager.lastest_comment_time:
                     break
             else:
                 new_commenters.appendleft({
                     'uid': comment.author.id,
-                    'time': self.get_comment_time(comment),
+                    'time': comment_time,
                     'cid': comment.cid
                 })
 

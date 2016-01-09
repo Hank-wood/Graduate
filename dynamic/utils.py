@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pprint import pprint
 
 import requests
 import json
@@ -103,6 +104,9 @@ def dict_equal(dict_more_key, dict_less_key):
     try:
         for key in dict_less_key:
             if not dict_more_key[key] == dict_less_key[key]:
+                print("unequal key: " + key)
+                pprint(dict_more_key[key])
+                pprint(dict_less_key[key])
                 return False
     except KeyError:
         return False
