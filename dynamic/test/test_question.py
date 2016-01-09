@@ -16,17 +16,16 @@ from db import DB
 from utils import *
 from common import *
 
-db = MongoClient('127.0.0.1', 27017).test
 
-
-def setup_function(function):
+def setup_module(module):
+    db = MongoClient('127.0.0.1', 27017).test
     DB.db = db  # replace db with test db
 
 
 def teardown_function(function):
-    for collection_name in db.collection_names():
+    for collection_name in DB.db.collection_names():
         if 'system' not in collection_name:
-            db[collection_name].drop()
+            DB.db[collection_name].drop()
 
 
 # @pytest.mark.skipif(True, reason="testing others")
@@ -41,7 +40,7 @@ def test_find_latest():
     question3 = QuestionModel(tid, 'url3', '3', 'asker3', datetime.now())
     question3.save()
 
-    for doc in db[q_col(tid)].find({}):
+    for doc in DB.db[q_col(tid)].find({}):
         print(doc)
 
     assert DB.find_latest_question(tid)['url'] == 'url3'

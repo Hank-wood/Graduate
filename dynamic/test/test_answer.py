@@ -15,17 +15,17 @@ from utils import *
 from common import *
 
 
-db = MongoClient('127.0.0.1', 27017).test
-
-
-def setup_function(function):
+def setup_module(module):
+    db = MongoClient('127.0.0.1', 27017).test
     DB.db = db  # replace db with test db
+    module.__dict__['tid'] = '123456'
+    module.__dict__['aid'] = '111111'
 
 
 def teardown_function(function):
-    for collection_name in db.collection_names():
+    for collection_name in DB.db.collection_names():
         if 'system' not in collection_name:
-            db[collection_name].drop()
+            DB.db[collection_name].drop()
 
 
 @patch('task.FetchAnswerInfo.get_upvote_time')
@@ -34,8 +34,6 @@ def teardown_function(function):
 def test_fetch_answers_without_previous_data(mock_upvote_time,
                                              mock_comment_time,
                                              mock_collect_time):
-    aid = '111111'
-
     # mongodb can't store microsecond
     t1 = datetime.now().replace(microsecond=0)
     t2 = t1+timedelta(1)
@@ -67,7 +65,6 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     mock_answer.configure_mock(refresh=refresh, question=mock_question,
                                author=mock_author)
 
-    tid = '123456'
     task = FetchAnswerInfo(tid=tid, answer=mock_answer)
 
     assert dict_equal(DB.find_one_answer(tid, aid), {

@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import os
 import time
 import threading
 import atexit
@@ -40,6 +41,8 @@ def main(preroutine=None, postroutine=None):
         with open(logging_config_file, 'rt') as f:
             config = json.load(f)
             logging.config.dictConfig(config)
+            log_dir = os.path.dirname(config['handlers']['file_handler']['filename'])
+            os.makedirs(log_dir, exist_ok=True)
 
     logger = logging.getLogger(__name__)
 
