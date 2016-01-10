@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from zhihu import acttype
 
 from utils import *
+from common import *
 from model import AnswerManager
 
 logger = logging.getLogger(__name__)

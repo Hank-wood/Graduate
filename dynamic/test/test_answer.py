@@ -1,13 +1,14 @@
 import os
 import time
 import json
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from collections import deque
 from unittest.mock import patch, Mock
 
 from pymongo import MongoClient
 import pytest
 
+import utils
 from model import AnswerManager
 from db import DB
 from task import FetchAnswerInfo
@@ -20,6 +21,8 @@ def setup_module(module):
     DB.db = db  # replace db with test db
     module.__dict__['tid'] = '123456'
     module.__dict__['aid'] = '111111'
+    module.__dict__['qid'] = '000000'
+    module.__dict__['author_id'] = 'author_id'
 
 
 def teardown_function(function):
@@ -38,32 +41,32 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
                                  = [t1+timedelta(i) for i in range(10)]
 
     mock_answer = Mock(url=None, id=aid, time=None, collect_num=0,
-                       upvoters=deque(),
-                       comments=deque(), collections=deque())
+                       upvoters=deque(), comments=[], collections=[])
     refresh = Mock()
-    mock_question = Mock(id='question_id')
-    mock_author = Mock(id='author_id')
+    mock_question = Mock(id=qid)
+    mock_author = Mock(id=author_id)
 
+    # 只有 upvoters 需要 appendleft 来模拟新 upvoter 在上面
     def update_attrs():
         if refresh.call_count == 1:
             mock_answer.upvoters.appendleft(Mock(id='up1'))
         elif refresh.call_count == 2:
             mock_answer.upvoters.appendleft(Mock(id='up2'))
-            mock_answer.comments.appendleft(Mock(cid=1, author=Mock(id='cm1'),
+            mock_answer.comments.append(Mock(cid=1, author=Mock(id='cm1'),
                                                  time_string='12:01'))
         elif refresh.call_count == 3:
             mock_answer.upvoters.appendleft(Mock(id='up3'))
-            mock_answer.comments.appendleft(Mock(cid=2, author=Mock(id='cm2'),
+            mock_answer.comments.append(Mock(cid=2, author=Mock(id='cm2'),
                                                  time_string='12:02'))
-            mock_answer.collections.appendleft(Mock(id=1, owner=Mock(id='cl1')))
+            mock_answer.collections.append(Mock(id=1, owner=Mock(id='cl1')))
             mock_answer.collect_num += 1
         elif refresh.call_count == 4:
-            mock_answer.comments.appendleft(Mock(cid=3, author=Mock(id='cm1'),
+            mock_answer.comments.append(Mock(cid=3, author=Mock(id='cm1'),
                                                  time_string='12:03'))
         elif refresh.call_count == 5:
-            mock_answer.comments.appendleft(Mock(cid=4, author=Mock(id='cm3'),
+            mock_answer.comments.append(Mock(cid=4, author=Mock(id='cm3'),
                                                  time_string='12:04'))
-            mock_answer.comments.appendleft(Mock(cid=5, author=Mock(id='cm1'),
+            mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm1'),
                                                  time_string='12:05'))
 
     refresh.side_effect = update_attrs
@@ -72,38 +75,105 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
 
     task = FetchAnswerInfo(tid=tid, answer=mock_answer)
     answer_info = {
-        'topic': tid, 'aid': aid, 'qid': 'question_id', 'answerer': 'author_id',
+        'topic': tid, 'aid': aid, 'qid': qid, 'answerer': author_id,
         'upvoters': [], 'commenters': [], 'collectors': []
     }
     day = datetime.now().date()
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
 
+    # call_count = 1
     task.execute()
     answer_info['upvoters'].append({'uid':'up1', 'time':t1})
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
 
+    # call_count = 2
     task.execute()
     answer_info['upvoters'].append({'uid':'up2', 'time':t1+timedelta(1)})
     answer_info['commenters'].append({'uid':'cm1', 'cid':1,
                                       'time':datetime.combine(day, time(12,1))})
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert task.manager.lastest_comment_time == datetime.combine(day, time(12,1))
 
+    # call_count = 3
     task.execute()
     answer_info['upvoters'].append({'uid':'up3', 'time':t1+timedelta(2)})
     answer_info['commenters'].append({'uid':'cm2', 'cid':2,
                                       'time':datetime.combine(day, time(12,2))})
     answer_info['collectors'].append({'uid':'cl1', 'time':t1, 'cid':1})
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert task.manager.lastest_comment_time == datetime.combine(day, time(12,2))
 
     # test adding comment posted by same person
     task.execute()
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert task.manager.lastest_comment_time == datetime.combine(day, time(12,2))
 
     task.execute()
     answer_info['commenters'].append({'uid':'cm3', 'cid':4,
                                      'time':datetime.combine(day, time(12,4))})
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert task.manager.lastest_comment_time == datetime.combine(day, time(12,4))
 
 
-def test_fetch_answers_with_previous_data():
-    pass
+@patch('task.FetchAnswerInfo.get_upvote_time')
+@patch('task.FetchAnswerInfo.get_collect_time')
+def test_fetch_answers_with_previous_data(mock_upvote_time, mock_collect_time):
+    answer_info = {
+        'topic': str(tid),
+        'aid': str(aid),
+        'url': 'https://zhihu.com/answer/1',
+        'qid': str(qid),
+        'time': datetime(2016, 1, 8, 19, 30, 1),
+        'answerer': author_id,
+        'upvoters': [
+            {'uid':'up1', 'time':datetime(2016, 1, 8, 19, 30, 1)},
+            {'uid':'up2', 'time':datetime(2016, 1, 8, 19, 40, 1)},
+            {'uid':'up3', 'time':datetime(2016, 1, 9, 3, 50, 2)}
+        ],
+        'commenters': [
+           {'uid':'cm1', 'cid':1, 'time': get_datetime_hour_min_sec('20:09:00')}
+        ],
+        'collectors': [
+            {'uid':'cl1', 'cid':1, 'time':datetime(2016, 1, 9, 1, 9, 45)}
+        ]
+    }
+
+    DB.db[a_col(tid)].insert(answer_info)
+
+    t1 = datetime.now().replace(microsecond=0)
+    # mock_upvote_time 和 mock_collect_time 在这里不起作用，故随便给一个值
+    mock_upvote_time.return_value = mock_collect_time.return_value = t1
+
+    mock_answer = Mock(url=None, id=aid, time=None, collect_num=0,
+                       upvoters=deque([
+                           Mock(id='up1'), Mock(id='up2'), Mock(id='up3')]),
+                       comments=[Mock(uid='cm1', cid=1, time_string='20:09',
+                                      author=Mock(id='cm1'))],
+                       collections=[Mock(id='cl1', cid=1)])
+    refresh = Mock()
+    mock_question = Mock(id=qid)
+    mock_author = Mock(id=author_id)
+
+    def update_attrs():
+        if refresh.call_count == 1:
+            mock_answer.upvoters.appendleft(Mock(id='up4'))
+            mock_answer.comments.append(Mock(cid=2, author=Mock(id='cm2'),
+                                                 time_string='21:01'))
+            mock_answer.comments.append(Mock(cid=3, author=Mock(id='cm1'),
+                                            time_string='21:02'))
+            mock_answer.comments.append(Mock(cid=4, author=Mock(id='cm2'),
+                                             time_string='21:04'))
+            mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm3'),
+                                             time_string='23:50'))
+            mock_answer.collections.append(Mock(id=2, owner=Mock(id='cl2')))
+            mock_answer.collect_num += 1
+
+    refresh.side_effect = update_attrs
+    mock_answer.configure_mock(refresh=refresh, question=mock_question,
+                               author=mock_author)
+
+    task = FetchAnswerInfo(tid=tid, answer=mock_answer)
+    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+
+    task.execute()
+    # TODO: assert

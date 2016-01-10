@@ -153,6 +153,7 @@ class AnswerManager:
             for commenter in new_commenters:
                 self.commenters.add(commenter['uid'])
             DB.add_commenters(self.tid, self.aid, new_commenters)
+            self.lastest_comment_time = new_commenters[-1]['time']
 
         if new_collectors:
             for collector in new_collectors:
