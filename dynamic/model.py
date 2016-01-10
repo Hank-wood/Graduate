@@ -118,7 +118,10 @@ class AnswerManager:
             self.upvoters = set(u['uid'] for u in answer_doc['upvoters'])
             self.commenters = set(u['uid'] for u in answer_doc['commenters'])
             self.collectors = set(u['uid'] for u in answer_doc['collectors'])
-            self.lastest_comment_time = answer_doc['commenters'][-1]['time']
+            if answer_doc['commenters']:
+                self.lastest_comment_time = answer_doc['commenters'][-1]['time']
+            else:
+                self.lastest_comment_time = datetime(1970, 1, 1, 0, 0, 0)
         else:
             self.upvoters = set()
             self.commenters = set()
