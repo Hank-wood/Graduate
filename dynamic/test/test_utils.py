@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 
 import pytest
+import freezegun
 
 from utils import *
 from common import *
@@ -41,6 +42,14 @@ def test_get_datetime_hour_min_sec():
     time_string = '04:35'
     assert get_datetime_hour_min_sec(time_string + ':00') == \
            datetime(year, month, day, 4, 35, 0)
+
+    # 测试跨天
+    freezer = freezegun.freeze_time("2012-01-14 00:00:01")
+    freezer.start()
+    time_string = '23:59'
+    assert get_datetime_hour_min_sec(time_string + ':00') == \
+           datetime(2012, 1, 13, 23, 59, 0)
+    freezer.stop()
 
 
 def test_get_datetime_day_month_year():

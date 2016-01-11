@@ -1,9 +1,9 @@
 import os
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
 from pprint import pprint
 
 import requests
-import json
 
 from common import *
 
@@ -37,11 +37,17 @@ def get_datetime_hour_min_sec(time_string):
     """
     :param time_string: 04:35:45
     :return: datetime(now.year, now.month, now.day, 4, 35, 45)
+
+    如果来的 time_string 正好接近跨天,比如 23:59,则datetime.now()的date很可能是
+    真实 date+1d,故需要考虑这种特殊情况
     """
-    # TODO: 跨天需要特殊处理
-    time = datetime.strptime(time_string, "%H:%M:%S").time()
-    day = datetime.now().date()
-    return datetime.combine(day, time)
+    actual_time = datetime.strptime(time_string, "%H:%M:%S").time()
+    now = datetime.now()
+    now_day, now_time = now.date(), now.time()
+    if actual_time < now_time:  # 同一天
+        return datetime.combine(now_day, actual_time)
+    else:  # 跨天!!
+        return datetime.combine(now_day - timedelta(1), actual_time)
 
 
 def get_datetime_day_month_year(time_string):

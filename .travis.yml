@@ -8,10 +8,11 @@ python:
 
 script:
   - travis_retry pip install -r requirements.txt
-  - travis_retry pip install pytest pytest-cov
+  - travis_retry pip install pytest pytest-cov freezegun
   - travis_retry pip install coveralls
   - cd dynamic
   - py.test --cov=.
+# TODO: skip that test
 
 after_success:
   coveralls
