@@ -60,7 +60,6 @@ class QuestionModel:
     @classmethod
     def is_latest(cls, tid, question):
         if cls.latest_question[tid]:
-            print("latest: ", cls.latest_question[tid])
             return cls.latest_question[tid].qid == question.id
         else:
             doc = DB.find_latest_question(tid)

@@ -29,7 +29,7 @@ class TaskLoop(threading.Thread):
         while True:
             if self.routine and callable(self.routine):
                 self.routine()
-            time.sleep(2)  # TODO: set to 60s
+            time.sleep(10)  # TODO: set to 60s
             count = len(task_queue)
             for _ in range(count):
                 task = task_queue.popleft()
@@ -45,6 +45,8 @@ def main(preroutine=None, postroutine=None):
             os.makedirs(log_dir, exist_ok=True)
 
     logger = logging.getLogger(__name__)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("requests").setLevel(logging.WARNING)
 
     if restart:
         DB.drop_all_collections()
@@ -57,12 +59,16 @@ def main(preroutine=None, postroutine=None):
     client = zhihu.ZhihuClient(test_cookie)
     TaskLoop(daemon=True).start()
     m = TopicMonitor(client)
+
+    # TODO: 数据库中已有的 question/answer 加入 task queue
+    # TODO: 把 connection reset by peer 写入 log
+
     while True:
         # TODO: 考虑新问题页面采集消耗的时间，不能 sleep 60s
         if preroutine and callable(preroutine):
             preroutine()
 
-        time.sleep(2)
+        time.sleep(10)
         logger.debug(now_string())
         m.detect_new_question()
 

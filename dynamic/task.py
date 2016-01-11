@@ -35,7 +35,7 @@ class FetchNewAnswer(Task):
         self.aids = set()
 
     def execute(self):
-        logger.debug("Fetch answer from: %s" % self.question.title)
+        logger.info("Fetch answer from: %s" % self.question.title)
 
         if self.question.answer_num <= self.answer_num:
             pass
@@ -67,6 +67,8 @@ class FetchAnswerInfo(Task):
                 answerer=answer.author.id, time=answer.time)
 
     def execute(self):
+        logger.info("Fetch answer info from: %s - %s" %
+                     (self.answer.author.name, self.question.title))
         new_upvoters = deque()
         new_commenters = OrderedDict()
         new_collectors = []

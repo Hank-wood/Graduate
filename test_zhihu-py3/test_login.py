@@ -48,6 +48,6 @@ def display_vzch():
 if __name__ == '__main__':
     if os.path.isfile('captcha.gif'):
         os.remove('captcha.gif')
-    # check_and_open_captcha()
+    check_and_open_captcha()
     login()
     display_vzch()
