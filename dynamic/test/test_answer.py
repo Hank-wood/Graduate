@@ -117,7 +117,7 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
 
 @patch('task.FetchAnswerInfo.get_upvote_time')
 @patch('task.FetchAnswerInfo.get_collect_time')
-def test_fetch_answers_with_previous_data(mock_upvote_time, mock_collect_time):
+def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
     answer_info = {
         'topic': str(tid),
         'aid': str(aid),
@@ -131,7 +131,7 @@ def test_fetch_answers_with_previous_data(mock_upvote_time, mock_collect_time):
             {'uid':'up3', 'time':datetime(2016, 1, 9, 3, 50, 2)}
         ],
         'commenters': [
-           {'uid':'cm1', 'cid':1, 'time': get_datetime_hour_min_sec('20:09:00')}
+            {'uid':'cm1', 'cid':1, 'time':get_datetime_hour_min_sec('20:09:00')}
         ],
         'collectors': [
             {'uid':'cl1', 'cid':1, 'time':datetime(2016, 1, 9, 1, 9, 45)}
@@ -141,8 +141,13 @@ def test_fetch_answers_with_previous_data(mock_upvote_time, mock_collect_time):
     DB.db[a_col(tid)].insert(answer_info)
 
     t1 = datetime.now().replace(microsecond=0)
-    # mock_upvote_time 和 mock_collect_time 在这里不起作用，故随便给一个值
-    mock_upvote_time.return_value = mock_collect_time.return_value = t1
+    # mock_upvote_time 在这里不起作用，故随便给一个值
+    mock_upvote_time.return_value = t1
+    mock_collect_time.side_effect = [
+        datetime(2016,1,9,3,0,0),
+        datetime(2016,1,9,4,0,0),
+        datetime(2016,1,9,2,0,0),
+    ]
 
     mock_answer = Mock(url=None, id=aid, time=None, collect_num=1,
                        upvoters=deque([
@@ -158,15 +163,17 @@ def test_fetch_answers_with_previous_data(mock_upvote_time, mock_collect_time):
         if refresh.call_count == 1:
             mock_answer.upvoters.appendleft(Mock(id='up4'))
             mock_answer.comments.append(Mock(cid=2, author=Mock(id='cm2'),
-                                                 time_string='21:01'))
+                                             time_string='21:01'))
             mock_answer.comments.append(Mock(cid=3, author=Mock(id='cm1'),
-                                            time_string='21:02'))
+                                             time_string='21:02'))
             mock_answer.comments.append(Mock(cid=4, author=Mock(id='cm2'),
                                              time_string='21:04'))
             mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm3'),
                                              time_string='23:50'))
             mock_answer.collections.append(Mock(id=2, owner=Mock(id='cl2')))
-            mock_answer.collect_num += 1
+            mock_answer.collections.append(Mock(id=3, owner=Mock(id='cl3')))
+            mock_answer.collections.append(Mock(id=4, owner=Mock(id='cl4')))
+            mock_answer.collect_num += 3
 
     refresh.side_effect = update_attrs
     mock_answer.configure_mock(refresh=refresh, question=mock_question,
@@ -181,5 +188,10 @@ def test_fetch_answers_with_previous_data(mock_upvote_time, mock_collect_time):
         {'uid':'cm2', 'time':get_datetime_hour_min_sec('21:01:00'), 'cid':2},
         {'uid':'cm3', 'time':get_datetime_hour_min_sec('23:50:00'), 'cid':5}
     ])
-    answer_info['collectors'].append({'uid':'cl2', 'time':t1, 'cid':2})
+    # 测试 collection 按时间排序
+    answer_info['collectors'].extend([
+        {'uid':'cl4', 'time':datetime(2016,1,9,2,0,0), 'cid':4},
+        {'uid':'cl2', 'time':datetime(2016,1,9,3,0,0), 'cid':2},
+        {'uid':'cl3', 'time':datetime(2016,1,9,4,0,0), 'cid':3}
+    ])
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)

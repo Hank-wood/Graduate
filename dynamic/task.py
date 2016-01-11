@@ -112,7 +112,8 @@ class FetchAnswerInfo(Task):
                         'time': self.get_collect_time(self.answer, collection),
                         'cid': collection.id
                     })
-        # TODO: sort new_collectors according to time
+
+        new_collectors.sort(key=lambda x: x['time'])
 
         self.manager.sync_affected_users(new_upvoters=new_upvoters,
                                          new_commenters=new_commenters,
