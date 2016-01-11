@@ -6,7 +6,7 @@
 
 import logging
 from datetime import datetime
-from collections import deque
+from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
 from zhihu import acttype
@@ -68,11 +68,11 @@ class FetchAnswerInfo(Task):
 
     def execute(self):
         new_upvoters = deque()
-        new_commenters = deque()
-        new_collectors = deque()
+        new_commenters = OrderedDict()
+        new_collectors = []
         self.answer.refresh()
 
-        # Note: put older event in lower index, use appendleft
+        # Note: put older event in lower index
 
         # add upvoters
         for upvoter in self.answer.upvoters:
@@ -86,17 +86,21 @@ class FetchAnswerInfo(Task):
 
         # add commenters
         # 同一个人可能发表多条评论, 所以还得 check 不是同一个 commenter
+        # 注意, 一次新增的评论中也会有同一个人发表多条评论的情况, 需要收集最早的那个
+        # 下面的逻辑保证了同一个 commenter 的更早的 comment 会替代新的
         for comment in reversed(list(self.answer.comments)):
             comment_time = self.get_comment_time(comment)
             if comment.author.id in self.manager.commenters:
                 if comment_time <= self.manager.lastest_comment_time:
                     break
             else:
-                new_commenters.appendleft({
+                new_commenters[comment.author.id] = {
                     'uid': comment.author.id,
                     'time': comment_time,
                     'cid': comment.cid
-                })
+                }
+
+        new_commenters = list(reversed(new_commenters.values()))
 
         # add collectors
         # 收藏夹不是按时间返回, 所以只能全部扫一遍
@@ -108,6 +112,7 @@ class FetchAnswerInfo(Task):
                         'time': self.get_collect_time(self.answer, collection),
                         'cid': collection.id
                     })
+        # TODO: sort new_collectors according to time
 
         self.manager.sync_affected_users(new_upvoters=new_upvoters,
                                          new_commenters=new_commenters,

@@ -144,12 +144,12 @@ def test_fetch_answers_with_previous_data(mock_upvote_time, mock_collect_time):
     # mock_upvote_time 和 mock_collect_time 在这里不起作用，故随便给一个值
     mock_upvote_time.return_value = mock_collect_time.return_value = t1
 
-    mock_answer = Mock(url=None, id=aid, time=None, collect_num=0,
+    mock_answer = Mock(url=None, id=aid, time=None, collect_num=1,
                        upvoters=deque([
                            Mock(id='up1'), Mock(id='up2'), Mock(id='up3')]),
                        comments=[Mock(uid='cm1', cid=1, time_string='20:09',
                                       author=Mock(id='cm1'))],
-                       collections=[Mock(id='cl1', cid=1)])
+                       collections=[Mock(owner=Mock(id='cl1'), id=1)])
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)
@@ -176,4 +176,10 @@ def test_fetch_answers_with_previous_data(mock_upvote_time, mock_collect_time):
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
 
     task.execute()
-    # TODO: assert
+    answer_info['upvoters'].append({'uid':'up4', 'time':t1})
+    answer_info['commenters'].extend([
+        {'uid':'cm2', 'time':get_datetime_hour_min_sec('21:01:00'), 'cid':2},
+        {'uid':'cm3', 'time':get_datetime_hour_min_sec('23:50:00'), 'cid':5}
+    ])
+    answer_info['collectors'].append({'uid':'cl2', 'time':t1, 'cid':2})
+    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
