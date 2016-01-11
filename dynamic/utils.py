@@ -94,10 +94,8 @@ def validate_cookie(cookie_file):
             cookies_dict = json.loads(cookies)
             session.cookies.update(cookies_dict)
             res = session.get('https://zhihu.com')
-            history = res.history
             session.close()
-            return res.status_code == 200 and history[0].status_code == 301 \
-                    and history[1].status_code == 302
+            return '首页' in res.text
     else:
         raise IOError("no such cookie file:" + cookie_file)
 
