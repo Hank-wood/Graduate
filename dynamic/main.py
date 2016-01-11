@@ -51,11 +51,8 @@ def main(preroutine=None, postroutine=None):
 
     validate_config()
 
-    if 'ENV' in os.environ and os.environ['ENV'] == 'travis-ci':
-        pass
-    else:
-        if not validate_cookie(test_cookie):
-            logger.error("invalid cookie")
+    if not validate_cookie(test_cookie):
+        logger.error("invalid cookie")
 
     client = zhihu.ZhihuClient(test_cookie)
     TaskLoop(daemon=True).start()

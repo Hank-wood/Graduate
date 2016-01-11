@@ -5,8 +5,9 @@ from datetime import datetime, timedelta, time, date
 from collections import deque
 from unittest.mock import patch, Mock
 
-from pymongo import MongoClient
 import pytest
+from pymongo import MongoClient
+from freezegun import freeze_time
 
 import utils
 from model import AnswerManager
@@ -31,6 +32,7 @@ def teardown_function(function):
             DB.db[collection_name].drop()
 
 
+@freeze_time("2016-01-09 13:01")  # now().time > time_string, 防止跨天
 @patch('task.FetchAnswerInfo.get_upvote_time')
 @patch('task.FetchAnswerInfo.get_collect_time')
 def test_fetch_answers_without_previous_data(mock_upvote_time,
@@ -53,21 +55,21 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
         elif refresh.call_count == 2:
             mock_answer.upvoters.appendleft(Mock(id='up2'))
             mock_answer.comments.append(Mock(cid=1, author=Mock(id='cm1'),
-                                                 time_string='12:01'))
+                                             time_string='12:01'))
         elif refresh.call_count == 3:
             mock_answer.upvoters.appendleft(Mock(id='up3'))
             mock_answer.comments.append(Mock(cid=2, author=Mock(id='cm2'),
-                                                 time_string='12:02'))
+                                             time_string='12:02'))
             mock_answer.collections.append(Mock(id=1, owner=Mock(id='cl1')))
             mock_answer.collect_num += 1
         elif refresh.call_count == 4:
             mock_answer.comments.append(Mock(cid=3, author=Mock(id='cm1'),
-                                                 time_string='12:03'))
+                                             time_string='12:03'))
         elif refresh.call_count == 5:
             mock_answer.comments.append(Mock(cid=4, author=Mock(id='cm3'),
-                                                 time_string='12:04'))
+                                             time_string='12:04'))
             mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm1'),
-                                                 time_string='12:05'))
+                                             time_string='12:05'))
 
     refresh.side_effect = update_attrs
     mock_answer.configure_mock(refresh=refresh, question=mock_question,

@@ -13,9 +13,6 @@ script:
   - cd dynamic
   - py.test --cov=.
 
-#env:
-#  - ENV=travis-ci
-
 after_success:
   coveralls
 
