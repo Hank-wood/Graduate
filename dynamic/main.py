@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import sys
 import time
 import threading
 import atexit
@@ -36,7 +37,7 @@ class TaskLoop(threading.Thread):
                 task.execute()
 
 
-def main(preroutine=None, postroutine=None):
+def configure():
     if os.path.isfile(logging_config_file):
         with open(logging_config_file, 'rt') as f:
             config = json.load(f)
@@ -56,12 +57,24 @@ def main(preroutine=None, postroutine=None):
     if not validate_cookie(test_cookie):
         logger.error("invalid cookie")
 
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        logger.critical("Uncaught exception",
+                        exc_info=(exc_type, exc_value, exc_traceback))
+
+    sys.excepthook = handle_exception
+
+
+def main(preroutine=None, postroutine=None):
+    configure()
     client = zhihu.ZhihuClient(test_cookie)
     TaskLoop(daemon=True).start()
     m = TopicMonitor(client)
 
     # TODO: 数据库中已有的 question/answer 加入 task queue
-    # TODO: 把 connection reset by peer 写入 log
 
     while True:
         # TODO: 考虑新问题页面采集消耗的时间，不能 sleep 60s
