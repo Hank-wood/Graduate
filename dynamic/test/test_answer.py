@@ -43,7 +43,8 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
                                  = [t1+timedelta(i) for i in range(10)]
 
     mock_answer = Mock(url=None, id=aid, time=None, collect_num=0,
-                       upvoters=deque(), comments=[], collections=[])
+                       upvoters=deque(), comments=[], collections=[],
+                       question=Mock(title='test question'))
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)
@@ -156,7 +157,8 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
                            Mock(id='up1'), Mock(id='up2'), Mock(id='up3')]),
                        comments=[Mock(uid='cm1', cid=1, time_string='20:09',
                                       author=Mock(id='cm1'))],
-                       collections=[Mock(owner=Mock(id='cl1'), id=1)])
+                       collections=[Mock(owner=Mock(id='cl1'), id=1)],
+                       question=Mock(title='test question'))
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)

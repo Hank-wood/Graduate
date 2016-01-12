@@ -68,7 +68,7 @@ class FetchAnswerInfo(Task):
 
     def execute(self):
         logger.info("Fetch answer info from: %s - %s" %
-                     (self.answer.author.name, self.question.title))
+                     (self.answer.author.name, self.answer.question.title))
         new_upvoters = deque()
         new_commenters = OrderedDict()
         new_collectors = []

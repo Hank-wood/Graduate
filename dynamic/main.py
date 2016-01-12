@@ -82,7 +82,6 @@ def main(preroutine=None, postroutine=None):
             preroutine()
 
         time.sleep(10)
-        logger.debug(now_string())
         m.detect_new_question()
 
         try:
