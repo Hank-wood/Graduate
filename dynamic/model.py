@@ -17,7 +17,7 @@ from db import DB
 logger = logging.getLogger(__name__)
 
 
-class QuestionModel:
+class QuestionManager:
 
     latest_question = {
         tid: None for tid in topics  # for cache
@@ -48,7 +48,7 @@ class QuestionModel:
                 else:
                     self.asker = ''  # 匿名用户, TODO: zhihu-py3增加ANONYMOUS常量
             except AttributeError:
-                logging.exception("Error init QuestionModel\n")
+                logging.exception("Error init QuestionManager\n")
         else:
             self.url = url
             self.qid = qid
@@ -95,6 +95,10 @@ class QuestionModel:
     def doc2question(cls, doc):
         return cls(doc['topic'], doc['url'], doc['qid'], doc['asker'],
                    doc['time'], doc['title'])
+
+    @classmethod
+    def remove_question(cls, tid, qid):
+        DB.remove_question(tid, qid)
 
     def __eq__(self, other):
         # title may change

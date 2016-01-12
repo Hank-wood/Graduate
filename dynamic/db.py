@@ -67,6 +67,10 @@ class DB:
         return cls.db[q_col(tid)].find_one({'qid': qid})  # None or dict
 
     @classmethod
+    def remove_question(cls, tid, qid):
+        cls.db[q_col(tid)].remove({'qid': qid})
+
+    @classmethod
     def bulk_save(cls):
         pass
 

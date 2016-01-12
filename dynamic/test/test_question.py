@@ -6,12 +6,12 @@ import os
 import time
 import json
 from datetime import datetime
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch, PropertyMock, Mock
 
 from pymongo import MongoClient
 import pytest
 
-from model import QuestionModel
+from model import QuestionManager
 from db import DB
 from utils import *
 from common import *
@@ -31,13 +31,13 @@ def teardown_function(function):
 # @pytest.mark.skipif(True, reason="testing others")
 def test_find_latest():
     tid = '1234567'
-    question1 = QuestionModel(tid, 'url1', '1', 'asker1', datetime.now())
+    question1 = QuestionManager(tid, 'url1', '1', 'asker1', datetime.now())
     question1.save()
     time.sleep(1)
-    question2 = QuestionModel(tid, 'url2', '2', 'asker2', datetime.now())
+    question2 = QuestionManager(tid, 'url2', '2', 'asker2', datetime.now())
     question2.save()
     time.sleep(1)
-    question3 = QuestionModel(tid, 'url3', '3', 'asker3', datetime.now())
+    question3 = QuestionManager(tid, 'url3', '3', 'asker3', datetime.now())
     question3.save()
 
     for doc in DB.db[q_col(tid)].find({}):
@@ -59,7 +59,7 @@ def test_fetch_questions_without_previous_data(mk_execute):
 
     class MockQuestion:
         """
-        Act as QuestionModel and zhihu.Question
+        Act as QuestionManager and zhihu.Question
         """
         def __init__(self, url, id, creation_time, title, author=''):
             self.tid = tid
@@ -68,6 +68,7 @@ def test_fetch_questions_without_previous_data(mk_execute):
             self.creation_time = self.time = creation_time
             self.title = title
             self.author = self.asker = author
+            self._session = Mock()
 
     t = datetime.now().replace(microsecond=0)
     mock_question1 = MockQuestion('http://q/1', '1', t, 'question1')
@@ -86,15 +87,15 @@ def test_fetch_questions_without_previous_data(mk_execute):
 
         def test():
             if mock_q.call_count == 1:
-                assert len(QuestionModel.get_all(tid)) == 0
+                assert len(QuestionManager.get_all(tid)) == 0
             if mock_q.call_count == 2:
-                questions = QuestionModel.get_all(tid)
+                questions = QuestionManager.get_all(tid)
                 assert questions[0] == mock_question2
             if mock_q.call_count == 3:
-                questions = QuestionModel.get_all(tid)
+                questions = QuestionManager.get_all(tid)
                 assert questions[0] == mock_question2
             if mock_q.call_count == 4:
-                questions = QuestionModel.get_all(tid)
+                questions = QuestionManager.get_all(tid)
                 questions.sort(key=lambda x: x.qid)
                 assert questions[0] == mock_question2
                 assert questions[1] == mock_question3

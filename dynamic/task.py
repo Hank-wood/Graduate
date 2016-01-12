@@ -13,7 +13,7 @@ from zhihu import acttype
 
 from utils import *
 from common import *
-from model import AnswerManager
+from model import QuestionManager, AnswerManager
 
 logger = logging.getLogger(__name__)
 
@@ -33,14 +33,17 @@ class FetchNewAnswer(Task):
         self.question = question
         self.answer_num = answer_num
         self.aids = set()
+        logger.info("New Question: %s" % self.question.title)
 
     def execute(self):
-        logger.info("Fetch answer from: %s" % self.question.title)
+        self.question.refresh()
+
+        if self.question.deleted:
+            QuestionManager.remove_question(self.tid, self.question.id)
 
         if self.question.answer_num <= self.answer_num:
             pass
         else:
-            self.question.refresh()
             if self.question.answer_num > self.answer_num:
                 # We can't just fetch the latest
                 # question.answer_num - self.answer answers, cause there exist

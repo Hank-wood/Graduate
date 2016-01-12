@@ -5,10 +5,11 @@
 """
 
 import ezcf
+from requests.adapters import HTTPAdapter
 
 from config.dynamic_config import topics
 from task import *
-from model import QuestionModel
+from model import QuestionManager
 from utils import task_queue
 from common import *
 
@@ -30,15 +31,17 @@ class TopicMonitor:
             tid = str(topic.id)
             it = iter(topic.questions)
             question = latest_question = next(it)
+            question._session.mount('https://', HTTPAdapter(max_retries=5))
             new_questions = []
 
-            while not QuestionModel.is_latest(tid, question):
+            while not QuestionManager.is_latest(tid, question):
                 question._url = question.url[:-1] + '?sort=created'
                 new_questions.append(question)
                 task_queue.append(FetchNewAnswer(tid, question))
-                QuestionModel(tid, question=question).save()
+                QuestionManager(tid, question=question).save()
                 question = next(it)
+                question._session.mount('https://', HTTPAdapter(max_retries=5))
 
             if new_questions:
-                QuestionModel.set_latest(tid, latest_question)
+                QuestionManager.set_latest(tid, latest_question)
 
