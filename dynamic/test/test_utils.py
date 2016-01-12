@@ -32,6 +32,8 @@ def test_config_validator():
 
 
 def test_get_datetime_hour_min_sec():
+    freezer = freezegun.freeze_time("2012-01-14 05:00:01")
+    freezer.start()
     time_string = '04:35:45'
     year = datetime.now().year
     month = datetime.now().month
@@ -42,6 +44,7 @@ def test_get_datetime_hour_min_sec():
     time_string = '04:35'
     assert get_datetime_hour_min_sec(time_string + ':00') == \
            datetime(year, month, day, 4, 35, 0)
+    freezer.stop()
 
     # 测试跨天
     freezer = freezegun.freeze_time("2012-01-14 00:00:01")
