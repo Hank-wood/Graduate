@@ -51,6 +51,10 @@ def configure():
 
     if restart:
         DB.drop_all_collections()
+    else:
+        pass
+        # get all questions from db, make zhihu.question
+        # task_queue.append(FetchNewAnswer(question))
 
     validate_config()
 
