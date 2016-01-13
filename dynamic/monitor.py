@@ -21,6 +21,9 @@ class TopicMonitor:
         self.topics = [
             client.topic(TOPIC_PREFIX + tid) for tid in topics
         ]
+        # in case connection reset by server
+        for t in self.topics:
+            t._session.mount('https://', HTTPAdapter(max_retries=5))
 
     def detect_new_question(self):
         """
@@ -31,7 +34,6 @@ class TopicMonitor:
             tid = str(topic.id)
             it = iter(topic.questions)
             question = latest_question = next(it)
-            question._session.mount('https://', HTTPAdapter(max_retries=5))
             new_questions = []
 
             while not QuestionManager.is_latest(tid, question):
@@ -40,7 +42,6 @@ class TopicMonitor:
                 task_queue.append(FetchNewAnswer(tid, question))
                 QuestionManager(tid, question=question).save()
                 question = next(it)
-                question._session.mount('https://', HTTPAdapter(max_retries=5))
 
             if new_questions:
                 QuestionManager.set_latest(tid, latest_question)

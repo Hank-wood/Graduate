@@ -42,7 +42,7 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     mock_upvote_time.side_effect = mock_collect_time.side_effect \
                                  = [t1+timedelta(i) for i in range(10)]
 
-    mock_answer = Mock(url=None, id=aid, time=None, collect_num=0,
+    mock_answer = Mock(url=None, id=aid, creation_time=None, collect_num=0,
                        upvoters=deque(), comments=[], collections=[],
                        question=Mock(title='test question'))
     refresh = Mock()
@@ -152,7 +152,7 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
         datetime(2016,1,9,2,0,0),
     ]
 
-    mock_answer = Mock(url=None, id=aid, time=None, collect_num=1,
+    mock_answer = Mock(url=None, id=aid, creation_time=None, collect_num=1,
                        upvoters=deque([
                            Mock(id='up1'), Mock(id='up2'), Mock(id='up3')]),
                        comments=[Mock(uid='cm1', cid=1, time_string='20:09',

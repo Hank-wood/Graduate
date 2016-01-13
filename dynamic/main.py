@@ -20,6 +20,24 @@ from config.dynamic_config import restart
 from db import DB
 
 
+def install_threadExcepthook():
+    init_old = threading.Thread.__init__
+
+    def init(self, *args, **kwargs):
+        init_old(self, *args, **kwargs)
+        run_old = self.run
+
+        def run_with_except_hook(*args, **kw):
+            try:
+                run_old(*args, **kw)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except:
+                sys.excepthook(*sys.exc_info())
+        self.run = run_with_except_hook
+    threading.Thread.__init__ = init
+
+
 class TaskLoop(threading.Thread):
 
     def __init__(self, routine=None, *args, **kwargs):
@@ -27,6 +45,7 @@ class TaskLoop(threading.Thread):
         super().__init__(*args, **kwargs)
 
     def run(self):
+        raise Exception("Exception occurred")
         while True:
             if self.routine and callable(self.routine):
                 self.routine()
@@ -105,5 +124,6 @@ def cleaning():
 
 
 if __name__ == '__main__':
+    install_threadExcepthook()
     main()
     # atexit.register(cleaning)

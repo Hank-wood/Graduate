@@ -9,7 +9,7 @@ from datetime import datetime
 from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
-from zhihu import acttype
+from zhihu.acttype import ActType
 
 from utils import *
 from common import *
@@ -40,22 +40,22 @@ class FetchNewAnswer(Task):
 
         if self.question.deleted:
             QuestionManager.remove_question(self.tid, self.question.id)
+            return
 
-        if self.question.answer_num <= self.answer_num:
-            pass
-        else:
-            if self.question.answer_num > self.answer_num:
-                # We can't just fetch the latest
-                # question.answer_num - self.answer answers, cause there exist
-                # collapsed answers
-                for answer in self.question.answers:
-                    if str(answer.id) not in self.aids:
-                        self.aids.add(str(answer.id))
-                        task_queue.append(FetchAnswerInfo(tid, answer))
-                    else:
-                        break
+        if self.question.answer_num > self.answer_num:
+            # We can't just fetch the latest
+            # question.answer_num - self.answer answers, cause there exist
+            # collapsed answers
+            # 当然这里可能还是有问题,比如答案被折叠导致 question.answer_num 不增
+            # 但实际上是有新答案的
+            for answer in self.question.answers:
+                if str(answer.id) not in self.aids:
+                    self.aids.add(str(answer.id))
+                    task_queue.append(FetchAnswerInfo(self.tid, answer))
+                else:
+                    break
 
-                self.answer_num = self.question.answer_num
+            self.answer_num = self.question.answer_num
 
         task_queue.append(self)
 
@@ -67,7 +67,7 @@ class FetchAnswerInfo(Task):
         self.manager = AnswerManager(tid, answer.id)
         self.manager.sync_basic_info(
                 qid=answer.question.id, url=answer.url,
-                answerer=answer.author.id, time=answer.time)
+                answerer=answer.author.id, time=answer.creation_time)
 
     def execute(self):
         logger.info("Fetch answer info from: %s - %s" %
@@ -133,7 +133,7 @@ class FetchAnswerInfo(Task):
         :return: datatime.datetime
         """
         for i, act in enumerate(upvoter.activities):
-            if act.type == acttype.UPVOTE_ANSWER:
+            if act.type == ActType.UPVOTE_ANSWER:
                 if act.content.url == answer.url:
                     return act.time
             if i > 10:
