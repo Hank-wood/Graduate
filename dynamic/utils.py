@@ -8,6 +8,14 @@ import requests
 from common import *
 
 
+def is_q_col(collection_name):
+    return collection_name.endswith('_q')
+
+
+def is_a_col(collection_name):
+    return collection_name.endswith('_a')
+
+
 def q_col(tid):
     # get question collection name
     return tid + '_q'
@@ -118,9 +126,18 @@ def dict_equal(dict_more_key, dict_less_key):
     return True
 
 
+def list_of_dict_equal(list_of_dict_more_key, list_of_dict_less_key):
+    from collections import Iterable
+    if not isinstance(list_of_dict_more_key, Iterable) or \
+        not isinstance(list_of_dict_less_key, Iterable):
+        raise Exception("not iterable")
+    # deprecated function
+    pass
+
+
 __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
-    'answer_deleted', 'dict_equal'
+    'answer_deleted', 'dict_equal', 'is_a_col', 'is_q_col'
 ]

@@ -45,7 +45,6 @@ class TaskLoop(threading.Thread):
         super().__init__(*args, **kwargs)
 
     def run(self):
-        raise Exception("Exception occurred")
         while True:
             if self.routine and callable(self.routine):
                 self.routine()

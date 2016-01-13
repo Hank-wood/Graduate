@@ -67,6 +67,16 @@ class DB:
         return cls.db[q_col(tid)].find_one({'qid': qid})  # None or dict
 
     @classmethod
+    def get_all_questions(cls):
+        result = []
+        for collection_name in cls.db.collection_names():
+            import utils
+            if is_q_col(collection_name):
+                result.extend(list(cls.db[collection_name].find({})))
+
+        return result
+
+    @classmethod
     def remove_question(cls, tid, qid):
         cls.db[q_col(tid)].remove({'qid': qid})
 

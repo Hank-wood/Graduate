@@ -108,3 +108,23 @@ def test_fetch_questions_without_previous_data(mk_execute):
 def test_fetch_questions_with_previous_data():
     """测试数据库有之前保存的 question 的情况"""
     pass
+
+
+def test_get_all_questions():
+    DB.db['111_q'].insert({'mm':1})
+    assert dict_equal(DB.get_all_questions()[0], {'mm':1})
+
+    DB.db['111_a'].insert({'mm':1})
+    assert dict_equal(DB.get_all_questions()[0], {'mm':1})
+
+    DB.db['111_q'].insert({'mm':2})
+    assert dict_equal(DB.get_all_questions()[0], {'mm':1})
+    assert dict_equal(DB.get_all_questions()[1], {'mm':2})
+
+    DB.db['222_q'].insert({'mm':3})
+    DB.db['222_q'].insert({'mm':4})
+    db_results = list(DB.get_all_questions())
+    db_results.sort(key=lambda x: x['mm'])
+    correct = [{'mm':1}, {'mm':2}, {'mm':3}, {'mm':4}]
+    for less, more in zip(correct, db_results):
+        assert dict_equal(more, less)
