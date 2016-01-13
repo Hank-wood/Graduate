@@ -106,8 +106,8 @@ class QuestionManager:
 
     def __eq__(self, other):
         # title may change
-        return self.url == other.url and self.qid == other.qid and \
-               self.time == other.time and self.asker == other.asker
+        return self.qid == other.qid and self.time == other.time and\
+               self.asker == other.asker
 
     def __str__(self):
         time_tuple = (self.time.hour, self.time.minute, self.time.second)

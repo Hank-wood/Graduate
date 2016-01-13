@@ -63,12 +63,13 @@ def test_fetch_questions_without_previous_data(mk_execute):
         """
         def __init__(self, url, id, creation_time, title, author=''):
             self.tid = tid
-            self.url = url
+            self._url = self.url = url
             self.id = self.qid = id
             self.creation_time = self.time = creation_time
             self.title = title
             self.author = self.asker = author
             self._session = Mock()
+            self.deleted = False
 
     t = datetime.now().replace(microsecond=0)
     mock_question1 = MockQuestion('http://q/1', '1', t, 'question1')
@@ -87,15 +88,15 @@ def test_fetch_questions_without_previous_data(mk_execute):
 
         def test():
             if mock_q.call_count == 1:
-                assert len(QuestionManager.get_all(tid)) == 0
+                assert len(QuestionManager.get_all_questions_one_topic(tid))==0
             if mock_q.call_count == 2:
-                questions = QuestionManager.get_all(tid)
+                questions = QuestionManager.get_all_questions_one_topic(tid)
                 assert questions[0] == mock_question2
             if mock_q.call_count == 3:
-                questions = QuestionManager.get_all(tid)
+                questions = QuestionManager.get_all_questions_one_topic(tid)
                 assert questions[0] == mock_question2
             if mock_q.call_count == 4:
-                questions = QuestionManager.get_all(tid)
+                questions = QuestionManager.get_all_questions_one_topic(tid)
                 questions.sort(key=lambda x: x.qid)
                 assert questions[0] == mock_question2
                 assert questions[1] == mock_question3
