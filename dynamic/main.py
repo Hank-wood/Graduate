@@ -96,8 +96,6 @@ def main(preroutine=None, postroutine=None):
     TaskLoop(daemon=True).start()
     m = TopicMonitor(client)
 
-    # TODO: 数据库中已有的 question/answer 加入 task queue
-
     while True:
         # TODO: 考虑新问题页面采集消耗的时间，不能 sleep 60s
         if preroutine and callable(preroutine):

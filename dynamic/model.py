@@ -37,7 +37,7 @@ class QuestionManager:
         self.tid = tid
         if question:
             try:
-                self.url = question.url
+                self.url = question._url  # ensure ends with ?sort=created
                 self.qid = question.id
                 if self.qid == '':
                     pass
@@ -85,7 +85,11 @@ class QuestionManager:
         DB.save_question(self)
 
     @classmethod
-    def get_all(cls, tid):
+    def get_all_questions(cls):
+        return DB.get_all_questions()
+
+    @classmethod
+    def get_all_questions_one_topic(cls, tid):
         questions = []
         for doc in DB.get_questions(tid):
             questions.append(cls.doc2question(doc))

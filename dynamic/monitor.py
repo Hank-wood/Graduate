@@ -4,6 +4,8 @@
 定期爬话题页面
 """
 
+import logging
+
 import ezcf
 from requests.adapters import HTTPAdapter
 
@@ -12,6 +14,9 @@ from task import *
 from model import QuestionManager
 from utils import task_queue
 from common import *
+from zhihu.question import Question
+
+logger = logging.getLogger(__name__)
 
 
 class TopicMonitor:
@@ -24,6 +29,21 @@ class TopicMonitor:
         # in case connection reset by server
         for t in self.topics:
             t._session.mount('https://', HTTPAdapter(max_retries=5))
+
+        self._load_old_question()
+
+    def _load_old_question(self):
+        # 数据库中已有的 question 加入 task queue, answer 不用管
+        # TODO: reuse session?
+        logger.info('Loading old questions from database............')
+        for question in QuestionManager.get_all_questions():
+            url = question['url'] if question['url'].endswith('?sort=created') \
+                  else question['url'][:-1] + '?sort=created'
+            task_queue.append(FetchNewAnswer(tid=question['topic'],
+                                             question=Question(url),
+                                             from_db=True))
+
+        logger.info('Loading old questions from database succeed :)')
 
     def detect_new_question(self):
         """

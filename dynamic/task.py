@@ -24,16 +24,22 @@ class Task:
 
 
 class FetchNewAnswer(Task):
-    def __init__(self, tid, question, answer_num=0):
+    def __init__(self, tid, question, answer_num=0, from_db=False):
         """
         :param question: zhihu.Question object
         :return:
         """
         self.tid = tid
         self.question = question
+
+        if self.question.deleted:
+            QuestionManager.remove_question(self.tid, self.question.id)
+            return
+
         self.answer_num = answer_num
         self.aids = set()
-        logger.info("New Question: %s" % self.question.title)
+        if not from_db:
+            logger.info("New Question: %s" % self.question.title)
 
     def execute(self):
         self.question.refresh()

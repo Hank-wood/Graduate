@@ -1,7 +1,7 @@
 # coding: utf-8
 from client import client
 
-ans_url = 'http://www.zhihu.com/question/35107886/answer/61219684'
+ans_url = 'https://www.zhihu.com/question/39451817/answer/81393872'
 
 ans = client.answer(ans_url)
 
