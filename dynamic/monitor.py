@@ -7,7 +7,6 @@
 import logging
 
 import ezcf
-from requests.adapters import HTTPAdapter
 
 from config.dynamic_config import topics
 from task import *
@@ -26,10 +25,6 @@ class TopicMonitor:
         self.topics = [
             client.topic(TOPIC_PREFIX + tid) for tid in topics
         ]
-        # in case connection reset by server
-        for t in self.topics:
-            t._session.mount('https://', HTTPAdapter(max_retries=5))
-
         self._load_old_question()
 
     def _load_old_question(self):
