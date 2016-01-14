@@ -100,14 +100,13 @@ class FetchAnswerInfo(Task):
         # 注意, 一次新增的评论中也会有同一个人发表多条评论的情况, 需要收集最早的那个
         # 下面的逻辑保证了同一个 commenter 的更早的 comment 会替代新的
         for comment in reversed(list(self.answer.comments)):
-            comment_time = self.get_comment_time(comment)
             if comment.author.id in self.manager.commenters:
-                if comment_time <= self.manager.lastest_comment_time:
+                if comment.creation_time <= self.manager.lastest_comment_time:
                     break
             else:
                 new_commenters[comment.author.id] = {
                     'uid': comment.author.id,
-                    'time': comment_time,
+                    'time': comment.creation_time,
                     'cid': comment.cid
                 }
 
@@ -145,20 +144,6 @@ class FetchAnswerInfo(Task):
             if i > 10:
                 logger.error("Can't find upvote activity")
                 raise NoSuchActivity
-
-    @staticmethod
-    def get_comment_time(comment):
-        """
-        :param comment: zhihu.Comment
-        :return: datatime.datetime
-        """
-        time_string = comment.time_string
-
-        if ':' in time_string:  # hour:minute, 19:58
-            return get_datetime_hour_min_sec(time_string + ':00')
-        else:  # year-month-day, 2016-01-04. Shouldn't be here
-            logger.warning('comment time_string: ' + time_string)
-            return get_datetime_day_month_year(time_string)
 
     @staticmethod
     def get_collect_time(answer, collection):

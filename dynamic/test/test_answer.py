@@ -32,7 +32,7 @@ def teardown_function(function):
             DB.db[collection_name].drop()
 
 
-@freeze_time("2016-01-09 13:01")  # now().time > time_string, 防止跨天
+@freeze_time("2016-01-09 13:01")  # now().time > creation_time, 防止跨天
 @patch('task.FetchAnswerInfo.get_upvote_time')
 @patch('task.FetchAnswerInfo.get_collect_time')
 def test_fetch_answers_without_previous_data(mock_upvote_time,
@@ -56,21 +56,21 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
         elif refresh.call_count == 2:
             mock_answer.upvoters.appendleft(Mock(id='up2'))
             mock_answer.comments.append(Mock(cid=1, author=Mock(id='cm1'),
-                                             time_string='12:01'))
+                                             creation_time=datetime(2016,1,9,13,1,0)))
         elif refresh.call_count == 3:
             mock_answer.upvoters.appendleft(Mock(id='up3'))
             mock_answer.comments.append(Mock(cid=2, author=Mock(id='cm2'),
-                                             time_string='12:02'))
+                                             creation_time=datetime(2016,1,9,13,2,0)))
             mock_answer.collections.append(Mock(id=1, owner=Mock(id='cl1')))
             mock_answer.collect_num += 1
         elif refresh.call_count == 4:
             mock_answer.comments.append(Mock(cid=3, author=Mock(id='cm1'),
-                                             time_string='12:03'))
+                                             creation_time=datetime(2016,1,9,13,3,0)))
         elif refresh.call_count == 5:
             mock_answer.comments.append(Mock(cid=4, author=Mock(id='cm3'),
-                                             time_string='12:04'))
+                                             creation_time=datetime(2016,1,9,13,4,0)))
             mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm1'),
-                                             time_string='12:05'))
+                                             creation_time=datetime(2016,1,9,13,5,0)))
 
     refresh.side_effect = update_attrs
     mock_answer.configure_mock(refresh=refresh, question=mock_question,
@@ -93,29 +93,29 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     task.execute()
     answer_info['upvoters'].append({'uid':'up2', 'time':t1+timedelta(1)})
     answer_info['commenters'].append({'uid':'cm1', 'cid':1,
-                                      'time':datetime.combine(day, time(12,1))})
+                                      'time':datetime.combine(day, time(13,1))})
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
-    assert task.manager.lastest_comment_time == datetime.combine(day, time(12,1))
+    assert task.manager.lastest_comment_time == datetime.combine(day, time(13,1))
 
     # call_count = 3
     task.execute()
     answer_info['upvoters'].append({'uid':'up3', 'time':t1+timedelta(2)})
     answer_info['commenters'].append({'uid':'cm2', 'cid':2,
-                                      'time':datetime.combine(day, time(12,2))})
+                                      'time':datetime.combine(day, time(13,2))})
     answer_info['collectors'].append({'uid':'cl1', 'time':t1, 'cid':1})
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
-    assert task.manager.lastest_comment_time == datetime.combine(day, time(12,2))
+    assert task.manager.lastest_comment_time == datetime.combine(day, time(13,2))
 
     # test adding comment posted by same person
     task.execute()
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
-    assert task.manager.lastest_comment_time == datetime.combine(day, time(12,2))
+    assert task.manager.lastest_comment_time == datetime.combine(day, time(13,2))
 
     task.execute()
     answer_info['commenters'].append({'uid':'cm3', 'cid':4,
-                                     'time':datetime.combine(day, time(12,4))})
+                                     'time':datetime.combine(day, time(13,4))})
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
-    assert task.manager.lastest_comment_time == datetime.combine(day, time(12,4))
+    assert task.manager.lastest_comment_time == datetime.combine(day, time(13,4))
 
 
 @patch('task.FetchAnswerInfo.get_upvote_time')
@@ -134,7 +134,7 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
             {'uid':'up3', 'time':datetime(2016, 1, 9, 3, 50, 2)}
         ],
         'commenters': [
-            {'uid':'cm1', 'cid':1, 'time':get_datetime_hour_min_sec('20:09:00')}
+            {'uid':'cm1', 'cid':1, 'time':datetime(2016, 1, 9, 20, 9, 0)}
         ],
         'collectors': [
             {'uid':'cl1', 'cid':1, 'time':datetime(2016, 1, 9, 1, 9, 45)}
@@ -155,7 +155,8 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
     mock_answer = Mock(url=None, id=aid, creation_time=None, collect_num=1,
                        upvoters=deque([
                            Mock(id='up1'), Mock(id='up2'), Mock(id='up3')]),
-                       comments=[Mock(uid='cm1', cid=1, time_string='20:09',
+                       comments=[Mock(uid='cm1', cid=1,
+                                      creation_time=datetime(2016,1,9,20,9,0),
                                       author=Mock(id='cm1'))],
                        collections=[Mock(owner=Mock(id='cl1'), id=1)],
                        question=Mock(title='test question'))
@@ -167,13 +168,13 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
         if refresh.call_count == 1:
             mock_answer.upvoters.appendleft(Mock(id='up4'))
             mock_answer.comments.append(Mock(cid=2, author=Mock(id='cm2'),
-                                             time_string='21:01'))
+                                             creation_time=datetime(2016,1,9,21,1,0)))
             mock_answer.comments.append(Mock(cid=3, author=Mock(id='cm1'),
-                                             time_string='21:02'))
+                                             creation_time=datetime(2016,1,9,21,2,0)))
             mock_answer.comments.append(Mock(cid=4, author=Mock(id='cm2'),
-                                             time_string='21:04'))
+                                             creation_time=datetime(2016,1,9,21,4,0)))
             mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm3'),
-                                             time_string='23:50'))
+                                             creation_time=datetime(2016,1,9,23,5,0)))
             mock_answer.collections.append(Mock(id=2, owner=Mock(id='cl2')))
             mock_answer.collections.append(Mock(id=3, owner=Mock(id='cl3')))
             mock_answer.collections.append(Mock(id=4, owner=Mock(id='cl4')))
@@ -189,8 +190,8 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
     task.execute()
     answer_info['upvoters'].append({'uid':'up4', 'time':t1})
     answer_info['commenters'].extend([
-        {'uid':'cm2', 'time':get_datetime_hour_min_sec('21:01:00'), 'cid':2},
-        {'uid':'cm3', 'time':get_datetime_hour_min_sec('23:50:00'), 'cid':5}
+        {'uid':'cm2', 'time':datetime(2016,1,9,21,1,0), 'cid':2},
+        {'uid':'cm3', 'time':datetime(2016,1,9,23,5,0), 'cid':5}
     ])
     # 测试 collection 按时间排序
     answer_info['collectors'].extend([
