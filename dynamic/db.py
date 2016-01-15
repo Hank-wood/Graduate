@@ -32,15 +32,14 @@ class DB:
             return None
 
     @classmethod
-    def save_question(cls, question):
-        cls.db[q_col(question.tid)].insert({
-            'topic': str(question.tid),
-            'url': question.url,
-            'qid': str(question.qid),
-            'time': question.time,
-            'asker': question.asker,
-            'title': question.title,
-            'answers': question.answers
+    def save_question(cls, tid, url, qid, time, asker, title):
+        cls.db[q_col(tid)].insert({
+            'topic': str(tid),
+            'url': url,
+            'qid': str(qid),
+            'time': time,
+            'asker': asker,
+            'title': title,
         })
 
     @classmethod

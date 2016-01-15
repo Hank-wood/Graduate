@@ -31,14 +31,11 @@ def teardown_function(function):
 # @pytest.mark.skipif(True, reason="testing others")
 def test_find_latest():
     tid = '1234567'
-    question1 = QuestionManager(tid, 'url1', '1', 'asker1', datetime.now())
-    question1.save()
+    QuestionManager.save(tid, 'url1', '1', datetime.now(), 'asker1', '')
     time.sleep(1)
-    question2 = QuestionManager(tid, 'url2', '2', 'asker2', datetime.now())
-    question2.save()
+    QuestionManager.save(tid, 'url2', '2', datetime.now(), 'asker2', '')
     time.sleep(1)
-    question3 = QuestionManager(tid, 'url3', '3', 'asker3', datetime.now())
-    question3.save()
+    QuestionManager.save(tid, 'url3', '3', datetime.now(), 'asker3', '')
 
     for doc in DB.db[q_col(tid)].find({}):
         print(doc)
@@ -91,16 +88,16 @@ def test_fetch_questions_without_previous_data(mk_execute):
                 assert len(QuestionManager.get_all_questions_one_topic(tid))==0
             if mock_q.call_count == 2:
                 questions = QuestionManager.get_all_questions_one_topic(tid)
-                assert questions[0] == mock_question2
+                assert questions[0]['qid'] == '2'
             if mock_q.call_count == 3:
                 questions = QuestionManager.get_all_questions_one_topic(tid)
-                assert questions[0] == mock_question2
+                assert questions[0]['qid'] == '2'
             if mock_q.call_count == 4:
                 questions = QuestionManager.get_all_questions_one_topic(tid)
-                questions.sort(key=lambda x: x.qid)
-                assert questions[0] == mock_question2
-                assert questions[1] == mock_question3
-                assert questions[2] == mock_question4
+                questions.sort(key=lambda x: x['qid'])
+                assert questions[0]['qid'] == '2'
+                assert questions[1]['qid'] == '3'
+                assert questions[2]['qid'] == '4'
                 raise EndProgramException
 
         main.main(postroutine=test)

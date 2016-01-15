@@ -54,8 +54,14 @@ class TopicMonitor:
             while not QuestionManager.is_latest(tid, question):
                 question._url = question.url[:-1] + '?sort=created'
                 new_questions.append(question)
+                if question.author:
+                    asker = question.author.id
+                else:
+                    asker = ''  # 匿名用户, TODO: zhihu-py3增加ANONYMOUS常量
+                QuestionManager.save(tid, question._url, question.qid,
+                                     question.creation_time, asker,
+                                     question.title)
                 task_queue.append(FetchNewAnswer(tid, question))
-                QuestionManager(tid, question=question).save()
                 question = next(it)
 
             if new_questions:

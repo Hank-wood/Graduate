@@ -20,57 +20,21 @@ logger = logging.getLogger(__name__)
 class QuestionManager:
 
     latest_question = {
-        tid: None for tid in topics  # for cache
+        tid: None for tid in topics  # save qid of lastest question in a topic
     }
-
-    def __init__(self, tid, url=None, qid=None, asker=None, time=None, title=None,
-                 question=None):
-        """
-        :param tid: fetched from which topic
-        :param url: answer url
-        :param qid: question id
-        :param asker: question author id
-        :param time: time question is raised
-        :param title: question title
-        :param question: zhihu.Question object
-        """
-        self.tid = tid
-        if question:
-            try:
-                self.url = question._url  # ensure ends with ?sort=created
-                self.qid = question.id
-                if self.qid == '':
-                    pass
-                self.time = question.creation_time
-                self.title = question.title
-                if question.author:
-                    self.asker = question.author.id
-                else:
-                    self.asker = ''  # 匿名用户, TODO: zhihu-py3增加ANONYMOUS常量
-            except AttributeError:
-                logging.exception("Error init QuestionManager\n")
-        else:
-            self.url = url
-            self.qid = qid
-            self.time = time
-            self.asker = asker
-            self.title = title
-        self.answers = []
 
     @classmethod
     def is_latest(cls, tid, question):
         if cls.latest_question[tid]:
-            return cls.latest_question[tid].qid == question.id
+            return cls.latest_question[tid] == question.id
         else:
             doc = DB.find_latest_question(tid)
             if doc:
-                cls.latest_question[tid] = cls.doc2question(doc)
-                logger.debug("latest: " + str(cls.latest_question[tid]))
+                cls.latest_question[tid] = doc['qid']
                 return doc['qid'] == question.id
             else:
                 # 第一次执行, 外部 set_latest 不会调用, 在这里初始化
                 cls.set_latest(tid, question)
-                logger.debug("latest: " + str(cls.latest_question[tid]))
                 return True
 
     @classmethod
@@ -79,10 +43,11 @@ class QuestionManager:
         :param question: zhihu.Question object
         """
         logger.debug("Set latest question of %s to %s" % (topics[tid], question.id))
-        cls.latest_question[tid] = cls(tid, question=question)
+        cls.latest_question[tid] = question.id
 
-    def save(self):
-        DB.save_question(self)
+    @classmethod
+    def save(cls, tid, url, qid, time, asker, title):
+        DB.save_question(tid, url, qid, time, asker, title)
 
     @classmethod
     def get_all_questions(cls):
@@ -90,28 +55,11 @@ class QuestionManager:
 
     @classmethod
     def get_all_questions_one_topic(cls, tid):
-        questions = []
-        for doc in DB.get_questions(tid):
-            questions.append(cls.doc2question(doc))
-        return questions
-
-    @classmethod
-    def doc2question(cls, doc):
-        return cls(doc['topic'], doc['url'], doc['qid'], doc['asker'],
-                   doc['time'], doc['title'])
+        return list(DB.get_questions(tid))
 
     @classmethod
     def remove_question(cls, tid, qid):
         DB.remove_question(tid, qid)
-
-    def __eq__(self, other):
-        # title may change
-        return self.qid == other.qid and self.time == other.time and\
-               self.asker == other.asker
-
-    def __str__(self):
-        time_tuple = (self.time.hour, self.time.minute, self.time.second)
-        return "{0}:{1}:{2} {3}".format(*time_tuple, self.title)
 
 
 class AnswerManager:
