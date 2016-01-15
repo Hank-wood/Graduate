@@ -44,7 +44,7 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
 
     mock_answer = Mock(url=None, id=aid, creation_time=None, collect_num=0,
                        upvoters=deque(), comments=[], collections=[],
-                       question=Mock(title='test question'))
+                       question=Mock(title='test question'), deleted=False)
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)
@@ -71,6 +71,9 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
                                              creation_time=datetime(2016,1,9,13,4,0)))
             mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm1'),
                                              creation_time=datetime(2016,1,9,13,5,0)))
+        elif refresh.call_count == 6:
+            # test deleted answer
+            mock_answer.deleted = True
 
     refresh.side_effect = update_attrs
     mock_answer.configure_mock(refresh=refresh, question=mock_question,
@@ -117,6 +120,9 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
     assert task.manager.lastest_comment_time == datetime.combine(day, time(13,4))
 
+    task.execute()
+    assert DB.find_one_answer(tid, aid) == None
+
 
 @patch('task.FetchAnswerInfo.get_upvote_time')
 @patch('task.FetchAnswerInfo.get_collect_time')
@@ -159,7 +165,7 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
                                       creation_time=datetime(2016,1,9,20,9,0),
                                       author=Mock(id='cm1'))],
                        collections=[Mock(owner=Mock(id='cl1'), id=1)],
-                       question=Mock(title='test question'))
+                       question=Mock(title='test question'), deleted=False)
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)
@@ -179,6 +185,8 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
             mock_answer.collections.append(Mock(id=3, owner=Mock(id='cl3')))
             mock_answer.collections.append(Mock(id=4, owner=Mock(id='cl4')))
             mock_answer.collect_num += 3
+        elif refresh.call_count == 2:
+            mock_answer.deleted = True
 
     refresh.side_effect = update_attrs
     mock_answer.configure_mock(refresh=refresh, question=mock_question,
@@ -200,3 +208,6 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
         {'uid':'cl3', 'time':datetime(2016,1,9,4,0,0), 'cid':3}
     ])
     assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+
+    task.execute()
+    assert DB.find_one_answer(tid, aid) == None

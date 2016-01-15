@@ -120,6 +120,10 @@ class DB:
         return cls.db[a_col(tid)].find_one({'aid': aid})
 
     @classmethod
+    def remove_answer(cls, tid, qid):
+        cls.db[a_col(tid)].remove({'aid': qid})
+
+    @classmethod
     def drop_all_collections(cls):
         for collection in cls.db.collection_names():
             cls.db[collection].drop()

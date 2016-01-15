@@ -167,6 +167,9 @@ class AnswerManager:
                 self.collectors.add(collector['uid'])
             DB.add_collectors(self.tid, self.aid, new_collectors)
 
+    def remove_answer(self):
+        DB.remove_answer(self.tid, self.aid)
+
 
 class User:
     def __init__(self):

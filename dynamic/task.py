@@ -76,12 +76,18 @@ class FetchAnswerInfo(Task):
                 answerer=answer.author.id, time=answer.creation_time)
 
     def execute(self):
-        logger.info("Fetch answer info from: %s - %s" %
-                     (self.answer.author.name, self.answer.question.title))
+        logger.info("Fetch answer info: %s - %s" % (self.answer.author.name,
+                                                    self.answer.question.title))
         new_upvoters = deque()
         new_commenters = OrderedDict()
         new_collectors = []
         self.answer.refresh()
+
+        if self.answer.deleted:
+            logger.info("Answer deleted %s - %s" % (self.answer.id,
+                                                    self.answer.question.title))
+            self.manager.remove_answer()
+            return
 
         # Note: put older event in lower index
 

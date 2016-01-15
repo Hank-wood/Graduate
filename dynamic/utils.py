@@ -108,10 +108,6 @@ def validate_cookie(cookie_file):
         raise IOError("no such cookie file:" + cookie_file)
 
 
-def answer_deleted(answer_url):
-    return requests.get(answer_url).history[0].status_code == 302
-
-
 def dict_equal(dict_more_key, dict_less_key):
     try:
         for key in dict_less_key:
@@ -139,5 +135,5 @@ __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
-    'answer_deleted', 'dict_equal', 'is_a_col', 'is_q_col'
+    'dict_equal', 'is_a_col', 'is_q_col'
 ]
