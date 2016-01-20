@@ -9,7 +9,7 @@ class VerboseExceptionFormatter(logging.Formatter, object):
 
     def __init__(self, log_locals_on_exception=True, *args, **kwargs):
         self._log_locals = log_locals_on_exception
-        super(VerboseExceptionFormatter, self).__init__(datefmt='%Y-%m-%d %H:%M:%S')
+        super(VerboseExceptionFormatter, self).__init__(*args, **kwargs)
 
     def formatException(self, exc_info):
         # First get the original formatted exception.
