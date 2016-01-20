@@ -8,6 +8,8 @@ import logging
 from datetime import datetime
 from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util import Retry
 
 from zhihu.acttype import ActType
 
@@ -18,12 +20,7 @@ from model import QuestionManager, AnswerManager
 logger = logging.getLogger(__name__)
 
 
-class Task:
-
-    executor = ThreadPoolExecutor(max_workers=4)
-
-
-class FetchNewAnswer(Task):
+class FetchNewAnswer():
     def __init__(self, tid, question, answer_num=0, from_db=False):
         """
         :param question: zhihu.Question object
@@ -56,6 +53,13 @@ class FetchNewAnswer(Task):
             # 但实际上是有新答案的
             for answer in self.question.answers:
                 if str(answer.id) not in self.aids:
+                    if len(self.aids) == 0:
+                        # a new connection pool for question that has answer
+                        prefix = self.question.url[:-1]  # question/1234, remove trailing slash
+                        self.question._session.mount(prefix,
+                                HTTPAdapter(pool_connections=1,
+                                            pool_maxsize=10,
+                                            max_retries=Retry(5)))
                     self.aids.add(str(answer.id))
                     task_queue.append(FetchAnswerInfo(self.tid, answer))
                 else:
@@ -66,11 +70,11 @@ class FetchNewAnswer(Task):
         task_queue.append(self)
 
 
-class FetchAnswerInfo(Task):
+class FetchAnswerInfo():
     def __init__(self, tid, answer):
         self.tid = tid
         self.answer = answer
-        self.manager = AnswerManager(tid, answer.id)
+        self.manager = AnswerManager(tid, str(answer.id))
         self.manager.sync_basic_info(
                 qid=answer.question.id, url=answer.url,
                 answerer=answer.author.id, time=answer.creation_time)

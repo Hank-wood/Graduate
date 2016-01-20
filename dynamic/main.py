@@ -9,6 +9,7 @@ import json
 import logging
 import logging.config
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 import zhihu
 
@@ -42,6 +43,7 @@ class TaskLoop(threading.Thread):
 
     def __init__(self, routine=None, *args, **kwargs):
         self.routine = routine
+        self.executor = ThreadPoolExecutor(max_workers=10)
         super().__init__(*args, **kwargs)
 
     def run(self):
@@ -52,7 +54,7 @@ class TaskLoop(threading.Thread):
             count = len(task_queue)
             for _ in range(count):
                 task = task_queue.popleft()
-                task.execute()
+                self.executor.submit(task.execute)
 
 
 def configure():
