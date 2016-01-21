@@ -124,5 +124,6 @@ class DB:
 
     @classmethod
     def drop_all_collections(cls):
-        for collection in cls.db.collection_names():
-            cls.db[collection].drop()
+        for collection_name in cls.db.collection_names():
+            if 'system' not in collection_name:
+                cls.db[collection_name].drop()
