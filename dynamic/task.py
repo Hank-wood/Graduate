@@ -58,8 +58,8 @@ class FetchNewAnswer():
                         prefix = self.question.url[:-1]  # question/1234, remove trailing slash
                         self.question._session.mount(prefix,
                                 HTTPAdapter(pool_connections=1,
-                                            pool_maxsize=10,
-                                            max_retries=Retry(5)))
+                                            pool_maxsize=100,
+                                            max_retries=Retry(100)))
                     self.aids.add(str(answer.id))
                     task_queue.append(FetchAnswerInfo(self.tid, answer))
                 else:
