@@ -216,9 +216,10 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
 
 
 def test_with_real_answer():
+    # KLJ 大学怎么样？
+    url = 'https://www.zhihu.com/question/37836315/answer/73732367'
     tid = '1234'
     client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
-    url = 'https://www.zhihu.com/question/39673881/answer/82503451'
     t = FetchAnswerInfo(tid, client.answer(url))
     t.execute()
-    pprint(DB.db[a_col(tid)].find_one({'aid': '82503451'}))
+    pprint(DB.db[a_col(tid)].find_one({'aid': '73732367'}))
