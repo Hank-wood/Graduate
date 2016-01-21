@@ -12,6 +12,8 @@ script:
   - travis_retry pip install coveralls
   - cd dynamic
   - py.test --cov=.
+  - cd ../follower
+  - py.test --cov=.
 
 after_success:
   coveralls
