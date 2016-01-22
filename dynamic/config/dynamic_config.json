@@ -3,5 +3,6 @@
     "19550517": "互联网",
     "19551147": "生活"
   },
-  "restart": true
+  "restart": true,
+  "fetch_new": true
 }

@@ -8,6 +8,7 @@ import atexit
 import json
 import logging
 import logging.config
+import concurrent.futures as cf
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
@@ -41,20 +42,34 @@ def install_threadExcepthook():
 
 class TaskLoop(threading.Thread):
 
-    def __init__(self, routine=None, *args, **kwargs):
+    def __init__(self, event, routine=None, *args, **kwargs):
         self.routine = routine
         self.executor = ThreadPoolExecutor(max_workers=10)
+        self.event = event
         super().__init__(*args, **kwargs)
 
     def run(self):
         while True:
+            start = time.time()
+
             if self.routine and callable(self.routine):
                 self.routine()
-            time.sleep(10)  # TODO: set to 60s
+
+            futures = []
             count = len(task_queue)
             for _ in range(count):
                 task = task_queue.popleft()
-                self.executor.submit(task.execute)
+                futures.append(self.executor.submit(task.execute))
+
+            # wait for all tasks to complete
+            cf.wait(futures, return_when=cf.ALL_COMPLETED)
+            task_execution_time = time.time() - start
+
+            if task_execution_time > 55:
+                # set stop_fetch_questions_event
+                self.event.set()
+            else:
+                time.sleep(60 - task_execution_time)
 
 
 def configure():
@@ -95,22 +110,26 @@ def configure():
 def main(preroutine=None, postroutine=None):
     configure()
     client = zhihu.ZhihuClient(test_cookie)
-    TaskLoop(daemon=True).start()
+    stop_fetch_questions_event = threading.Event()
+    TaskLoop(stop_fetch_questions_event, daemon=True).start()
     m = TopicMonitor(client)
 
     while True:
-        # TODO: 考虑新问题页面采集消耗的时间，不能 sleep 60s
+        start = time.time()
         if preroutine and callable(preroutine):
             preroutine()
 
-        time.sleep(10)
-        m.detect_new_question()
+        if not stop_fetch_questions_event.is_set():
+            m.detect_new_question()
 
         try:
             if postroutine and callable(postroutine):
                 postroutine()
         except EndProgramException:
             break
+
+        task_execution_time = time.time() - start
+        time.sleep(60 - task_execution_time)
 
 
 def cleaning():

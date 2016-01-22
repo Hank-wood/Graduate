@@ -1,8 +1,10 @@
 from client import client
 import requests
+from requests_futures.sessions import FuturesSession
 
 url = 'https://www.zhihu.com/question/39389254'
 question = client.question(url)
+question._session = FuturesSession()
 
 print(question.creation_time)
 
