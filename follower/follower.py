@@ -1,9 +1,10 @@
-from pprint import pprint
+import logging
 
 import zhihu
 from pymongo import MongoClient
 
 
+logger = logging.getLogger(__name__)
 client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
 db = MongoClient('127.0.0.1', 27017).zhihu_data
 user_coll = db.user
@@ -14,7 +15,7 @@ def remove_all_users():
 
 
 def show_users():
-    pprint(list(user_coll.find()))
+    logger.debug(list(user_coll.find()))
 
 
 def fetch_followers(uid, datetime):
@@ -30,7 +31,7 @@ def fetch_followers(uid, datetime):
         else:
             for follower in user.followers:
                 uids.append(follower.id)
-            pprint(uids)
+
             assert len(uids) == user.follower_num
             user_coll.insert({
                 'uid': uid,
@@ -45,4 +46,8 @@ def fetch_followers(uid, datetime):
 
 
 def fetch_many_followers(uid):
-    print("fetch followers > 1000")
+    logger.info("fetch followers > 1000")
+    user_coll.insert({
+        'uid': uid,
+        "follower": []
+    })

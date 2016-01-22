@@ -1,5 +1,9 @@
-import follower
+import time
 from datetime import datetime
+
+import requests
+
+import follower
 
 
 def setup_function(function):
@@ -7,11 +11,11 @@ def setup_function(function):
 
 
 def test_fetch_few():
-    now = datetime.now()
-    follower.fetch_followers('aiwanxin', now)
+    requests.get('http://127.0.0.1:5000/follower/aiwanxin')
+    time.sleep(5)
     follower.show_users()
 
 
 def test_fetch_many():
-    now = datetime.now()
-    follower.fetch_followers('laike9m', now)
+    time.sleep(5)
+    requests.get('http://127.0.0.1:5000/follower/laike9m')

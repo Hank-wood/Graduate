@@ -49,6 +49,7 @@ class TaskLoop(threading.Thread):
         super().__init__(*args, **kwargs)
 
     def run(self):
+        logger = logging.getLogger(__name__)
         while True:
             start = time.time()
 
@@ -68,7 +69,10 @@ class TaskLoop(threading.Thread):
             if task_execution_time > 55:
                 # set stop_fetch_questions_event
                 self.event.set()
+                logger.warning("Task execution time is %d"% task_execution_time)
+                logger.info("Stop fetching new questions")
             else:
+                logger.info("Task execution time is %d" % task_execution_time)
                 time.sleep(60 - task_execution_time)
 
 
@@ -77,8 +81,6 @@ def configure():
         with open(logging_config_file, 'rt') as f:
             config = json.load(f)
             logging.config.dictConfig(config)
-            log_dir = os.path.dirname(config['handlers']['file_handler']['filename'])
-            os.makedirs(log_dir, exist_ok=True)
 
     logger = logging.getLogger(__name__)
     logging.getLogger("urllib3").setLevel(logging.WARNING)

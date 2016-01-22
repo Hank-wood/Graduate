@@ -13,6 +13,7 @@ script:
   - cd dynamic
   - py.test --cov=.
   - cd ../follower
+  - python app.py
   - py.test --cov=.
 
 after_success:
