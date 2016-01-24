@@ -12,8 +12,7 @@ script:
   - travis_retry pip install pytest-cov freezegun
   - travis_retry pip install coveralls
   - cd dynamic
-  - huey_consumer.py huey_tasks.huey -w 10 -l logs/huey.log
-  - py.test --cov=.
+  - huey_consumer.py huey_tasks.huey -w 10
 
 after_success:
   coveralls
