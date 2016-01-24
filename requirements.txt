@@ -1,3 +1,5 @@
 -e git://github.com/7sDream/zhihu-py3.git@dev#egg=zhihu-py3
 ezcf
 pymongo
+huey
+redis

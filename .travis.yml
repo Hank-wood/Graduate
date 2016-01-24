@@ -2,6 +2,7 @@ language: python
 
 services:
   - mongodb
+  - redis-server
 
 python:
   - "3.5"
@@ -11,9 +12,7 @@ script:
   - travis_retry pip install pytest-cov freezegun
   - travis_retry pip install coveralls
   - cd dynamic
-  - py.test --cov=.
-  - cd ../follower
-  - python app.py
+  - huey_consumer.py huey_tasks.huey -w 10 -l logs/huey.log
   - py.test --cov=.
 
 after_success:
