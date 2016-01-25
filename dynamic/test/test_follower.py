@@ -34,7 +34,7 @@ def test_fetch_increased_followers(mock_followers, mock_follower_num):
     mock_followers.side_effect = [
         [Mock(id='a'), Mock(id='b')],
         [Mock(id='a'), Mock(id='b')],
-        [Mock(id='a'), Mock(id='b'), Mock(id='c')],
+        [Mock(id='c'), Mock(id='a'), Mock(id='b')],
     ]
 
     mock_follower_num.side_effect = [2,2,3]

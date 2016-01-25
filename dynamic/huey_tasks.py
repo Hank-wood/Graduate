@@ -48,7 +48,7 @@ def _fetch_followers(uid, datetime, db_name=None):
             min_follower_increase = follower_num - old_follower_num
             new_followers = []
             for follower in user.followers:
-                if follower not in old_followers:
+                if follower.id not in old_followers:
                     new_followers.append(follower.id)
                 elif min_follower_increase > 0:
                     pass
@@ -56,14 +56,15 @@ def _fetch_followers(uid, datetime, db_name=None):
                     break
                 min_follower_increase -= 1
 
-            user_coll.update({'uid': uid}, {
-                '$push': {
-                    'follower': {
-                        'time': datetime,
-                        'uids': new_followers
+            if new_followers:
+                user_coll.update({'uid': uid}, {
+                    '$push': {
+                        'follower': {
+                            'time': datetime,
+                            'uids': new_followers
+                        }
                     }
-                }
-            })
+                })
         except Exception as e:
             print("suspicious doc:")
             print(doc)
