@@ -46,6 +46,10 @@ def _fetch_followers(uid, datetime, db_name=None):
             old_follower_num = len(old_followers)
             # 至少有这么多新的 follower, 考虑取关则可能更多
             min_follower_increase = follower_num - old_follower_num
+            if min_follower_increase <= 0:
+                # 实际上这个时候也有可能有新follower,无视之,因为概率较小
+                return
+
             new_followers = []
             for follower in user.followers:
                 if follower.id not in old_followers:
@@ -79,7 +83,10 @@ def fetch_many_followers(uid):
     # })
 
 
-def remove_all_users():
+def remove_all_users(db_name=None):
+    global user_coll
+    if db_name is not None:
+        user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
     user_coll.remove({})
 
 
@@ -89,6 +96,13 @@ def show_users(db_name=None):
         user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
     logger.info(list(user_coll.find()))
     print(list(user_coll.find()))
+
+
+def get_user(uid, db_name=None):
+    global user_coll
+    if db_name is not None:
+        user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
+    return user_coll.find_one({'uid': uid})
 
 
 fetch_followers = huey.task()(_fetch_followers)
