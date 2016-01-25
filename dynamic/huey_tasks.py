@@ -1,4 +1,5 @@
 import logging
+from functools import reduce
 
 import zhihu
 from pymongo import MongoClient
@@ -20,18 +21,15 @@ def _fetch_followers(uid, datetime, db_name=None):
 
     prefix = 'https://www.zhihu.com/people/'
     user = client.author(prefix + uid)
-    uids = []
-
+    follower_num = user.follower_num
     doc = user_coll.find_one({'uid': uid})
     if doc is None:
         # new user
-        if user.follower_num > 1000:
+        if follower_num > 1000:
             fetch_many_followers(uid)
         else:
-            for follower in user.followers:
-                uids.append(follower.id)
-
-            assert len(uids) == user.follower_num
+            uids = [follower.id for follower in user.followers]
+            assert len(uids) == follower_num
             user_coll.insert({
                 'uid': uid,
                 "follower": [{
@@ -42,36 +40,42 @@ def _fetch_followers(uid, datetime, db_name=None):
             print(uids)
     else:
         # user exists
-        old_followers = set(reduce(lambda x,y:x.extend(y),
-                                   [f['uids'] for f in doc['follower']]))
-        old_follower_num = len(old_followers)
-        # 至少有这么多新的 follower, 考虑取关则可能更多
-        min_follower_increase = user.follower_num - old_follower_num
-        new_followers = []
-        for follower in user.followers:
-            if follower not in old_followers:
-                new_followers.append(follower.id)
-            elif min_follower_increase > 0:
-                pass
-            else:
-                break
-            min_follower_increase -= 1
+        try:
+            old_followers = set(reduce(lambda x,y: x + y,
+                                [f['uids'] for f in doc['follower']]))
+            old_follower_num = len(old_followers)
+            # 至少有这么多新的 follower, 考虑取关则可能更多
+            min_follower_increase = follower_num - old_follower_num
+            new_followers = []
+            for follower in user.followers:
+                if follower not in old_followers:
+                    new_followers.append(follower.id)
+                elif min_follower_increase > 0:
+                    pass
+                else:
+                    break
+                min_follower_increase -= 1
 
-        user_coll.update({'uid': uid}, {
-            '$push': {
-                'follower': {
-                    'time': datetime,
-                    'uids': new_followers
+            user_coll.update({'uid': uid}, {
+                '$push': {
+                    'follower': {
+                        'time': datetime,
+                        'uids': new_followers
+                    }
                 }
-            }
-        })
+            })
+        except Exception as e:
+            print("suspicious doc:")
+            print(doc)
+            raise e
 
 
 def fetch_many_followers(uid):
-    user_coll.insert({
-        'uid': uid,
-        "follower": []
-    })
+    pass
+    # user_coll.insert({
+    #     'uid': uid,
+    #     "follower": []
+    # })
 
 
 def remove_all_users():
