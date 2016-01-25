@@ -14,30 +14,42 @@ db = MongoClient('127.0.0.1', 27017).zhihu_data
 user_coll = db.user
 
 
-def _fetch_followers(uid, datetime, db_name=None):
+def _fetch_followers_followees(uid, dateime, db_name=None):
+    prefix = 'https://www.zhihu.com/people/'
+    user = client.author(prefix + uid)
+
+    if user.followee_num < 500:
+        _fetch_followees(user, dateime, db_name)
+
+    if user.follower_num < 500:
+        _fetch_followers(user, dateime, db_name)
+
+    if user.followee_num >= 500 and user.follower_num >= 500:
+        if user.followee_num < user.follower_num:
+            _fetch_followees(user, dateime, db_name)
+        else:
+            _fetch_followers(user, dateime, db_name)
+
+
+def _fetch_followers(user, datetime, db_name=None):
     global user_coll
     if db_name is not None:
         user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
 
-    prefix = 'https://www.zhihu.com/people/'
-    user = client.author(prefix + uid)
     follower_num = user.follower_num
-    doc = user_coll.find_one({'uid': uid})
+    doc = user_coll.find_one({'uid': user.id})
     if doc is None:
         # new user
-        if follower_num > 1000:
-            fetch_many_followers(uid)
-        else:
-            uids = [follower.id for follower in user.followers]
-            assert len(uids) == follower_num
-            user_coll.insert({
-                'uid': uid,
-                "follower": [{
-                    'time': datetime,
-                    'uids': uids
-                }]
-            })
-            print(uids)
+        uids = [follower.id for follower in user.followers]
+        assert len(uids) == follower_num
+        user_coll.insert({
+            'uid': user.id,
+            "follower": [{
+                'time': datetime,
+                'uids': uids
+            }]
+        })
+        print(uids)
     else:
         # user exists
         try:
@@ -61,7 +73,7 @@ def _fetch_followers(uid, datetime, db_name=None):
                 min_follower_increase -= 1
 
             if new_followers:
-                user_coll.update({'uid': uid}, {
+                user_coll.update({'uid': user.id}, {
                     '$push': {
                         'follower': {
                             'time': datetime,
@@ -75,12 +87,8 @@ def _fetch_followers(uid, datetime, db_name=None):
             raise e
 
 
-def fetch_many_followers(uid):
+def _fetch_followees(user, datetime, db_name=None):
     pass
-    # user_coll.insert({
-    #     'uid': uid,
-    #     "follower": []
-    # })
 
 
 def remove_all_users(db_name=None):
@@ -106,3 +114,5 @@ def get_user(uid, db_name=None):
 
 
 fetch_followers = huey.task()(_fetch_followers)
+fetch_followees = huey.task()(_fetch_followees)
+fetch_followers_followees = huey.task()(_fetch_followers_followees)
