@@ -1,5 +1,5 @@
 import logging
-from functools import reduce
+from functools import reduce, wraps
 
 import zhihu
 from pymongo import MongoClient
@@ -12,6 +12,12 @@ logger = logging.getLogger(__name__)
 client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
 db = MongoClient('127.0.0.1', 27017).zhihu_data
 user_coll = db.user
+
+
+def replace_database(db_name=None):
+    global user_coll
+    if db_name is not None:
+        user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
 
 
 def _fetch_followers_followees(uid, dateime, db_name=None):
@@ -32,10 +38,7 @@ def _fetch_followers_followees(uid, dateime, db_name=None):
 
 
 def _fetch_followers(user, datetime, db_name=None):
-    global user_coll
-    if db_name is not None:
-        user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
-
+    replace_database(db_name)
     follower_num = user.follower_num
     doc = user_coll.find_one({'uid': user.id})
     if doc is None:
@@ -88,28 +91,23 @@ def _fetch_followers(user, datetime, db_name=None):
 
 
 def _fetch_followees(user, datetime, db_name=None):
+    replace_database(db_name)
     pass
 
 
 def remove_all_users(db_name=None):
-    global user_coll
-    if db_name is not None:
-        user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
+    replace_database(db_name)
     user_coll.remove({})
 
 
 def show_users(db_name=None):
-    global user_coll
-    if db_name is not None:
-        user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
+    replace_database(db_name)
     logger.info(list(user_coll.find()))
     print(list(user_coll.find()))
 
 
 def get_user(uid, db_name=None):
-    global user_coll
-    if db_name is not None:
-        user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
+    replace_database(db_name)
     return user_coll.find_one({'uid': uid})
 
 
