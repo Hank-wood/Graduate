@@ -28,12 +28,14 @@ class FetchNewAnswer():
         """
         self.tid = tid
         self.question = question
+        self.qid = question.id
 
         if self.question.deleted:
-            QuestionManager.remove_question(self.tid, self.question.id)
+            QuestionManager.remove_question(self.tid, self.qid)
             return
 
         self.answer_num = answer_num
+        self.follower_num = self.question.follower_num
         self.aids = set()
         if not from_db:
             logger.info("New Question: %s" % self.question.title)
@@ -42,7 +44,7 @@ class FetchNewAnswer():
         self.question.refresh()
 
         if self.question.deleted:
-            QuestionManager.remove_question(self.tid, self.question.id)
+            QuestionManager.remove_question(self.tid, self.qid)
             return
 
         if self.question.answer_num > self.answer_num:
@@ -55,7 +57,9 @@ class FetchNewAnswer():
                 if str(answer.id) not in self.aids:
                     if len(self.aids) == 0:
                         # a new connection pool for question that has answer
-                        prefix = self.question.url[:-1]  # question/1234, remove trailing slash
+                        # remove trailing slash so ?sort can use this pool
+                        # 答案的url 是 question/qid/answer/aid
+                        prefix = self.question.url[:-1]
                         self.question._session.mount(prefix,
                                 HTTPAdapter(pool_connections=1,
                                             pool_maxsize=100,
@@ -64,10 +68,27 @@ class FetchNewAnswer():
                     task_queue.append(FetchAnswerInfo(self.tid, answer))
                 else:
                     break
-
             self.answer_num = self.question.answer_num
 
+        if self.question.follower_num > self.follower_num:
+            self._fetch_question_follower()
+            self.follower_num = self.question.follower_num
+
         task_queue.append(self)
+
+    def _fetch_question_follower(self):
+        # TODO: test
+        old_followers = QuestionManager.get_question_follower(self.tid, self.qid)
+        new_followers = []
+
+        # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
+        for follower in self.question.followers:
+            if follower.id in old_followers:
+                break
+            else:
+                new_followers.append(follower.id)
+
+        QuestionManager.add_question_follower(self.tid, self.qid, new_followers)
 
 
 class FetchAnswerInfo():

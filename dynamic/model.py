@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class QuestionManager:
+    """
+    在大部分情况下这个类的作用就是调用 db.py 提供的接口
+    在某些的情况下用来缓存数据避免查询过多
+    """
 
     latest_question = {
         tid: None for tid in topics  # save qid of lastest question in a topic
@@ -60,6 +64,14 @@ class QuestionManager:
     @classmethod
     def remove_question(cls, tid, qid):
         DB.remove_question(tid, qid)
+
+    @classmethod
+    def add_question_follower(cls, tid, qid, new_followers):
+        DB.add_question_follower(tid, qid, new_followers)
+
+    @classmethod
+    def get_question_follower(cls, tid, qid):
+        return set(DB.get_question_follower(tid, qid))
 
 
 class AnswerManager:

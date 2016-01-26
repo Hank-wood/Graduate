@@ -40,7 +40,23 @@ class DB:
             'time': time,
             'asker': asker,
             'title': title,
+            'follower': []
         })
+
+    @classmethod
+    def add_question_follower(cls, tid, qid, new_followers):
+        cls.db[q_col(tid)].update({'qid': qid}, {
+            '$push': {
+                'follower': {
+                    '$each': list(new_followers)
+                }
+            }
+        })
+
+    @classmethod
+    def get_question_follower(cls, tid, qid):
+        return cls.db[q_col(tid)].find_one({'qid': qid},
+                                           {'follower': 1, '_id':0})['follower']
 
     @classmethod
     def save_answer(cls, tid, aid, url, qid, time, answerer, upvoters=None,
