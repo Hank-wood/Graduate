@@ -41,7 +41,7 @@ def _fetch_followers_followees(uid, dateime, db_name=None):
 def _fetch_followers(user, datetime, db_name=None):
     replace_database(db_name)
     follower_num = user.follower_num
-    doc = user_coll.find_one({'uid': user.id}, {'followers':1, '_id':0})
+    doc = user_coll.find_one({'uid': user.id}, {'follower':1, '_id':0})
     if doc is None:
         # new user
         uids = [follower.id for follower in user.followers]
@@ -95,7 +95,7 @@ def _fetch_followers(user, datetime, db_name=None):
 def _fetch_followees(user, datetime, db_name=None):
     replace_database(db_name)
     followee_num = user.followee_num
-    doc = user_coll.find_one({'uid': user.id}, {'followees':1, '_id':0})
+    doc = user_coll.find_one({'uid': user.id}, {'followee':1, '_id':0})
     if doc is None:
         # new user
         uids = [followee.id for followee in user.followees]
