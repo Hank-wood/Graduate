@@ -10,10 +10,12 @@ from pymongo import MongoClient
 
 import huey_tasks
 from huey_tasks import _fetch_followers, _fetch_followees, show_users,\
-    remove_all_users, get_user
+    remove_all_users, get_user, _fetch_followers_followees
 from utils import dict_equal
 
 
+_fetch_followers_followees = partial(_fetch_followers_followees, db_name='test')
+_fetch_followees = partial(_fetch_followees, db_name='test')
 _fetch_followers = partial(_fetch_followers, db_name='test')
 get_user = partial(get_user, db_name='test')
 remove_all_users = partial(remove_all_users, db_name='test')
@@ -33,6 +35,18 @@ def test_fetch_few():
     _fetch_followees(aiwanxin, datetime.now())
     time.sleep(5)
     show_users()
+    doc = get_user('aiwanxin')
+    assert len(doc['follower'][0]['uids']) >= 32
+    assert len(doc['followee'][0]['uids']) >= 44
+
+
+def test_fetch_few2():
+    _fetch_followers_followees('aiwanxin', datetime.now())
+    time.sleep(5)
+    show_users()
+    doc = get_user('aiwanxin')
+    assert len(doc['follower'][0]['uids']) >= 32
+    assert len(doc['followee'][0]['uids']) >= 44
 
 
 @pytest.mark.skipif(True, reason='')
