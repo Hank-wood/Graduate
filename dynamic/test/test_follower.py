@@ -9,7 +9,8 @@ import zhihu
 from pymongo import MongoClient
 
 import huey_tasks
-from huey_tasks import _fetch_followers, show_users, remove_all_users, get_user
+from huey_tasks import _fetch_followers, _fetch_followees, show_users,\
+    remove_all_users, get_user
 from utils import dict_equal
 
 
@@ -29,6 +30,7 @@ def setup_function(function):
 # @pytest.mark.skipif(True, reason='')
 def test_fetch_few():
     _fetch_followers(aiwanxin, datetime.now())
+    _fetch_followees(aiwanxin, datetime.now())
     time.sleep(5)
     show_users()
 
@@ -38,8 +40,12 @@ def test_fetch_many():
     _fetch_followers(laike9m, datetime.now())
     time.sleep(5)
     show_users()
+    doc = get_user('aiwanxin')
+    assert len(doc['follower']) == 1
+    assert doc['follower'][0]['uids'] == ['a', 'b']
 
 
+@pytest.mark.skipif(True, reason='')
 @patch('huey_tasks.zhihu.Author.follower_num', new_callable=PropertyMock)
 @patch('huey_tasks.zhihu.Author.followers', new_callable=PropertyMock)
 def test_fetch_increased_followers(mock_followers, mock_follower_num):

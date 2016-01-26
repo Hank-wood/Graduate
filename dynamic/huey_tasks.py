@@ -1,5 +1,6 @@
 import logging
 from functools import reduce, wraps
+from pprint import pprint
 
 import zhihu
 from pymongo import MongoClient
@@ -40,7 +41,7 @@ def _fetch_followers_followees(uid, dateime, db_name=None):
 def _fetch_followers(user, datetime, db_name=None):
     replace_database(db_name)
     follower_num = user.follower_num
-    doc = user_coll.find_one({'uid': user.id})
+    doc = user_coll.find_one({'uid': user.id}, {'followers':1, '_id':0})
     if doc is None:
         # new user
         uids = [follower.id for follower in user.followers]
@@ -52,13 +53,16 @@ def _fetch_followers(user, datetime, db_name=None):
                 'uids': uids
             }]
         })
-        print(uids)
     else:
         # user exists
         try:
-            old_followers = set(reduce(lambda x,y: x + y,
-                                [f['uids'] for f in doc['follower']]))
-            old_follower_num = len(old_followers)
+            if 'follower' in doc:
+                old_followers = set(reduce(lambda x,y: x + y,
+                                    [f['uids'] for f in doc['follower']]))
+                old_follower_num = len(old_followers)
+            else:
+                old_followers = set()
+                old_follower_num = 0
             # 至少有这么多新的 follower, 考虑取关则可能更多
             min_follower_increase = follower_num - old_follower_num
             if min_follower_increase <= 0:
@@ -69,9 +73,7 @@ def _fetch_followers(user, datetime, db_name=None):
             for follower in user.followers:
                 if follower.id not in old_followers:
                     new_followers.append(follower.id)
-                elif min_follower_increase > 0:
-                    pass
-                else:
+                elif min_follower_increase <= 0:
                     break
                 min_follower_increase -= 1
 
@@ -86,13 +88,62 @@ def _fetch_followers(user, datetime, db_name=None):
                 })
         except Exception as e:
             print("suspicious doc:")
-            print(doc)
+            print(doc_follower)
             raise e
 
 
 def _fetch_followees(user, datetime, db_name=None):
     replace_database(db_name)
-    pass
+    followee_num = user.followee_num
+    doc = user_coll.find_one({'uid': user.id}, {'followees':1, '_id':0})
+    if doc is None:
+        # new user
+        uids = [followee.id for followee in user.followees]
+        assert len(uids) == followee_num
+        user_coll.insert({
+            'uid': user.id,
+            "followee": [{
+                'time': datetime,
+                'uids': uids
+            }]
+        })
+    else:
+        # user exists
+        try:
+            if 'followee' in doc:
+                old_followees = set(reduce(lambda x,y: x + y,
+                                    [f['uids'] for f in doc['followee']]))
+                old_followee_num = len(old_followees)
+            else:
+                old_followees = set()
+                old_followee_num = 0
+            # 至少有这么多新的 followee, 考虑取关则可能更多
+            min_followee_increase = followee_num - old_followee_num
+            if min_followee_increase <= 0:
+                # 实际上这个时候也有可能有新followee,无视之,因为概率较小
+                return
+
+            new_followees = []
+            for followee in user.followees:
+                if followee.id not in old_followees:
+                    new_followees.append(followee.id)
+                elif min_followee_increase <= 0:
+                    break
+                min_followee_increase -= 1
+
+            if new_followees:
+                user_coll.update({'uid': user.id}, {
+                    '$push': {
+                        'followee': {
+                            'time': datetime,
+                            'uids': new_followees
+                        }
+                    }
+                })
+        except Exception as e:
+            print("suspicious doc:")
+            print(doc_followee)
+            raise e
 
 
 def remove_all_users(db_name=None):
@@ -103,7 +154,7 @@ def remove_all_users(db_name=None):
 def show_users(db_name=None):
     replace_database(db_name)
     logger.info(list(user_coll.find()))
-    print(list(user_coll.find()))
+    pprint(list(user_coll.find()))
 
 
 def get_user(uid, db_name=None):
