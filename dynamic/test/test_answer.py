@@ -29,7 +29,10 @@ def setup_module(module):
 
 
 def teardown_function(function):
-    teardown()
+    for collection_name in DB.db.collection_names():
+        if 'system' not in collection_name:
+            DB.db[collection_name].drop()
+    task_queue.clear()
 
 
 @freeze_time("2016-01-09 13:01")  # now().time > creation_time, 防止跨天
@@ -43,33 +46,32 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
                                  = [t1+timedelta(i) for i in range(10)]
 
     mock_answer = Mock(url=None, id=aid, creation_time=None, collect_num=0,
-                       upvoters=deque(), comments=[], collections=[],
+                       upvoters=deque(), latest_comments=deque(), collections=[],
                        question=Mock(title='test question'), deleted=False)
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)
 
-    # 只有 upvoters 需要 appendleft 来模拟新 upvoter 在上面
     def update_attrs():
         if refresh.call_count == 1:
             mock_answer.upvoters.appendleft(Mock(id='up1'))
         elif refresh.call_count == 2:
             mock_answer.upvoters.appendleft(Mock(id='up2'))
-            mock_answer.comments.append(Mock(cid=1, author=Mock(id='cm1'),
+            mock_answer.latest_comments.appendleft(Mock(cid=1, author=Mock(id='cm1'),
                                              creation_time=datetime(2016,1,9,13,1,0)))
         elif refresh.call_count == 3:
             mock_answer.upvoters.appendleft(Mock(id='up3'))
-            mock_answer.comments.append(Mock(cid=2, author=Mock(id='cm2'),
+            mock_answer.latest_comments.appendleft(Mock(cid=2, author=Mock(id='cm2'),
                                              creation_time=datetime(2016,1,9,13,2,0)))
             mock_answer.collections.append(Mock(id=1, owner=Mock(id='cl1')))
             mock_answer.collect_num += 1
         elif refresh.call_count == 4:
-            mock_answer.comments.append(Mock(cid=3, author=Mock(id='cm1'),
+            mock_answer.latest_comments.appendleft(Mock(cid=3, author=Mock(id='cm1'),
                                              creation_time=datetime(2016,1,9,13,3,0)))
         elif refresh.call_count == 5:
-            mock_answer.comments.append(Mock(cid=4, author=Mock(id='cm3'),
+            mock_answer.latest_comments.appendleft(Mock(cid=4, author=Mock(id='cm3'),
                                              creation_time=datetime(2016,1,9,13,4,0)))
-            mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm1'),
+            mock_answer.latest_comments.appendleft(Mock(cid=5, author=Mock(id='cm1'),
                                              creation_time=datetime(2016,1,9,13,5,0)))
         elif refresh.call_count == 6:
             # test deleted answer
@@ -161,9 +163,9 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
     mock_answer = Mock(url=None, id=aid, creation_time=None, collect_num=1,
                        upvoters=deque([
                            Mock(id='up1'), Mock(id='up2'), Mock(id='up3')]),
-                       comments=[Mock(uid='cm1', cid=1,
+                       latest_comments=deque([Mock(uid='cm1', cid=1,
                                       creation_time=datetime(2016,1,9,20,9,0),
-                                      author=Mock(id='cm1'))],
+                                      author=Mock(id='cm1'))]),
                        collections=[Mock(owner=Mock(id='cl1'), id=1)],
                        question=Mock(title='test question'), deleted=False)
     refresh = Mock()
@@ -173,13 +175,13 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
     def update_attrs():
         if refresh.call_count == 1:
             mock_answer.upvoters.appendleft(Mock(id='up4'))
-            mock_answer.comments.append(Mock(cid=2, author=Mock(id='cm2'),
+            mock_answer.latest_comments.appendleft(Mock(cid=2, author=Mock(id='cm2'),
                                              creation_time=datetime(2016,1,9,21,1,0)))
-            mock_answer.comments.append(Mock(cid=3, author=Mock(id='cm1'),
+            mock_answer.latest_comments.appendleft(Mock(cid=3, author=Mock(id='cm1'),
                                              creation_time=datetime(2016,1,9,21,2,0)))
-            mock_answer.comments.append(Mock(cid=4, author=Mock(id='cm2'),
+            mock_answer.latest_comments.appendleft(Mock(cid=4, author=Mock(id='cm2'),
                                              creation_time=datetime(2016,1,9,21,4,0)))
-            mock_answer.comments.append(Mock(cid=5, author=Mock(id='cm3'),
+            mock_answer.latest_comments.appendleft(Mock(cid=5, author=Mock(id='cm3'),
                                              creation_time=datetime(2016,1,9,23,5,0)))
             mock_answer.collections.append(Mock(id=2, owner=Mock(id='cl2')))
             mock_answer.collections.append(Mock(id=3, owner=Mock(id='cl3')))

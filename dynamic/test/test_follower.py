@@ -26,7 +26,7 @@ aiwanxin = client.author('https://www.zhihu.com/people/aiwanxin')
 
 
 def teardown_function(function):
-    teardown()
+    remove_all_users()
 
 
 # @pytest.mark.skipif(True, reason='')

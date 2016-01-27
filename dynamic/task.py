@@ -130,7 +130,7 @@ class FetchAnswerInfo():
         # 同一个人可能发表多条评论, 所以还得 check 不是同一个 commenter
         # 注意, 一次新增的评论中也会有同一个人发表多条评论的情况, 需要收集最早的那个
         # 下面的逻辑保证了同一个 commenter 的更早的 comment 会替代新的
-        for comment in reversed(list(self.answer.comments)):
+        for comment in self.answer.latest_comments:
             if comment.author.id in self.manager.commenters:
                 if comment.creation_time <= self.manager.lastest_comment_time:
                     break

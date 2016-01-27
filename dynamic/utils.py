@@ -6,7 +6,6 @@ from pprint import pprint
 import requests
 
 from common import *
-from db import DB
 
 
 def is_q_col(collection_name):
@@ -112,7 +111,7 @@ def validate_cookie(cookie_file):
 def dict_equal(dict_more_key, dict_less_key):
     try:
         for key in dict_less_key:
-            if not dict_more_key[key] == dict_less_key[key]:
+            if dict_more_key[key] != dict_less_key[key]:
                 print("unequal key: " + key)
                 pprint(dict_more_key[key])
                 pprint(dict_less_key[key])
@@ -132,16 +131,9 @@ def list_of_dict_equal(list_of_dict_more_key, list_of_dict_less_key):
     pass
 
 
-def teardown():
-    for collection_name in DB.db.collection_names():
-        if 'system' not in collection_name:
-            DB.db[collection_name].drop()
-    task_queue.clear()
-
-
 __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
-    'dict_equal', 'is_a_col', 'is_q_col', 'teardown'
+    'dict_equal', 'is_a_col', 'is_q_col'
 ]
