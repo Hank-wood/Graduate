@@ -45,7 +45,7 @@ def test_find_latest():
     assert DB.find_latest_question(tid)['asker'] == 'asker3'
 
 
-@patch('task.FetchNewAnswer.execute')
+@patch('task.FetchQuestionInfo.execute')
 @patch('config.dynamic_config.topics', {"19550517": "互联网"})
 def test_fetch_questions_without_previous_data(mk_execute):
     """测试数据库中没有数据的情况"""

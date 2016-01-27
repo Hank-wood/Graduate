@@ -20,7 +20,7 @@ from model import QuestionManager, AnswerManager
 logger = logging.getLogger(__name__)
 
 
-class FetchNewAnswer():
+class FetchQuestionInfo():
     def __init__(self, tid, question, answer_num=0, from_db=False):
         """
         :param question: zhihu.Question object
@@ -193,6 +193,6 @@ class FetchAnswerInfo():
             raise NoSuchActivity
 
 __all__ = [
-    'FetchNewAnswer',
+    'FetchQuestionInfo',
     'FetchAnswerInfo'
 ]

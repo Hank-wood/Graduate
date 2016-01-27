@@ -90,8 +90,9 @@ def configure():
         DB.drop_all_collections()
     else:
         pass
+        # TODO
         # get all questions from db, make zhihu.question
-        # task_queue.append(FetchNewAnswer(question))
+        # task_queue.append(FetchQuestionInfo(question))
 
     validate_config()
 

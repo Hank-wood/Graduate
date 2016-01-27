@@ -37,10 +37,10 @@ class TopicMonitor:
         for question in QuestionManager.get_all_questions():
             url = question['url'] if question['url'].endswith('?sort=created') \
                   else question['url'][:-1] + '?sort=created'
-            task_queue.append(FetchNewAnswer(tid=question['topic'],
-                                             question=Question(url,
+            task_queue.append(FetchQuestionInfo(tid=question['topic'],
+                                                question=Question(url,
                                                                session=session),
-                                             from_db=True))
+                                                from_db=True))
 
         logger.info('Loading old questions from database succeed :)')
 
@@ -65,7 +65,7 @@ class TopicMonitor:
                 QuestionManager.save(tid, question._url, question.qid,
                                      question.creation_time, asker,
                                      question.title)
-                task_queue.append(FetchNewAnswer(tid, question))
+                task_queue.append(FetchQuestionInfo(tid, question))
                 question = next(it)
 
             if new_questions:
