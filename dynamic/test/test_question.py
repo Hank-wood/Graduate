@@ -24,10 +24,7 @@ def setup_module(module):
 
 
 def teardown_function(function):
-    for collection_name in DB.db.collection_names():
-        if 'system' not in collection_name:
-            DB.db[collection_name].drop()
-    task_queue.clear()
+    teardown()
 
 
 @pytest.mark.skipif(True, reason="")
@@ -173,6 +170,6 @@ def test_update_question_info():
     ]
     task.execute()
     assert task.follower_num == 2
-    # TODO: 数据库中的 follower
+    assert QuestionManager.get_question_follower(tid, 'q1') == {'fid1', 'fid2'}
     assert task_queue.popleft().answer.id == 'aid2'
     assert task_queue.popleft() is task

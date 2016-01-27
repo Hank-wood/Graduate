@@ -29,10 +29,7 @@ def setup_module(module):
 
 
 def teardown_function(function):
-    for collection_name in DB.db.collection_names():
-        if 'system' not in collection_name:
-            DB.db[collection_name].drop()
-    task_queue.clear()
+    teardown()
 
 
 @freeze_time("2016-01-09 13:01")  # now().time > creation_time, 防止跨天

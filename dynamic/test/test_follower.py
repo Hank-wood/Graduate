@@ -25,8 +25,8 @@ laike9m = client.author('https://www.zhihu.com/people/laike9m')
 aiwanxin = client.author('https://www.zhihu.com/people/aiwanxin')
 
 
-def setup_function(function):
-    remove_all_users()
+def teardown_function(function):
+    teardown()
 
 
 # @pytest.mark.skipif(True, reason='')
