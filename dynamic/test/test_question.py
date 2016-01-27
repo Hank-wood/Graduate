@@ -27,6 +27,7 @@ def teardown_function(function):
     for collection_name in DB.db.collection_names():
         if 'system' not in collection_name:
             DB.db[collection_name].drop()
+    task_queue.clear()
 
 
 @pytest.mark.skipif(True, reason="")
