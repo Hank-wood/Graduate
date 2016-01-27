@@ -15,6 +15,7 @@ from model import QuestionManager
 from db import DB
 from utils import *
 from common import *
+from task import FetchQuestionInfo
 
 
 def setup_module(module):
@@ -28,7 +29,7 @@ def teardown_function(function):
             DB.db[collection_name].drop()
 
 
-# @pytest.mark.skipif(True, reason="testing others")
+@pytest.mark.skipif(True, reason="")
 def test_find_latest():
     tid = '1234567'
     QuestionManager.save(tid, 'url1', '1', datetime.now(), 'asker1', '')
@@ -45,6 +46,7 @@ def test_find_latest():
     assert DB.find_latest_question(tid)['asker'] == 'asker3'
 
 
+@pytest.mark.skipif(True, reason="")
 @patch('task.FetchQuestionInfo.execute')
 @patch('config.dynamic_config.topics', {"19550517": "互联网"})
 def test_fetch_questions_without_previous_data(mk_execute):
@@ -104,11 +106,13 @@ def test_fetch_questions_without_previous_data(mk_execute):
         main.main(postroutine=test)
 
 
+@pytest.mark.skipif(True, reason="")
 def test_fetch_questions_with_previous_data():
     """测试数据库有之前保存的 question 的情况"""
     pass
 
 
+@pytest.mark.skipif(True, reason="")
 def test_get_all_questions():
     DB.db['111_q'].insert({'mm':1})
     assert dict_equal(DB.get_all_questions()[0], {'mm':1})
@@ -127,3 +131,47 @@ def test_get_all_questions():
     correct = [{'mm':1}, {'mm':2}, {'mm':3}, {'mm':4}]
     for less, more in zip(correct, db_results):
         assert dict_equal(more, less)
+
+
+# @pytest.mark.skipif(True, reason="")
+def test_update_question_info():
+    """
+    测试问题 follower 更新，答案更新
+    手动 execute，查看test_queue和follower_num及数据库中follower
+    """
+    mock_question = Mock(refresh=Mock(), id='q1', url='q/1/', deleted=False,
+                         follower_num=0, answer_num=0, answers=[],
+                         followers=[])
+    tid = '1234'
+    QuestionManager.save(tid, mock_question.url, mock_question.id,
+                         datetime.now(), 'asker', 'title')
+    task = FetchQuestionInfo(tid, mock_question)
+    task.execute()
+    assert task_queue.popleft() is task
+
+    mock_question.answer_num = 1
+    mock_question.answers = [
+        Mock(question=mock_question, url='answer/1', author=Mock(id='uid1'),
+             creation_time=datetime.now(), id='aid1')
+    ]
+    task.execute()
+    assert task_queue.popleft().answer.id == 'aid1'
+    assert task_queue.popleft() is task
+
+    mock_question.answer_num = 2
+    mock_question.answers = [
+        Mock(question=mock_question, url='answer/2', author=Mock(id='uid2'),
+             creation_time=datetime.now(), id='aid2'),
+        Mock(question=mock_question, url='answer/1', author=Mock(id='uid1'),
+             creation_time=datetime.now(), id='aid1')
+    ]
+    mock_question.follower_num = 2
+    mock_question.followers = [
+        Mock(id='fid2'),
+        Mock(id='fid1')
+    ]
+    task.execute()
+    assert task.follower_num == 2
+    # TODO: 数据库中的 follower
+    assert task_queue.popleft().answer.id == 'aid2'
+    assert task_queue.popleft() is task
