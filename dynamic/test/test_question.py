@@ -7,9 +7,11 @@ import time
 import json
 from datetime import datetime
 from unittest.mock import patch, PropertyMock, Mock
+from pprint import pprint
 
 from pymongo import MongoClient
 import pytest
+from zhihu.acttype import ActType
 
 from model import QuestionManager
 from db import DB
@@ -47,7 +49,7 @@ def test_find_latest():
     assert DB.find_latest_question(tid)['asker'] == 'asker3'
 
 
-@pytest.mark.skipif(True, reason="")
+# @pytest.mark.skipif(True, reason="")
 @patch('task.FetchQuestionInfo.execute')
 @patch('config.dynamic_config.topics', {"19550517": "互联网"})
 def test_fetch_questions_without_previous_data(mk_execute):
@@ -107,13 +109,13 @@ def test_fetch_questions_without_previous_data(mk_execute):
         main.main(postroutine=test)
 
 
-@pytest.mark.skipif(True, reason="")
+# @pytest.mark.skipif(True, reason="")
 def test_fetch_questions_with_previous_data():
     """测试数据库有之前保存的 question 的情况"""
     pass
 
 
-@pytest.mark.skipif(True, reason="")
+# @pytest.mark.skipif(True, reason="")
 def test_get_all_questions():
     DB.db['111_q'].insert({'mm':1})
     assert dict_equal(DB.get_all_questions()[0], {'mm':1})
@@ -168,11 +170,40 @@ def test_update_question_info():
     ]
     mock_question.follower_num = 2
     mock_question.followers = [
-        Mock(id='fid2'),
-        Mock(id='fid1')
+        Mock(id='fid2', activities=[
+            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
+                 time=datetime.now())
+        ]),
+        Mock(id='fid1', activities=[
+            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
+                 time=datetime.now())
+        ]),
     ]
     task.execute()
     assert task.follower_num == 2
     assert QuestionManager.get_question_follower(tid, 'q1') == {'fid1', 'fid2'}
     assert task_queue.popleft().answer.id == 'aid2'
     assert task_queue.popleft() is task
+
+    mock_question.follower_num = 3
+    mock_question.followers = [
+        Mock(id='fid3', activities=[
+            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
+                 time=datetime.now())
+        ]),
+        Mock(id='fid2', activities=[
+            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
+                 time=datetime.now())
+        ]),
+        Mock(id='fid1', activities=[
+            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
+                 time=datetime.now())
+        ]),
+    ]
+    task.execute()
+    assert task.follower_num == 3
+    assert QuestionManager.get_question_follower(tid, 'q1') == {
+        'fid1', 'fid2', 'fid3'
+    }
+    assert task_queue.popleft() is task
+    pprint(DB.get_question_follower(tid, 'q1'))

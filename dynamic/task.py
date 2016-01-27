@@ -77,7 +77,7 @@ class FetchQuestionInfo():
         task_queue.append(self)
 
     def _fetch_question_follower(self):
-        # TODO: test
+        # TODO: 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
         old_followers = QuestionManager.get_question_follower(self.tid, self.qid)
         new_followers = []
 
@@ -86,7 +86,13 @@ class FetchQuestionInfo():
             if follower.id in old_followers:
                 break
             else:
-                new_followers.append(follower.id)
+                for act in follower.activities:
+                    if act.type == ActType.FOLLOW_QUESTION and \
+                    act.content.id == self.qid:
+                        new_followers.append({
+                            'uid': follower.id,
+                            'time': act.time
+                        })
 
         QuestionManager.add_question_follower(self.tid, self.qid, new_followers)
 

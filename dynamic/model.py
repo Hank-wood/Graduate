@@ -71,7 +71,7 @@ class QuestionManager:
 
     @classmethod
     def get_question_follower(cls, tid, qid):
-        return set(DB.get_question_follower(tid, qid))
+        return set([f['uid'] for f in DB.get_question_follower(tid, qid)])
 
 
 class AnswerManager:
