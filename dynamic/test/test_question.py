@@ -67,6 +67,7 @@ def test_fetch_questions_without_previous_data(mk_execute):
             self.author = self.asker = author
             self._session = Mock()
             self.deleted = False
+            self.follower_num = 0
 
     t = datetime.now().replace(microsecond=0)
     mock_question1 = MockQuestion('http://q/1', '1', t, 'question1')
