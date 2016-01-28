@@ -47,27 +47,30 @@ class TopicMonitor:
     def detect_new_question(self):
         """
         爬取话题页面，寻找新问题
-        :return:
         """
         for topic in self.topics:
             tid = str(topic.id)
             it = iter(topic.questions)
             question = latest_question = next(it)
-            new_questions = []
 
-            while not QuestionManager.is_latest(tid, question):
-                question._url = question.url[:-1] + '?sort=created'
-                new_questions.append(question)
-                if question.author:
-                    asker = question.author.id
-                else:
-                    asker = ''  # 匿名用户, TODO: zhihu-py3增加ANONYMOUS常量
-                QuestionManager.save(tid, question._url, question.qid,
-                                     question.creation_time, asker,
-                                     question.title)
-                task_queue.append(FetchQuestionInfo(tid, question))
-                question = next(it)
-
-            if new_questions:
+            # new logic
+            if QuestionManager.latest_question[tid] is None:
                 QuestionManager.set_latest(tid, latest_question)
+            else:
+                new_questions = []
+                while QuestionManager.latest_question[tid] != question.id:
+                    question._url = question.url[:-1] + '?sort=created'
+                    new_questions.append(question)
+                    if question.author:
+                        asker = question.author.id
+                    else:
+                        asker = ''  # 匿名用户, TODO: zhihu-py3增加ANONYMOUS常量
+                    QuestionManager.save(tid, question._url, question.qid,
+                                         question.creation_time, asker,
+                                         question.title)
+                    task_queue.append(FetchQuestionInfo(tid, question))
+                    question = next(it)
+
+                if new_questions:
+                    QuestionManager.set_latest(tid, latest_question)
 

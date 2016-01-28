@@ -30,20 +30,6 @@ class QuestionManager:
     }
 
     @classmethod
-    def is_latest(cls, tid, question):
-        if cls.latest_question[tid]:
-            return cls.latest_question[tid] == question.id
-        else:
-            doc = DB.find_latest_question(tid)
-            if doc:
-                cls.latest_question[tid] = doc['qid']
-                return doc['qid'] == question.id
-            else:
-                # 第一次执行, 外部 set_latest 不会调用, 在这里初始化
-                cls.set_latest(tid, question)
-                return True
-
-    @classmethod
     def set_latest(cls, tid, question):
         """
         :param question: zhihu.Question object

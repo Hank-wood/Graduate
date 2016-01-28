@@ -47,9 +47,10 @@ def test_find_latest():
     for doc in DB.db[q_col(tid)].find({}):
         print(doc)
 
-    assert DB.find_latest_question(tid)['url'] == 'url3'
-    assert DB.find_latest_question(tid)['qid'] == '3'
-    assert DB.find_latest_question(tid)['asker'] == 'asker3'
+    latest = DB.find_latest_question(tid)
+    assert latest['url'] == 'url3'
+    assert latest['qid'] == '3'
+    assert latest['asker'] == 'asker3'
 
 
 @pytest.mark.skipif(skip, reason="")
