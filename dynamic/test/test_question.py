@@ -34,6 +34,7 @@ def teardown_function(function):
 skip = False
 
 
+# @patch('huey_tasks.fetch_followers_followees')
 @pytest.mark.skipif(skip, reason="")
 def test_find_latest():
     tid = '1234567'
