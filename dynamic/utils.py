@@ -101,7 +101,7 @@ def validate_cookie(cookie_file):
             cookies = f.read()
             cookies_dict = json.loads(cookies)
             session.cookies.update(cookies_dict)
-            res = session.get('https://zhihu.com')
+            res = session.get('https://www.zhihu.com')
             session.close()
             return '首页' in res.text
     else:

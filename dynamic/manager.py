@@ -12,7 +12,9 @@ import ezcf
 import zhihu
 
 from config.dynamic_config import topics
+from common import FETCH_FOLLOWEE, FETCH_FOLLOWER
 from db import DB
+import huey_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +54,7 @@ class QuestionManager:
     @classmethod
     def save(cls, tid, url, qid, time, asker, title):
         DB.save_question(tid, url, qid, time, asker, title)
+        huey_tasks.fetch_followers_followees(asker, time, limit_to=FETCH_FOLLOWER)
 
     @classmethod
     def get_all_questions(cls):
@@ -102,6 +105,7 @@ class AnswerManager:
         if self.new_answer:
             DB.save_answer(tid=self.tid, aid=self.aid, url=url, qid=qid,
                            time=time, answerer=answerer)
+            huey_tasks.fetch_followers_followees(answerer, time)
 
     def sync_affected_users(self, new_upvoters=None, new_commenters=None,
                             new_collectors=None):
@@ -114,17 +118,25 @@ class AnswerManager:
         if new_upvoters:
             for upvoter in new_upvoters:
                 self.upvoters.add(upvoter['uid'])
+                huey_tasks.fetch_followers_followees(upvoter['uid'],
+                                                     upvoter['time'])
             DB.add_upvoters(self.tid, self.aid, new_upvoters)
 
         if new_commenters:
             for commenter in new_commenters:
                 self.commenters.add(commenter['uid'])
+                huey_tasks.fetch_followers_followees(commenter['uid'],
+                                                     commenter['time'],
+                                                     limit_to=FETCH_FOLLOWEE)
             DB.add_commenters(self.tid, self.aid, new_commenters)
             self.lastest_comment_time = new_commenters[-1]['time']
 
         if new_collectors:
             for collector in new_collectors:
                 self.collectors.add(collector['uid'])
+                huey_tasks.fetch_followers_followees(collector['uid'],
+                                                     collector['time'],
+                                                     limit_to=FETCH_FOLLOWEE)
             DB.add_collectors(self.tid, self.aid, new_collectors)
 
     def remove_answer(self):

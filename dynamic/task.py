@@ -16,6 +16,7 @@ from zhihu.acttype import ActType
 from utils import *
 from common import *
 from manager import QuestionManager, AnswerManager
+import huey_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,8 @@ class FetchQuestionInfo():
                             'uid': follower.id,
                             'time': act.time
                         })
+                        huey_tasks.fetch_followers_followees(follower.id,
+                                                             datetime.now())
                     if i > 10:
                         logger.warning("Can't find follow question activity")
                         break
