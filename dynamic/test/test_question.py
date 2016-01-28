@@ -32,7 +32,7 @@ def teardown_function(function):
     task_queue.clear()
 
 
-@pytest.mark.skipif(True, reason="")
+# @pytest.mark.skipif(True, reason="")
 def test_find_latest():
     tid = '1234567'
     QuestionManager.save(tid, 'url1', '1', datetime.now(), 'asker1', '')
@@ -49,7 +49,7 @@ def test_find_latest():
     assert DB.find_latest_question(tid)['asker'] == 'asker3'
 
 
-@pytest.mark.skipif(True, reason="")
+# @pytest.mark.skipif(True, reason="")
 @patch('task.FetchQuestionInfo.execute')
 @patch('config.dynamic_config.topics', {"19550517": "互联网"})
 def test_fetch_questions_without_previous_data(mk_execute):
@@ -116,7 +116,7 @@ def test_fetch_questions_with_previous_data():
     pass
 
 
-@pytest.mark.skipif(True, reason="")
+# @pytest.mark.skipif(True, reason="")
 def test_get_all_questions():
     DB.db['111_q'].insert({'mm':1})
     assert dict_equal(DB.get_all_questions()[0], {'mm':1})
@@ -144,56 +144,58 @@ def test_update_question_info():
     手动 execute，查看test_queue和follower_num及数据库中follower
     """
     mock_question = Mock(refresh=Mock(), id='q1', url='q/1/', deleted=False,
-                         follower_num=0, answer_num=0, answers=[],
-                         followers=[], author=Mock(id='asker'))
+                         follower_num=0, answer_num=0, answers=deque(),
+                         followers=deque(), author=Mock(id='asker'))
     tid = '1234'
     QuestionManager.save(tid, mock_question.url, mock_question.id,
                          datetime.now(), 'asker', 'title')
     task = FetchQuestionInfo(tid, mock_question)
+
+    mock_question.follower_num = 1
+    mock_question.followers.appendleft(Mock(id='asker'))
     task.execute()
     assert task_queue.popleft() is task
 
     mock_question.answer_num = 1
-    mock_question.answers = [
+    mock_question.answers.appendleft(
         Mock(question=mock_question, url='answer/1', author=Mock(id='uid1'),
-             creation_time=datetime.now(), id='aid1')
-    ]
+             creation_time=datetime.now(), id='aid1'))
+    mock_question.follower_num = 2
+    mock_question.followers.appendleft(Mock(id='uid1'))
     task.execute()
     assert task_queue.popleft().answer.id == 'aid1'
     assert task_queue.popleft() is task
 
     mock_question.answer_num = 2
-    mock_question.answers = [
+    mock_question.answers.appendleft(
         Mock(question=mock_question, url='answer/2', author=Mock(id='uid2'),
-             creation_time=datetime.now(), id='aid2'),
-        Mock(question=mock_question, url='answer/1', author=Mock(id='uid1'),
-             creation_time=datetime.now(), id='aid1')
-    ]
-    mock_question.follower_num = 2
-    mock_question.followers = [
+             creation_time=datetime.now(), id='aid2'))
+    mock_question.follower_num = 5  # asker + 2 ans + 2 pure follower
+    mock_question.followers.extendleft([
         Mock(id='fid2', activities=[
             Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
                  time=datetime.now())
         ]),
+        Mock(id='uid2'),
         Mock(id='fid1', activities=[
             Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
                  time=datetime.now())
-        ]),
-    ]
+        ])
+    ])
     task.execute()
-    assert task.follower_num == 2
+    assert task.follower_num == 5
     assert QuestionManager.get_question_follower(tid, 'q1') == {'fid1', 'fid2'}
     assert task_queue.popleft().answer.id == 'aid2'
     assert task_queue.popleft() is task
 
-    mock_question.follower_num = 3
-    mock_question.followers.insert(0,
+    mock_question.follower_num = 6
+    mock_question.followers.appendleft(
         Mock(id='fid3', activities=[
             Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
                  time=datetime.now())
         ]))
     task.execute()
-    assert task.follower_num == 3
+    assert task.follower_num == 6
     assert QuestionManager.get_question_follower(tid, 'q1') == {
         'fid1', 'fid2', 'fid3'
     }

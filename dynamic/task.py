@@ -73,6 +73,7 @@ class FetchQuestionInfo():
 
         if self.question.follower_num > self.follower_num:
             self._fetch_question_follower()
+            # 注意 follower_num 并不是数据库中的 follower 数量
             self.follower_num = self.question.follower_num
 
         task_queue.append(self)
