@@ -86,13 +86,16 @@ class FetchQuestionInfo():
             if follower.id in old_followers:
                 break
             else:
-                for act in follower.activities:
+                for i, act in enumerate(follower.activities):
                     if act.type == ActType.FOLLOW_QUESTION and \
                     act.content.id == self.qid:
                         new_followers.append({
                             'uid': follower.id,
                             'time': act.time
                         })
+                    if i > 10:
+                        logger.warning("Can't find follow question activity")
+                        break
 
         QuestionManager.add_question_follower(self.tid, self.qid, new_followers)
 
