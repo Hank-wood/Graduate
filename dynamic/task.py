@@ -29,6 +29,7 @@ class FetchQuestionInfo():
         self.tid = tid
         self.question = question
         self.qid = question.id
+        self.asker = question.author.id
 
         if self.question.deleted:
             QuestionManager.remove_question(self.tid, self.qid)
@@ -77,15 +78,18 @@ class FetchQuestionInfo():
         task_queue.append(self)
 
     def _fetch_question_follower(self):
-        # TODO: 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
-        old_followers = QuestionManager.get_question_follower(self.tid, self.qid)
+        # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
+        # 回答者 id 从数据库里取，因为在初始化 FetchAnswerInfo 的时候就入库了
+        answerers = AnswerManager.get_question_answerer(self.tid, self.qid)
+        answerers.add(self.asker)
+        old_followers = QuestionManager.get_question_follower(self.tid,self.qid)
         new_followers = []
 
         # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
         for follower in self.question.followers:
             if follower.id in old_followers:
                 break
-            else:
+            elif follower.id not in answerers:
                 for i, act in enumerate(follower.activities):
                     if act.type == ActType.FOLLOW_QUESTION and \
                     act.content.id == self.qid:

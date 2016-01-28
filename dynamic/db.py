@@ -135,8 +135,12 @@ class DB:
         return cls.db[a_col(tid)].find_one({'aid': aid})
 
     @classmethod
-    def remove_answer(cls, tid, qid):
-        cls.db[a_col(tid)].remove({'aid': qid})
+    def remove_answer(cls, tid, aid):
+        cls.db[a_col(tid)].remove({'aid': aid})
+
+    @classmethod
+    def get_question_answer(cls, tid, qid):
+        return cls.db[a_col(tid)].find({'qid': qid}, {'answerer': 1, '_id': 0})
 
     @classmethod
     def drop_all_collections(cls):

@@ -130,6 +130,10 @@ class AnswerManager:
     def remove_answer(self):
         DB.remove_answer(self.tid, self.aid)
 
+    @classmethod
+    def get_question_answerer(cls, tid, qid):
+        return set([a['answerer'] for a in DB.get_question_answer(tid, qid)])
+
 
 class User:
     def __init__(self):
