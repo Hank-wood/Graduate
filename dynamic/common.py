@@ -10,6 +10,8 @@ dynamic_config_file = os.path.join(ROOT, 'dynamic/config/dynamic_config.json')
 logging_config_file = os.path.join(ROOT, 'dynamic/config/logging_config.json')
 TOPIC_PREFIX = "https://www.zhihu.com/topic/"
 QUESTION_PREFIX = "https://www.zhihu.com/question/"
+FETCH_FOLLOWER = 1
+FETCH_FOLLOWEE = 2
 
 if not os.path.exists(os.path.join(ROOT, 'dynamic/logs')):
     os.mkdir(os.path.join(ROOT, 'dynamic/logs'))
@@ -27,4 +29,7 @@ class LackConfig(Exception):
     pass
 
 class NoSuchActivity(Exception):
+    pass
+
+class FetchTypeError(Exception):
     pass

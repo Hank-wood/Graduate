@@ -7,6 +7,8 @@ from pymongo import MongoClient
 from huey import RedisHuey
 from requests.adapters import HTTPAdapter
 
+from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError
+
 
 huey = RedisHuey()
 logger = logging.getLogger(__name__)
@@ -21,26 +23,35 @@ def replace_database(db_name=None):
         user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
 
 
-def _fetch_followers_followees(uid, dateime, db_name=None):
+def _fetch_followers_followees(uid, dateime, db_name=None, limit_to=None):
     prefix = 'https://www.zhihu.com/people/'
     user = client.author(prefix + uid)
 
-    if user.followee_num < 500:
-        _fetch_followees(user, dateime, db_name)
-
-    if user.follower_num < 500:
-        _fetch_followers(user, dateime, db_name)
-
-    if user.followee_num >= 500 and user.follower_num >= 500:
-        if user.followee_num < user.follower_num:
+    if limit_to is None:
+        if user.followee_num < 500:
             _fetch_followees(user, dateime, db_name)
-        else:
+
+        if user.follower_num < 500:
             _fetch_followers(user, dateime, db_name)
+
+        if user.followee_num >= 500 and user.follower_num >= 500:
+            if user.followee_num < user.follower_num:
+                _fetch_followees(user, dateime, db_name)
+            else:
+                _fetch_followers(user, dateime, db_name)
+    elif limit_to == FETCH_FOLLOWER:
+        _fetch_followers(user, dateime, db_name)
+    elif limit_to == FETCH_FOLLOWEE:
+        _fetch_followees(user, dateime, db_name)
+    else:
+        raise FetchTypeError("No such type: " + str(limit_to))
 
 
 def _fetch_followers(user, datetime, db_name=None):
     replace_database(db_name)
     follower_num = user.follower_num
+    if follower_num > 2000:
+        return
     doc = user_coll.find_one({'uid': user.id}, {'follower':1, '_id':0})
     if doc is None:
         # new user
@@ -95,6 +106,8 @@ def _fetch_followers(user, datetime, db_name=None):
 def _fetch_followees(user, datetime, db_name=None):
     replace_database(db_name)
     followee_num = user.followee_num
+    if followee_num > 2000:
+        return
     doc = user_coll.find_one({'uid': user.id}, {'followee':1, '_id':0})
     if doc is None:
         # new user
