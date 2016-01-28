@@ -36,6 +36,7 @@ def teardown_function(function):
 
 
 @freeze_time("2016-01-09 13:01")  # now().time > creation_time, 防止跨天
+@patch('huey_tasks.fetch_followers_followees', Mock())
 @patch('task.FetchAnswerInfo.get_upvote_time')
 @patch('task.FetchAnswerInfo.get_collect_time')
 def test_fetch_answers_without_previous_data(mock_upvote_time,
@@ -126,6 +127,7 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     assert DB.find_one_answer(tid, aid) == None
 
 
+@patch('huey_tasks.fetch_followers_followees', Mock())
 @patch('task.FetchAnswerInfo.get_upvote_time')
 @patch('task.FetchAnswerInfo.get_collect_time')
 def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
@@ -215,6 +217,7 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
     assert DB.find_one_answer(tid, aid) == None
 
 
+@patch('huey_tasks.fetch_followers_followees', Mock())
 def test_with_real_answer():
     # KLJ 大学怎么样？
     url = 'https://www.zhihu.com/question/37836315/answer/73732367'
