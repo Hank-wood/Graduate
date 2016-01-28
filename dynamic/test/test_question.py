@@ -31,8 +31,9 @@ def teardown_function(function):
             DB.db[collection_name].drop()
     task_queue.clear()
 
+skip = False
 
-# @pytest.mark.skipif(True, reason="")
+@pytest.mark.skipif(skip, reason="")
 def test_find_latest():
     tid = '1234567'
     QuestionManager.save(tid, 'url1', '1', datetime.now(), 'asker1', '')
@@ -49,7 +50,7 @@ def test_find_latest():
     assert DB.find_latest_question(tid)['asker'] == 'asker3'
 
 
-# @pytest.mark.skipif(True, reason="")
+@pytest.mark.skipif(skip, reason="")
 @patch('task.FetchQuestionInfo.execute')
 @patch('config.dynamic_config.topics', {"19550517": "互联网"})
 def test_fetch_questions_without_previous_data(mk_execute):
@@ -110,13 +111,13 @@ def test_fetch_questions_without_previous_data(mk_execute):
         main.main(postroutine=test)
 
 
-# @pytest.mark.skipif(True, reason="")
+@pytest.mark.skipif(skip, reason="")
 def test_fetch_questions_with_previous_data():
     """测试数据库有之前保存的 question 的情况"""
     pass
 
 
-# @pytest.mark.skipif(True, reason="")
+@pytest.mark.skipif(skip, reason="")
 def test_get_all_questions():
     DB.db['111_q'].insert({'mm':1})
     assert dict_equal(DB.get_all_questions()[0], {'mm':1})
