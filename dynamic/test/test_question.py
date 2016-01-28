@@ -13,7 +13,7 @@ from pymongo import MongoClient
 import pytest
 from zhihu.acttype import ActType
 
-from model import QuestionManager
+from manager import QuestionManager
 from db import DB
 from utils import *
 from common import *
@@ -32,6 +32,7 @@ def teardown_function(function):
     task_queue.clear()
 
 skip = False
+
 
 @pytest.mark.skipif(skip, reason="")
 def test_find_latest():

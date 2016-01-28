@@ -11,7 +11,7 @@ import requests
 
 from config.dynamic_config import topics
 from task import *
-from model import QuestionManager
+from manager import QuestionManager
 from utils import task_queue
 from common import *
 from zhihu.question import Question

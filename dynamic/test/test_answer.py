@@ -12,7 +12,7 @@ from pymongo import MongoClient
 from freezegun import freeze_time
 
 import utils
-from model import AnswerManager
+from manager import AnswerManager
 from db import DB
 from task import FetchAnswerInfo
 from utils import *

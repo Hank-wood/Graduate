@@ -15,7 +15,7 @@ from zhihu.acttype import ActType
 
 from utils import *
 from common import *
-from model import QuestionManager, AnswerManager
+from manager import QuestionManager, AnswerManager
 
 logger = logging.getLogger(__name__)
 
