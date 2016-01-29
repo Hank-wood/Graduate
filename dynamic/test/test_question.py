@@ -62,14 +62,13 @@ def test_fetch_questions_without_previous_data(mk_execute):
     import main
 
     mk_execute.return_value = None
-    tid = "19550517"
+    tid = test_tid
 
     class MockQuestion:
         """
         Act as QuestionManager and zhihu.Question
         """
         def __init__(self, url, id, creation_time, title, author=''):
-            self.tid = tid
             self._url = self.url = url
             self.id = self.qid = id
             self.creation_time = self.time = creation_time
@@ -154,7 +153,7 @@ def test_update_question_info():
     mock_question = Mock(refresh=Mock(), id='q1', url='q/1/', deleted=False,
                          follower_num=0, answer_num=0, answers=deque(),
                          followers=deque(), author=Mock(id='asker'))
-    tid = '1234'
+    tid = test_tid
     QuestionManager.save(tid, mock_question.url, mock_question.id,
                          datetime.now(), 'asker', 'title')
     task = FetchQuestionInfo(tid, mock_question)

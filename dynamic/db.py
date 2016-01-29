@@ -5,9 +5,7 @@
 """
 
 from pymongo import MongoClient
-import ezcf
 
-from config.dynamic_config import topics
 from utils import *
 
 

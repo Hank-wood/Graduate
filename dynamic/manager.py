@@ -8,11 +8,9 @@ not aware of zhihu.XXX object
 import logging
 from datetime import datetime
 
-import ezcf
 import zhihu
 
-from config.dynamic_config import topics
-from common import FETCH_FOLLOWEE, FETCH_FOLLOWER
+from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, topics
 from db import DB
 import huey_tasks
 

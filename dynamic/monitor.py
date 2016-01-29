@@ -6,10 +6,8 @@
 
 import logging
 
-import ezcf
 import requests
 
-from config.dynamic_config import topics
 from task import *
 from manager import QuestionManager
 from utils import task_queue
