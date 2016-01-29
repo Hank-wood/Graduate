@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class FetchQuestionInfo():
-    def __init__(self, tid, question, answer_num=0, from_db=False):
+    def __init__(self, tid, question, from_db=False):
         """
         :param question: zhihu.Question object
         :return:
@@ -36,7 +36,9 @@ class FetchQuestionInfo():
             QuestionManager.remove_question(self.tid, self.qid)
             return
 
-        self.answer_num = answer_num
+        # TODO: 从数据库中获得该question 的已有 answer,添加 FetchAnswerInfo 任务
+        self.answer_num = 0
+        # TODO: 从数据库中获得follower_num, answer_num
         self.follower_num = self.question.follower_num
         self.aids = set()
         if not from_db:
@@ -74,7 +76,7 @@ class FetchQuestionInfo():
 
         if self.question.follower_num > self.follower_num:
             self._fetch_question_follower()
-            # 注意 follower_num 并不是数据库中的 follower 数量
+            # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
             self.follower_num = self.question.follower_num
 
         task_queue.append(self)
@@ -84,6 +86,7 @@ class FetchQuestionInfo():
         # 回答者 id 从数据库里取，因为在初始化 FetchAnswerInfo 的时候就入库了
         answerers = AnswerManager.get_question_answerer(self.tid, self.qid)
         answerers.add(self.asker)
+        # TODO: old follower 不要全部取出,只取最新的几个就行.节省内存
         old_followers = QuestionManager.get_question_follower(self.tid,self.qid)
         new_followers = []
 
@@ -109,13 +112,18 @@ class FetchQuestionInfo():
 
 
 class FetchAnswerInfo():
-    def __init__(self, tid, answer):
+    def __init__(self, tid, answer=None, url=None):
         self.tid = tid
-        self.answer = answer
-        self.manager = AnswerManager(tid, str(answer.id))
-        self.manager.sync_basic_info(
-                qid=answer.question.id, url=answer.url,
-                answerer=answer.author.id, time=answer.creation_time)
+        if answer:
+            self.answer = answer
+            self.manager = AnswerManager(tid, answer.id)
+            self.manager.save_answer(qid=answer.question.id,
+                                     url=answer.url,
+                                     answerer=answer.author.id,
+                                     time=answer.creation_time)
+        elif url:
+            self.answer = client.answer(url)
+            self.manager = AnswerManager(tid, self.answer.id)
 
     def execute(self):
         logger.info("Fetch answer info: %s - %s" % (self.answer.author.name,

@@ -36,7 +36,7 @@ class QuestionManager:
         cls.latest_question[tid] = question.id
 
     @classmethod
-    def save(cls, tid, url, qid, time, asker, title):
+    def save_question(cls, tid, url, qid, time, asker, title):
         DB.save_question(tid, url, qid, time, asker, title)
         huey_tasks.fetch_followers_followees(asker, time, limit_to=FETCH_FOLLOWER)
 
@@ -65,10 +65,8 @@ class AnswerManager:
     def __init__(self, tid, aid):
         self.tid = tid
         self.aid = aid
-        self.new_answer = True
         answer_doc = DB.find_one_answer(tid, aid)
         if answer_doc:
-            self.new_answer = False
             self.upvoters = set(u['uid'] for u in answer_doc['upvoters'])
             self.commenters = set(u['uid'] for u in answer_doc['commenters'])
             self.collectors = set(u['uid'] for u in answer_doc['collectors'])
@@ -85,11 +83,10 @@ class AnswerManager:
     def __eq__(self, other):
         return self.aid == other.aid
 
-    def sync_basic_info(self, qid, url, answerer, time):
-        if self.new_answer:
-            DB.save_answer(tid=self.tid, aid=self.aid, url=url, qid=qid,
-                           time=time, answerer=answerer)
-            huey_tasks.fetch_followers_followees(answerer, time)
+    def save_answer(self, qid, url, answerer, time):
+        DB.save_answer(tid=self.tid, aid=self.aid, url=url, qid=qid,
+                       time=time, answerer=answerer)
+        huey_tasks.fetch_followers_followees(answerer, time)
 
     def sync_affected_users(self, new_upvoters=None, new_commenters=None,
                             new_collectors=None):

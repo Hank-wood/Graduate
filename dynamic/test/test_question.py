@@ -38,11 +38,11 @@ skip = False
 @patch('huey_tasks.fetch_followers_followees', Mock())
 def test_find_latest():
     tid = '1234567'
-    QuestionManager.save(tid, 'url1', '1', datetime.now(), 'asker1', '')
+    QuestionManager.save_question(tid, 'url1', '1', datetime.now(), 'asker1', '')
     time.sleep(1)
-    QuestionManager.save(tid, 'url2', '2', datetime.now(), 'asker2', '')
+    QuestionManager.save_question(tid, 'url2', '2', datetime.now(), 'asker2', '')
     time.sleep(1)
-    QuestionManager.save(tid, 'url3', '3', datetime.now(), 'asker3', '')
+    QuestionManager.save_question(tid, 'url3', '3', datetime.now(), 'asker3', '')
 
     for doc in DB.db[q_col(tid)].find({}):
         print(doc)
@@ -147,15 +147,14 @@ def test_get_all_questions():
 @patch('huey_tasks.fetch_followers_followees', Mock())
 def test_update_question_info():
     """
-    测试问题 follower 更新，答案更新
-    手动 execute，查看test_queue和follower_num及数据库中follower
+    测试问题 follower 更新，答案更新, 测试question follower 不会包含提问回答者
     """
     mock_question = Mock(refresh=Mock(), id='q1', url='q/1/', deleted=False,
                          follower_num=0, answer_num=0, answers=deque(),
                          followers=deque(), author=Mock(id='asker'))
     tid = test_tid
-    QuestionManager.save(tid, mock_question.url, mock_question.id,
-                         datetime.now(), 'asker', 'title')
+    QuestionManager.save_question(tid, mock_question.url, mock_question.id,
+                                  datetime.now(), 'asker', 'title')
     task = FetchQuestionInfo(tid, mock_question)
 
     mock_question.follower_num = 1

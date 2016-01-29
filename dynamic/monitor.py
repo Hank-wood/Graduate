@@ -63,9 +63,9 @@ class TopicMonitor:
                         asker = question.author.id
                     else:
                         asker = ''  # 匿名用户, TODO: zhihu-py3增加ANONYMOUS常量
-                    QuestionManager.save(tid, question._url, question.qid,
-                                         question.creation_time, asker,
-                                         question.title)
+                    QuestionManager.save_question(tid, question._url, question.qid,
+                                                  question.creation_time, asker,
+                                                  question.title)
                     task_queue.append(FetchQuestionInfo(tid, question))
                     question = next(it)
 

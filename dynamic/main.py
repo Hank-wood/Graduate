@@ -112,7 +112,6 @@ def configure():
 
 def main(preroutine=None, postroutine=None):
     configure()
-    client = zhihu.ZhihuClient(test_cookie)
     stop_fetch_questions_event = threading.Event()
     TaskLoop(stop_fetch_questions_event, daemon=True).start()
     m = TopicMonitor(client)
