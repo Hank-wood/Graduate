@@ -12,7 +12,7 @@ script:
   - travis_retry pip install pytest-cov freezegun
   - travis_retry pip install coveralls
   - cd dynamic
-  - py.test --cov=.
+  - py.test test --cov=.
 
 after_success:
   coveralls
