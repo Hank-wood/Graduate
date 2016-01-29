@@ -90,6 +90,11 @@ class DB:
         return result
 
     @classmethod
+    def get_question_attrs(cls, tid, qid, *args):
+        fields = {arg: 1 for arg in args}
+        return cls.db[q_col(tid)].find_one({'qid': str(qid)}, fields)
+
+    @classmethod
     def remove_question(cls, tid, qid):
         cls.db[q_col(tid)].remove({'qid': str(qid)})
 

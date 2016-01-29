@@ -60,6 +60,13 @@ class QuestionManager:
     def get_question_follower(cls, tid, qid):
         return set([f['uid'] for f in DB.get_question_follower(tid, qid)])
 
+    @classmethod
+    def get_question_attrs(cls, tid, qid, *args):
+        # e.g. get_question_attrs('123', 'qid', 'url')
+        # TODO: 测试
+        doc = DB.get_question_attrs(tid, qid, *args)
+        return tuple([doc[arg] for arg in args])
+
 
 class AnswerManager:
     def __init__(self, tid, aid):

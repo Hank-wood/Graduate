@@ -38,7 +38,7 @@ class FetchQuestionInfo():
 
         # TODO: 从数据库中获得该question 的已有 answer,添加 FetchAnswerInfo 任务
         self.answer_num = 0
-        # TODO: 从数据库中获得follower_num, answer_num
+        # TODO: 从数据库中获得follower_num, answer_num, use get_question_attrs
         self.follower_num = self.question.follower_num
         self.aids = set()
         if not from_db:
