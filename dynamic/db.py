@@ -43,7 +43,7 @@ class DB:
 
     @classmethod
     def add_question_follower(cls, tid, qid, new_followers):
-        cls.db[q_col(tid)].update({'qid': qid}, {
+        cls.db[q_col(tid)].update({'qid': str(qid)}, {
             '$push': {
                 'follower': {
                     '$each': list(new_followers)
@@ -53,7 +53,7 @@ class DB:
 
     @classmethod
     def get_question_follower(cls, tid, qid):
-        return cls.db[q_col(tid)].find_one({'qid': qid},
+        return cls.db[q_col(tid)].find_one({'qid': str(qid)},
                                            {'follower': 1, '_id':0})['follower']
 
     @classmethod
@@ -77,7 +77,7 @@ class DB:
 
     @classmethod
     def get_question(cls, tid, qid):
-        return cls.db[q_col(tid)].find_one({'qid': qid})  # None or dict
+        return cls.db[q_col(tid)].find_one({'qid': str(qid)})  # None or dict
 
     @classmethod
     def get_all_questions(cls):
@@ -91,7 +91,7 @@ class DB:
 
     @classmethod
     def remove_question(cls, tid, qid):
-        cls.db[q_col(tid)].remove({'qid': qid})
+        cls.db[q_col(tid)].remove({'qid': str(qid)})
 
     @classmethod
     def bulk_save(cls):
@@ -99,7 +99,7 @@ class DB:
 
     @classmethod
     def add_upvoters(cls, tid, aid, new_upvoters):
-        cls.db[a_col(tid)].update({'aid': aid}, {
+        cls.db[a_col(tid)].update({'aid': str(aid)}, {
             '$push': {
                 'upvoters': {
                     '$each': list(new_upvoters)
@@ -110,7 +110,7 @@ class DB:
     @classmethod
     def add_commenters(cls, tid, aid, new_commenters):
         # pymongo不识别deque,只能转为list
-        cls.db[a_col(tid)].update({'aid': aid}, {
+        cls.db[a_col(tid)].update({'aid': str(aid)}, {
             '$push': {
                 'commenters': {
                     '$each': list(new_commenters)
@@ -120,7 +120,7 @@ class DB:
 
     @classmethod
     def add_collectors(cls, tid, aid, new_collectors):
-        cls.db[a_col(tid)].update({'aid': aid}, {
+        cls.db[a_col(tid)].update({'aid': str(aid)}, {
            '$push': {
                'collectors': {
                    '$each': list(new_collectors)
@@ -130,11 +130,11 @@ class DB:
 
     @classmethod
     def find_one_answer(cls, tid, aid):
-        return cls.db[a_col(tid)].find_one({'aid': aid})
+        return cls.db[a_col(tid)].find_one({'aid': str(aid)})
 
     @classmethod
     def remove_answer(cls, tid, aid):
-        cls.db[a_col(tid)].remove({'aid': aid})
+        cls.db[a_col(tid)].remove({'aid': str(aid)})
 
     @classmethod
     def get_question_answer(cls, tid, qid):
