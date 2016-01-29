@@ -4,5 +4,8 @@
     "19551147": "生活"
   },
   "restart": true,
-  "fetch_new": true
+  "fetch_new": true,
+  "TASKLOOP_INTERVAL": 60,
+  "MAX_TASK_EXECUTION_TIME": 55,
+  "FETCH_QUESTION_INTERVAL": 60
 }
