@@ -13,6 +13,16 @@ QUESTION_PREFIX = "https://www.zhihu.com/question/"
 FETCH_FOLLOWER = 1
 FETCH_FOLLOWEE = 2
 
+if os._called_from_test:
+    TASKLOOP_INTERVAL = 5
+    MAX_TASK_EXECUTION_TIME = 4
+    FETCH_QUESTION_INTERVAL = 5
+else:
+    TASKLOOP_INTERVAL = 60
+    MAX_TASK_EXECUTION_TIME = 55
+    FETCH_QUESTION_INTERVAL = 60
+
+
 if not os.path.exists(os.path.join(ROOT, 'dynamic/logs')):
     os.mkdir(os.path.join(ROOT, 'dynamic/logs'))
 
