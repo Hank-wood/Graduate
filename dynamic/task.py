@@ -31,18 +31,24 @@ class FetchQuestionInfo():
         self.question = question
         self.qid = question.id
         self.asker = question.author.id
+        self.aids = set()
 
         if self.question.deleted:
             QuestionManager.remove_question(self.tid, self.qid)
             return
 
-        # TODO: 从数据库中获得该question 的已有 answer,添加 FetchAnswerInfo 任务
+        self._create_existing_answer_task()
         self.answer_num = 0
         # TODO: 从数据库中获得follower_num, answer_num, use get_question_attrs
         self.follower_num = self.question.follower_num
-        self.aids = set()
         if not from_db:
             logger.info("New Question: %s" % self.question.title)
+
+    def _create_existing_answer_task(self):
+        for aid, url in AnswerManager.\
+                get_question_answer_attrs(self.tid, self.qid, 'aid', 'url'):
+            self.aids.add(aid)
+            task_queue.append(FetchAnswerInfo(self.tid, url=url))
 
     def execute(self):
         self.question.refresh()

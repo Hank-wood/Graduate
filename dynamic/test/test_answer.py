@@ -226,3 +226,19 @@ def test_with_real_answer():
     t = FetchAnswerInfo(tid, client.answer(url))
     t.execute()
     pprint(DB.db[a_col(tid)].find_one({'aid': '73732367'}))
+
+
+def test_get_question_answer_attrs():
+    DB.save_answer(tid=test_tid, aid='a1', url='http://a/1', qid='q1',
+                   time=datetime.now(), answerer='aer')
+    assert AnswerManager.get_question_answer_attrs(test_tid, 'q1', 'url')\
+           == ['http://a/1']
+    assert AnswerManager.get_question_answer_attrs(test_tid, 'q1', 'aid', 'answerer') \
+           == [['a1', 'aer']]
+
+    DB.save_answer(tid=test_tid, aid='a2', url='http://a/2', qid='q1',
+                   time=datetime.now(), answerer='aer2')
+    assert AnswerManager.get_question_answer_attrs(test_tid, 'q1', 'url') \
+           == ['http://a/1', 'http://a/2']
+    assert AnswerManager.get_question_answer_attrs(test_tid, 'q1', 'aid', 'answerer') \
+           == [['a1', 'aer'], ['a2', 'aer2']]

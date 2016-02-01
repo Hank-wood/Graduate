@@ -66,10 +66,7 @@ class QuestionManager:
         assert len(args) > 0
         doc = DB.get_question_attrs(tid, qid, *args)
         return_value = [doc[arg] for arg in args]
-        if len(return_value) > 1:
-            return tuple(return_value)
-        else:
-            return return_value[0]
+        return return_value if len(return_value) > 1 else return_value[0]
 
 
 class AnswerManager:
@@ -136,7 +133,23 @@ class AnswerManager:
 
     @classmethod
     def get_question_answerer(cls, tid, qid):
-        return set([a['answerer'] for a in DB.get_question_answer(tid, qid)])
+        """
+        :return: set of answerer ids
+        """
+        return set([a['answerer'] for a in DB.get_question_answerer(tid, qid)])
+
+    @classmethod
+    def get_question_answer_attrs(cls, tid, qid, *args):
+        """
+        :return: [(aid1, url1), (aid2, url2),...]
+        or       [aid1, aid2, ...]
+        """
+        assert len(args) > 0
+        cursor = DB.get_question_answer_attrs(tid, qid, *args)
+        if len(args) > 1:
+            return [[doc[arg] for arg in args] for doc in cursor]
+        else:
+            return [doc[args[0]] for doc in cursor]
 
 
 class User:
