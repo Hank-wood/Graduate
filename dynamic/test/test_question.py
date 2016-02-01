@@ -31,7 +31,7 @@ def teardown_function(function):
             DB.db[collection_name].drop()
     task_queue.clear()
 
-skip = False
+skip = True
 
 
 @pytest.mark.skipif(skip, reason="")
@@ -143,7 +143,7 @@ def test_get_all_questions():
         assert dict_equal(more, less)
 
 
-# @pytest.mark.skipif(True, reason="")
+@pytest.mark.skipif(skip, reason="")
 @patch('huey_tasks.fetch_followers_followees', Mock())
 def test_update_question_info():
     """
@@ -207,3 +207,11 @@ def test_update_question_info():
     }
     assert task_queue.popleft() is task
     pprint(DB.get_question_follower(tid, 'q1'))
+
+
+def test_get_question_attrs():
+    QuestionManager.save_question(test_tid, 'http:/q/1', '1', datetime.now(),
+                                  'asker', 'title')
+    assert QuestionManager.get_question_attrs(test_tid, '1', 'url') == 'http:/q/1'
+    assert QuestionManager.get_question_attrs(test_tid, '1', 'qid', 'title') == \
+           ('1', 'title')

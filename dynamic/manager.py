@@ -63,9 +63,13 @@ class QuestionManager:
     @classmethod
     def get_question_attrs(cls, tid, qid, *args):
         # e.g. get_question_attrs('123', 'qid', 'url')
-        # TODO: 测试
+        assert len(args) > 0
         doc = DB.get_question_attrs(tid, qid, *args)
-        return tuple([doc[arg] for arg in args])
+        return_value = [doc[arg] for arg in args]
+        if len(return_value) > 1:
+            return tuple(return_value)
+        else:
+            return return_value[0]
 
 
 class AnswerManager:
