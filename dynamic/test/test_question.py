@@ -31,7 +31,7 @@ def teardown_function(function):
             DB.db[collection_name].drop()
     task_queue.clear()
 
-skip = True
+skip = False
 
 
 @pytest.mark.skipif(skip, reason="")
@@ -214,4 +214,4 @@ def test_get_question_attrs():
                                   'asker', 'title')
     assert QuestionManager.get_question_attrs(test_tid, '1', 'url') == 'http:/q/1'
     assert QuestionManager.get_question_attrs(test_tid, '1', 'qid', 'title') == \
-           ('1', 'title')
+           ['1', 'title']

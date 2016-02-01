@@ -38,7 +38,6 @@ class FetchQuestionInfo():
             return
 
         self._create_existing_answer_task()
-        self.answer_num = 0
         # TODO: 从数据库中获得follower_num, answer_num, use get_question_attrs
         self.follower_num = self.question.follower_num
         if not from_db:
@@ -57,12 +56,11 @@ class FetchQuestionInfo():
             QuestionManager.remove_question(self.tid, self.qid)
             return
 
-        if self.question.answer_num > self.answer_num:
-            # We can't just fetch the latest
-            # question.answer_num - self.answer answers, cause there exist
-            # collapsed answers
+        if self.question.answer_num > len(self.aids):
+            # We can't just fetch the latest new_answer_num - old_answer_num
+            # answers, cause there exist collapsed answers
             # 当然这里可能还是有问题,比如答案被折叠导致 question.answer_num 不增
-            # 但实际上是有新答案的
+            # 但实际上是有新答案的。暂时忽略。
             for answer in self.question.answers:
                 if str(answer.id) not in self.aids:
                     if len(self.aids) == 0:
@@ -78,7 +76,6 @@ class FetchQuestionInfo():
                     task_queue.append(FetchAnswerInfo(self.tid, answer))
                 else:
                     break
-            self.answer_num = self.question.answer_num
 
         if self.question.follower_num > self.follower_num:
             self._fetch_question_follower()
