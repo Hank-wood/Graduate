@@ -89,8 +89,8 @@ class FetchQuestionInfo():
         # 回答者 id 从数据库里取，因为在初始化 FetchAnswerInfo 的时候就入库了
         answerers = AnswerManager.get_question_answerer(self.tid, self.qid)
         answerers.add(self.asker)
-        # TODO: old follower 不要全部取出,只取最新的几个就行.节省内存
-        old_followers = QuestionManager.get_question_follower(self.tid,self.qid)
+        old_followers = QuestionManager.get_question_follower(self.tid,self.qid,
+                                                              limit=5)
         new_followers = []
 
         # 这里直接采取最简单的逻辑,因为不太会有人取关又关注

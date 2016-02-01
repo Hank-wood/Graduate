@@ -208,6 +208,12 @@ def test_update_question_info():
     assert task_queue.popleft() is task
     pprint(DB.get_question_follower(tid, 'q1'))
 
+    # 测试 limit 属性
+    assert QuestionManager.get_question_follower(tid, 'q1', limit=1) == {'fid3'}
+    assert QuestionManager.get_question_follower(tid, 'q1', limit=2) == {
+        'fid3', 'fid2'
+    }
+
 
 @pytest.mark.skipif(skip, reason="")
 def test_get_question_attrs():
@@ -216,6 +222,7 @@ def test_get_question_attrs():
     assert QuestionManager.get_question_attrs(test_tid, '1', 'url') == 'http:/q/1'
     assert QuestionManager.get_question_attrs(test_tid, '1', 'qid', 'title') == \
            ['1', 'title']
+
 
 def test_get_question_follower_num():
     QuestionManager.save_question(test_tid, 'http:/q/1', '1', datetime.now(),

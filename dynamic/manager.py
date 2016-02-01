@@ -57,8 +57,10 @@ class QuestionManager:
         DB.add_question_follower(tid, qid, new_followers)
 
     @classmethod
-    def get_question_follower(cls, tid, qid):
-        return set([f['uid'] for f in DB.get_question_follower(tid, qid)])
+    def get_question_follower(cls, tid, qid, limit=None):
+        if limit is not None:
+            limit *= -1
+        return set([f['uid'] for f in DB.get_question_follower(tid, qid, limit)])
 
     @classmethod
     def get_question_follower_num(cls, tid, qid):

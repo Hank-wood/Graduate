@@ -52,9 +52,14 @@ class DB:
         })
 
     @classmethod
-    def get_question_follower(cls, tid, qid):
-        return cls.db[q_col(tid)].find_one({'qid': str(qid)},
-                                           {'follower': 1, '_id':0})['follower']
+    def get_question_follower(cls, tid, qid, limit=None):
+        if limit is None:
+            return cls.db[q_col(tid)].\
+                find_one({'qid': str(qid)}, {'follower': 1, '_id':0})['follower']
+        else:
+            return cls.db[q_col(tid)]. \
+                find_one({'qid': str(qid)},
+                         {'follower': {'$slice': limit}, '_id':0})['follower']
 
     @classmethod
     def get_question_follower_num(cls, tid, qid):
