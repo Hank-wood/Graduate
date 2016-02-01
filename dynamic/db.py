@@ -57,6 +57,18 @@ class DB:
                                            {'follower': 1, '_id':0})['follower']
 
     @classmethod
+    def get_question_follower_num(cls, tid, qid):
+        cursor = cls.db[q_col(tid)].aggregate([
+            {'$match': {'qid': qid}},
+            {
+                '$project': {
+                    'follower_count': {'$size': "$follower"}
+                }
+            }
+        ])
+        return list(cursor)[0]['follower_count']
+
+    @classmethod
     def save_answer(cls, tid, aid, url, qid, time, answerer, upvoters=None,
                     commenters=None, collectors=None):
         upvoters = [] if upvoters is None else upvoters

@@ -61,8 +61,15 @@ class QuestionManager:
         return set([f['uid'] for f in DB.get_question_follower(tid, qid)])
 
     @classmethod
+    def get_question_follower_num(cls, tid, qid):
+        return DB.get_question_follower_num(tid, qid)
+
+    @classmethod
     def get_question_attrs(cls, tid, qid, *args):
-        # e.g. get_question_attrs('123', 'qid', 'url')
+        """
+        :return: [aid1, url1, title1]
+        or       aid1
+        """
         assert len(args) > 0
         doc = DB.get_question_attrs(tid, qid, *args)
         return_value = [doc[arg] for arg in args]

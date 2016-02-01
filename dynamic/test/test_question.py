@@ -209,9 +209,19 @@ def test_update_question_info():
     pprint(DB.get_question_follower(tid, 'q1'))
 
 
+@pytest.mark.skipif(skip, reason="")
 def test_get_question_attrs():
     QuestionManager.save_question(test_tid, 'http:/q/1', '1', datetime.now(),
                                   'asker', 'title')
     assert QuestionManager.get_question_attrs(test_tid, '1', 'url') == 'http:/q/1'
     assert QuestionManager.get_question_attrs(test_tid, '1', 'qid', 'title') == \
            ['1', 'title']
+
+def test_get_question_follower_num():
+    QuestionManager.save_question(test_tid, 'http:/q/1', '1', datetime.now(),
+                                  'asker', 'title')
+    QuestionManager.save_question(test_tid, 'http:/q/2', '2', datetime.now(),
+                                  'asker', 'title')
+    assert QuestionManager.get_question_follower_num(test_tid, '1') == 0
+    QuestionManager.add_question_follower(test_tid, '1', ['f1', 'f2'])
+    assert QuestionManager.get_question_follower_num(test_tid, '1') == 2
