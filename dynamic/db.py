@@ -10,6 +10,9 @@ from utils import *
 
 
 class DB:
+    """
+    尽可能不对 doc 作处理，直接返回 query 的结果。由 manager 作进一步处理。
+    """
     db = MongoClient('127.0.0.1', 27017).zhihu_data
 
     @classmethod
@@ -57,6 +60,7 @@ class DB:
             return cls.db[q_col(tid)].\
                 find_one({'qid': str(qid)}, {'follower': 1, '_id':0})['follower']
         else:
+            limit *= -1
             return cls.db[q_col(tid)]. \
                 find_one({'qid': str(qid)},
                          {'follower': {'$slice': limit}, '_id':0})['follower']
@@ -116,8 +120,43 @@ class DB:
         cls.db[q_col(tid)].remove({'qid': str(qid)})
 
     @classmethod
-    def bulk_save(cls):
-        pass
+    def answer_exists(cls, tid, aid):
+        if cls.db[a_col(tid)].find_one({'aid': aid}, {'_id': 1}):
+            return True
+        else:
+            return False
+
+    @classmethod
+    def get_one_answer(cls, tid, aid):
+        return cls.db[a_col(tid)].find_one({'aid': str(aid)})
+
+    @classmethod
+    def get_one_answer_with_limit(cls, tid, aid, limit=10):
+        limit *= -1
+        return cls._get_answer_affected_user(
+            tid, aid, ['commenters', 'upvoters', 'collectors'], limit=5)
+
+    @classmethod
+    def get_upvoters(cls, tid, aid, limit=None):
+        return cls._get_answer_affected_user(tid, aid, ['upvoters'], limit)
+
+    @classmethod
+    def get_commenters(cls, tid, aid, limit=None):
+        return cls._get_answer_affected_user(tid, aid, ['commenters'], limit)
+
+    @classmethod
+    def get_collectors(cls, tid, aid, limit=None):
+        return cls._get_answer_affected_user(tid, aid, ['collectors'], limit)
+
+    @classmethod
+    def _get_answer_affected_user(cls, tid, aid, fields, limit=None):
+        if limit is None:
+            fields = {field: 1 for field in fields}
+            return cls.db[a_col(tid)].find_one({'aid': str(aid)}, fields)
+        else:
+            limit *= -1
+            fields = {field: {'$slice': limit} for field in fields}
+            return cls.db[a_col(tid)].find_one({'aid': str(aid)}, fields)
 
     @classmethod
     def add_upvoters(cls, tid, aid, new_upvoters):
@@ -149,10 +188,6 @@ class DB:
                }
            }
        })
-
-    @classmethod
-    def find_one_answer(cls, tid, aid):
-        return cls.db[a_col(tid)].find_one({'aid': str(aid)})
 
     @classmethod
     def remove_answer(cls, tid, aid):

@@ -58,8 +58,6 @@ class QuestionManager:
 
     @classmethod
     def get_question_follower(cls, tid, qid, limit=None):
-        if limit is not None:
-            limit *= -1
         return set([f['uid'] for f in DB.get_question_follower(tid, qid, limit)])
 
     @classmethod
@@ -82,7 +80,7 @@ class AnswerManager:
     def __init__(self, tid, aid):
         self.tid = tid
         self.aid = aid
-        answer_doc = DB.find_one_answer(tid, aid)
+        answer_doc = DB.get_one_answer_with_limit(tid, aid, limit=5)
         if answer_doc:
             self.upvoters = set(u['uid'] for u in answer_doc['upvoters'])
             self.commenters = set(u['uid'] for u in answer_doc['commenters'])

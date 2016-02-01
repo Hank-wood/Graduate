@@ -88,19 +88,19 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
         'upvoters': [], 'commenters': [], 'collectors': []
     }
     day = datetime.now().date()
-    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
 
     # call_count = 1
     task.execute()
     answer_info['upvoters'].append({'uid':'up1', 'time':t1})
-    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
 
     # call_count = 2
     task.execute()
     answer_info['upvoters'].append({'uid':'up2', 'time':t1+timedelta(1)})
     answer_info['commenters'].append({'uid':'cm1', 'cid':1,
                                       'time':datetime.combine(day, time(13,1))})
-    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
     assert task.manager.lastest_comment_time == datetime.combine(day, time(13,1))
 
     # call_count = 3
@@ -109,22 +109,22 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     answer_info['commenters'].append({'uid':'cm2', 'cid':2,
                                       'time':datetime.combine(day, time(13,2))})
     answer_info['collectors'].append({'uid':'cl1', 'time':t1, 'cid':1})
-    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
     assert task.manager.lastest_comment_time == datetime.combine(day, time(13,2))
 
     # test adding comment posted by same person
     task.execute()
-    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
     assert task.manager.lastest_comment_time == datetime.combine(day, time(13,2))
 
     task.execute()
     answer_info['commenters'].append({'uid':'cm3', 'cid':4,
                                      'time':datetime.combine(day, time(13,4))})
-    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
     assert task.manager.lastest_comment_time == datetime.combine(day, time(13,4))
 
     task.execute()
-    assert DB.find_one_answer(tid, aid) == None
+    assert DB.get_one_answer(tid, aid) == None
 
 
 @patch('huey_tasks.fetch_followers_followees', Mock())
@@ -197,7 +197,7 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
                                author=mock_author)
 
     task = FetchAnswerInfo(tid=tid, answer=mock_answer)
-    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
 
     task.execute()
     answer_info['upvoters'].append({'uid':'up4', 'time':t1})
@@ -211,10 +211,10 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
         {'uid':'cl2', 'time':datetime(2016,1,9,3,0,0), 'cid':2},
         {'uid':'cl3', 'time':datetime(2016,1,9,4,0,0), 'cid':3}
     ])
-    assert dict_equal(DB.find_one_answer(tid, aid), answer_info)
+    assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
 
     task.execute()
-    assert DB.find_one_answer(tid, aid) == None
+    assert DB.get_one_answer(tid, aid) == None
 
 
 @patch('huey_tasks.fetch_followers_followees', Mock())
