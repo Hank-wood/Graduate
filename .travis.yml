@@ -1,11 +1,19 @@
 language: python
 
 services:
-  - mongodb
   - redis-server
 
 python:
   - "3.5"
+
+addons:
+  apt:
+    sources:
+      - mongodb-upstart
+      - mongodb-3.0-precise
+    packages:
+      - mongodb-org-server
+      - mongodb-org-shell
 
 script:
   - travis_retry pip install -r requirements.txt
