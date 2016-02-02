@@ -6,6 +6,7 @@ import time
 import threading
 import atexit
 import json
+import _thread
 import logging
 import logging.config
 import concurrent.futures as cf
@@ -36,6 +37,7 @@ def install_threadExcepthook():
                 raise
             except:
                 sys.excepthook(*sys.exc_info())
+                _thread.interrupt_main()  # 保证主线程退出
         self.run = run_with_except_hook
     threading.Thread.__init__ = init
 
