@@ -95,6 +95,8 @@ class FetchQuestionInfo():
 
         # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
         for follower in self.question.followers:
+            if follower is ANONYMOUS:
+                continue
             if follower.id in old_followers:
                 break
             elif follower.id not in answerers:
@@ -120,11 +122,13 @@ class FetchAnswerInfo():
         if answer:
             self.answer = answer
             self.manager = AnswerManager(tid, answer.id)
+            answerer = '' if answer.author is ANONYMOUS else answer.author.id
             self.manager.save_answer(qid=answer.question.id,
                                      url=answer.url,
-                                     answerer=answer.author.id,
+                                     answerer=answerer,
                                      time=answer.creation_time)
         elif url:
+            # 已经存在于数据库中的答案
             self.answer = client.answer(url)
             self.manager = AnswerManager(tid, self.answer.id)
 
@@ -144,8 +148,10 @@ class FetchAnswerInfo():
 
         # Note: put older event in lower index
 
-        # add upvoters
+        # add upvoters, 匿名用户不记录
         for upvoter in self.answer.upvoters:
+            if upvoter is ANONYMOUS:
+                continue
             if upvoter.id in self.manager.upvoters:
                 break
             else:
@@ -154,11 +160,13 @@ class FetchAnswerInfo():
                     'time': self.get_upvote_time(upvoter, self.answer)
                 })
 
-        # add commenters
+        # add commenters, 匿名用户不记录
         # 同一个人可能发表多条评论, 所以还得 check 不是同一个 commenter
         # 注意, 一次新增的评论中也会有同一个人发表多条评论的情况, 需要收集最早的那个
         # 下面的逻辑保证了同一个 commenter 的更早的 comment 会替代新的
         for comment in self.answer.latest_comments:
+            if comment.author is ANONYMOUS:
+                continue
             if comment.author.id in self.manager.commenters:
                 if comment.creation_time <= self.manager.lastest_comment_time:
                     break

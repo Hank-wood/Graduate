@@ -59,10 +59,7 @@ class TopicMonitor:
                 while QuestionManager.latest_question[tid] != question.id:
                     question._url = question.url[:-1] + '?sort=created'
                     new_questions.append(question)
-                    if question.author:
-                        asker = question.author.id
-                    else:
-                        asker = ''  # 匿名用户, TODO: zhihu-py3增加ANONYMOUS常量
+                    asker = '' if question.author is ANONYMOUS else question.author.id
                     QuestionManager.save_question(tid, question._url, question.qid,
                                                   question.creation_time, asker,
                                                   question.title)

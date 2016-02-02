@@ -5,6 +5,7 @@ import zhihu
 import ezcf
 from config.dynamic_config import topics, TASKLOOP_INTERVAL, \
                 MAX_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL
+from zhihu import ANONYMOUS
 
 task_queue = deque()
 
