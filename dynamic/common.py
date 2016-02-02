@@ -25,6 +25,7 @@ if hasattr(os, '_called_from_test'):
     FETCH_QUESTION_INTERVAL = 5
     topics = {"1234": "test_topic"}
     test_tid = '1234'
+    test_tid2 = '5678'
 
 
 if not os.path.exists(os.path.join(ROOT, 'dynamic/logs')):

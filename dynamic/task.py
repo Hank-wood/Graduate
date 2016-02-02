@@ -29,12 +29,12 @@ class FetchQuestionInfo():
         """
         self.tid = tid
         self.question = question
+        self.qid = question.id
 
         if self.question.deleted:
             QuestionManager.remove_question(self.tid, self.qid)
             return
 
-        self.qid = question.id
         self.asker = question.author.id
         self.aids = set()
         self._create_existing_answer_task()
