@@ -41,8 +41,8 @@ class QuestionManager:
         huey_tasks.fetch_followers_followees(asker, time, limit_to=FETCH_FOLLOWER)
 
     @classmethod
-    def get_all_questions(cls):
-        return DB.get_all_questions()
+    def get_all_questions(cls, *args):
+        return DB.get_all_questions(*args)
 
     @classmethod
     def get_all_questions_one_topic(cls, tid):

@@ -120,8 +120,37 @@ def test_fetch_questions_without_previous_data(mk_execute):
 
 @pytest.mark.skipif(skip, reason="")
 @patch('huey_tasks.fetch_followers_followees', Mock())
-def test_fetch_questions_with_previous_data():
+def test_initiate_monitor_with_previous_questions():
     """测试数据库有之前保存的 question 的情况"""
+    import monitor
+    prefix = 'https://www.zhihu.com/question/'
+    DB.db[q_col(test_tid)].insert({
+        'topic': test_tid,
+        'url': prefix + '1111/'
+    })
+    DB.db[q_col(test_tid)].insert({
+        'topic': test_tid,
+        'url': prefix + '2222?sort=created'
+    })
+    DB.db[q_col(test_tid2)].insert({
+        'topic': test_tid,
+        'url': prefix + '3333/'
+    })
+    DB.db[q_col(test_tid2)].insert({
+        'topic': test_tid,
+        'url': prefix + '4444?sort=created'
+    })
+    _ = monitor.TopicMonitor(Mock())
+    urls = [task.question._url for task in task_queue]
+    assert set(urls) == {
+        prefix + '1111?sort=created',
+        prefix + '2222?sort=created',
+        prefix + '3333?sort=created',
+        prefix + '4444?sort=created'
+    }
+
+
+def test_initiate_fetchquestioninfo_with_previous_answers():
     pass
 
 
