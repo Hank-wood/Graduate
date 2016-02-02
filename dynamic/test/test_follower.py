@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch, PropertyMock
 import requests
 import pytest
 import zhihu
-from pymongo import MongoClient
 
 import huey_tasks
 from huey_tasks import _fetch_followers, _fetch_followees, show_users,\
@@ -27,6 +26,10 @@ aiwanxin = client.author('https://www.zhihu.com/people/aiwanxin')
 
 def teardown_function(function):
     remove_all_users()
+
+
+def teardown_module(module):
+    huey_tasks.db.client.close()
 
 
 # @pytest.mark.skipif(True, reason='')

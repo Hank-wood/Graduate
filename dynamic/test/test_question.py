@@ -31,6 +31,10 @@ def teardown_function(function):
             DB.db[collection_name].drop()
     task_queue.clear()
 
+
+def teardown_module(module):
+    DB.db.client.close()
+
 skip = False
 
 

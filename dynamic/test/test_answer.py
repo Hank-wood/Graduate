@@ -35,6 +35,10 @@ def teardown_function(function):
     task_queue.clear()
 
 
+def teardown_module(module):
+    DB.db.client.close()
+
+
 @freeze_time("2016-01-09 13:01")  # now().time > creation_time, 防止跨天
 @patch('huey_tasks.fetch_followers_followees', Mock())
 @patch('task.FetchAnswerInfo.get_upvote_time')

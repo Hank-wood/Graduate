@@ -143,15 +143,10 @@ def main(preroutine=None, postroutine=None):
 
 
 def cleaning():
-    """
-    Only for testing
-    """
-    from db import DB
-    for collection in DB.db.collection_names():
-        db[collection].drop()
+    DB.db.client.close()
 
 
 if __name__ == '__main__':
     install_threadExcepthook()
+    atexit.register(cleaning)
     main()
-    # atexit.register(cleaning)
