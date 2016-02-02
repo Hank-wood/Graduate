@@ -66,14 +66,14 @@ class TaskLoop(threading.Thread):
             cf.wait(futures, return_when=cf.ALL_COMPLETED)
             task_execution_time = time.time() - start
 
-            if task_execution_time > MAX_TASK_EXECUTION_TIME:
-                # set stop_fetch_questions_event
-                self.event.set()
+            if not self.event.is_set() and task_execution_time > MAX_TASK_EXECUTION_TIME:
+                self.event.set()  # set stop_fetch_questions_event
                 logger.warning("Task execution time is %d"% task_execution_time)
                 logger.info("Stop fetching new questions")
             else:
                 logger.info("Task execution time is %d" % task_execution_time)
-                time.sleep(TASKLOOP_INTERVAL - task_execution_time)
+                if TASKLOOP_INTERVAL > task_execution_time:
+                    time.sleep(TASKLOOP_INTERVAL - task_execution_time)
 
 
 def configure():
