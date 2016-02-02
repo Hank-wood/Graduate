@@ -13,6 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(__file__))
 test_cookie = os.path.join(ROOT, 'cookies/zhuoyi.json')
 dynamic_config_file = os.path.join(ROOT, 'dynamic/config/dynamic_config.json')
 logging_config_file = os.path.join(ROOT, 'dynamic/config/logging_config.json')
+smtp_config_file = os.path.join(ROOT, 'dynamic/config/smtp_config.json')
 TOPIC_PREFIX = "https://www.zhihu.com/topic/"
 QUESTION_PREFIX = "https://www.zhihu.com/question/"
 FETCH_FOLLOWER = 1

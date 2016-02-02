@@ -86,6 +86,14 @@ def configure():
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("requests").setLevel(logging.WARNING)
 
+    smtp_handler = logging.getLogger().handlers[2]
+    assert isinstance(smtp_handler, logging.handlers.SMTPHandler)
+
+    with open(smtp_config_file, 'rt') as f:
+        smtp_config = json.load(f)
+        smtp_handler.username, smtp_handler.password = \
+            smtp_config['username'], smtp_config['password']
+
     if restart:
         DB.drop_all_collections()
     else:
