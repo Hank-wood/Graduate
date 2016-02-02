@@ -32,7 +32,7 @@ class TopicMonitor:
         session = requests.Session()
         logger.info('Loading old questions from database............')
 
-        for question in QuestionManager.get_all_questions():
+        for question in QuestionManager.get_all_questions('url', 'topic'):
             url = question['url'] if question['url'].endswith('?sort=created') \
                   else question['url'][:-1] + '?sort=created'
             task_queue.append(FetchQuestionInfo(tid=question['topic'],

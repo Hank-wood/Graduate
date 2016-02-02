@@ -101,12 +101,17 @@ class DB:
         return cls.db[q_col(tid)].find_one({'qid': str(qid)})  # None or dict
 
     @classmethod
-    def get_all_questions(cls):
+    def get_all_questions(cls, *args):
         result = []
+        if args:
+            fields = {arg: 1 for arg in args}
+        else:
+            fields = {'_id': 0}   # include all fields
         for collection_name in cls.db.collection_names():
-            import utils
             if is_q_col(collection_name):
-                result.extend(list(cls.db[collection_name].find({})))
+                result.extend(
+                    list(cls.db[collection_name].find({}, fields))
+                )
 
         return result
 
