@@ -74,7 +74,7 @@ def validate_config(config=None):
              json.load(open(dynamic_config_file, encoding='utf-8'))
 
     if 'topics' not in config:
-        raise LackConfig
+        raise LackConfig("Lack topics")
 
     # check topics are valid
     for topic in config['topics']:
@@ -84,7 +84,10 @@ def validate_config(config=None):
         assert code == 200
 
     if 'restart' not in config:
-        raise LackConfig
+        raise LackConfig("Lack restart")
+
+    if 'fetch_new' not in config:
+        raise LackConfig("Lack fetch_new")
 
     assert config['restart'] == False or config['restart'] == True
     return True
