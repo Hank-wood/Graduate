@@ -51,7 +51,6 @@ class TopicMonitor:
             it = iter(topic.questions)
             question = latest_question = next(it)
 
-            # new logic
             if QuestionManager.latest_question[tid] is None:
                 QuestionManager.set_latest(tid, latest_question)
             else:

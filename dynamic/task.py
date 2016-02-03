@@ -35,7 +35,7 @@ class FetchQuestionInfo():
             QuestionManager.remove_question(self.tid, self.qid)
             return
 
-        self.asker = question.author.id
+        self.asker = question.author.id if question.author is not ANONYMOUS else ''
         self.aids = set()
         self._create_existing_answer_task()
         self.follower_num = QuestionManager.\

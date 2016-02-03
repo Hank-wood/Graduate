@@ -17,7 +17,7 @@ from manager import QuestionManager
 from db import DB
 from utils import *
 from common import *
-from task import FetchQuestionInfo
+from task import FetchQuestionInfo, FetchAnswerInfo
 
 
 def setup_module(module):
@@ -151,7 +151,45 @@ def test_initiate_monitor_with_previous_questions():
 
 
 def test_initiate_fetchquestioninfo_with_previous_answers():
-    pass
+    """
+    先在数据库中写入问题和答案
+    :return:
+    """
+    prefix = 'https://www.zhihu.com/question/'
+    DB.db[q_col(test_tid)].insert({
+        'topic': test_tid,
+        'qid': '1111',
+        'url': prefix + '1111/',
+        'follower': []
+    })
+    DB.db[q_col(test_tid)].insert({
+        'topic': test_tid,
+        'qid': '2222',
+        'url': prefix + '2222/',
+        'follower': []
+    })
+    DB.db[a_col(test_tid)].insert({
+        'qid': '1111',
+        'aid': '1',
+        'url': prefix + '1111/answer/1',
+        'upvoters': [],
+        'commenters': [],
+        'collectors': []
+    })
+    DB.db[a_col(test_tid)].insert({
+        'qid': '1111',
+        'aid': '2',
+        'url': prefix + '1111/answer/2',
+        'upvoters': [],
+        'commenters': [],
+        'collectors': []
+    })
+    question1 = Mock(deleted=False, id='1111', author=Mock(id='1'))
+    question2 = Mock(deleted=False, id='2222', author=Mock(id='2'))
+    _ = FetchQuestionInfo(test_tid, question1)
+    _ = FetchQuestionInfo(test_tid, question2)
+    old_answers = set([task.answer.id for task in task_queue])
+    assert old_answers == {1, 2}
 
 
 @pytest.mark.skipif(skip, reason="")
