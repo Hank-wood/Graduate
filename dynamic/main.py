@@ -17,9 +17,7 @@ import zhihu
 
 from monitor import TopicMonitor
 from utils import *
-from utils import task_queue
 from common import *
-from config.dynamic_config import restart
 from db import DB
 
 
@@ -98,11 +96,6 @@ def configure():
 
     if restart:
         DB.drop_all_collections()
-    else:
-        pass
-        # TODO
-        # get all questions from db, make zhihu.question
-        # task_queue.append(FetchQuestionInfo(question))
 
     validate_config()
 
@@ -123,6 +116,8 @@ def configure():
 def main(preroutine=None, postroutine=None):
     configure()
     stop_fetch_questions_event = threading.Event()
+    if fetch_new == False:
+        stop_fetch_questions_event.set()
     TaskLoop(stop_fetch_questions_event, daemon=True).start()
     m = TopicMonitor(client)
 

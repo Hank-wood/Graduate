@@ -4,7 +4,8 @@ from collections import deque
 import zhihu
 import ezcf
 from config.dynamic_config import topics, TASKLOOP_INTERVAL, \
-                MAX_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL
+                MAX_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL, restart, \
+                fetch_new
 from zhihu import ANONYMOUS
 
 task_queue = deque()
