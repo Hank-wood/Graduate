@@ -143,14 +143,14 @@ class FetchAnswerInfo():
                                      url=answer.url,
                                      answerer=answerer,
                                      time=answer.creation_time)
+            logger.info("New answer: %s - %s" % (self.answer.author.name,
+                                                 self.answer.question.title))
         elif url:
             # 已经存在于数据库中的答案
             self.answer = get_client().answer(url)
             self.manager = AnswerManager(tid, self.answer.id)
 
     def execute(self):
-        logger.info("Fetch answer info: %s - %s" % (self.answer.author.name,
-                                                    self.answer.question.title))
         new_upvoters = deque()
         new_commenters = OrderedDict()
         new_collectors = []
