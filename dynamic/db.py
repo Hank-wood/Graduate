@@ -68,7 +68,7 @@ class DB:
     @classmethod
     def get_question_follower_num(cls, tid, qid):
         cursor = cls.db[q_col(tid)].aggregate([
-            {'$match': {'qid': qid}},
+            {'$match': {'qid': str(qid)}},
             {
                 '$project': {
                     'follower_count': {'$size': "$follower"}
@@ -126,7 +126,7 @@ class DB:
 
     @classmethod
     def answer_exists(cls, tid, aid):
-        if cls.db[a_col(tid)].find_one({'aid': aid}, {'_id': 1}):
+        if cls.db[a_col(tid)].find_one({'aid': str(aid)}, {'_id': 1}):
             return True
         else:
             return False
@@ -200,12 +200,15 @@ class DB:
 
     @classmethod
     def get_question_answerer(cls, tid, qid):
-        return cls.db[a_col(tid)].find({'qid': qid}, {'answerer': 1, '_id': 0})
+        return cls.db[a_col(tid)].find(
+                {'qid': str(qid)},
+                {'answerer': 1, '_id': 0}
+        )
 
     @classmethod
     def get_question_answer_attrs(cls, tid, qid, *args):
         fields = {arg: 1 for arg in args}
-        return cls.db[a_col(tid)].find({'qid': qid}, fields)
+        return cls.db[a_col(tid)].find({'qid': str(qid)}, fields)
 
     @classmethod
     def drop_all_collections(cls):
