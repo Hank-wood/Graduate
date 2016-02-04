@@ -55,6 +55,8 @@ class FetchQuestionInfo():
                             self.tid, self.qid, 'aid', 'url'):
                 self.aids.add(aid)
                 task_queue.append(FetchAnswerInfo(self.tid, url=url))
+            if len(self.aids) > 0:
+                self._mount_pool()  # 已经有答案
         else:
             raise Exception("FetchQuestionInfo needs question or question_doc")
 
@@ -76,11 +78,7 @@ class FetchQuestionInfo():
                         # a new connection pool for question that has answer
                         # remove trailing slash so ?sort can use this pool
                         # 答案的url 是 question/qid/answer/aid
-                        prefix = self.question.url[:-1]
-                        self.question._session.mount(prefix,
-                                HTTPAdapter(pool_connections=1,
-                                            pool_maxsize=100,
-                                            max_retries=Retry(100)))
+                        self._mount_pool()
                     self.aids.add(str(answer.id))
                     task_queue.append(FetchAnswerInfo(self.tid, answer))
                 else:
@@ -92,6 +90,13 @@ class FetchQuestionInfo():
             self.follower_num = self.question.follower_num
 
         task_queue.append(self)
+
+    def _mount_pool(self):
+        prefix = self.question.url[:-1]
+        self.question._session.mount(prefix,
+                                     HTTPAdapter(pool_connections=1,
+                                                 pool_maxsize=100,
+                                                 max_retries=Retry(100)))
 
     def _fetch_question_follower(self):
         # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
