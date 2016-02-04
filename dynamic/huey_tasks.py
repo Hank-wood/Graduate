@@ -11,7 +11,7 @@ from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError
 
 
 huey = RedisHuey()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('huey.consumer')
 client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
 db = MongoClient('127.0.0.1', 27017).zhihu_data
 user_coll = db.user
@@ -24,6 +24,10 @@ def replace_database(db_name=None):
 
 
 def _fetch_followers_followees(uid, dateime, db_name=None, limit_to=None):
+    if uid == '':
+        return  # 匿名用户
+
+    logger.info("fetch: " + uid)
     prefix = 'https://www.zhihu.com/people/'
     user = client.author(prefix + uid)
 
