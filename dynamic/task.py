@@ -125,6 +125,7 @@ class FetchQuestionInfo():
                                                              datetime.now())
                     if i > 10:
                         logger.warning("Can't find follow question activity")
+                        logger.warning("question: %s, follower: %s" % (self.qid, follower.id))
                         break
 
         QuestionManager.add_question_follower(self.tid, self.qid, new_followers)
