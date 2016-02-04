@@ -26,10 +26,10 @@ class TopicMonitor:
         ]
         self._load_old_question()
 
-    @staticmethod
-    def _load_old_question():
+    def _load_old_question(self):
         # 数据库中已有的 question 加入 task queue, answer 不用管
         session = requests.Session()
+        session.cookies = self.client._session.cookies
         logger.info('Loading old questions from database............')
 
         for question in QuestionManager.get_all_questions('url', 'topic'):
