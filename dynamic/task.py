@@ -123,6 +123,7 @@ class FetchQuestionInfo():
                         })
                         huey_tasks.fetch_followers_followees(follower.id,
                                                              datetime.now())
+                        break
                     if i > 10:
                         logger.warning("Can't find follow question activity")
                         logger.warning("question: %s, follower: %s" % (self.qid, follower.id))
