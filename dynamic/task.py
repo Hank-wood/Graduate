@@ -37,10 +37,12 @@ class FetchQuestionInfo():
 
         self.asker = question.author.id if question.author is not ANONYMOUS else ''
         self.aids = set()
-        self._create_existing_answer_task()
-        self.follower_num = QuestionManager.\
-            get_question_follower_num(self.tid, self.qid)
-        if not from_db:
+        if from_db:
+            self._create_existing_answer_task()
+            self.follower_num = QuestionManager. \
+                get_question_follower_num(self.tid, self.qid)
+        else:
+            self.follower_num = 0
             logger.info("New Question: %s" % self.question.title)
 
     def _create_existing_answer_task(self):

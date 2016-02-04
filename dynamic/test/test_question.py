@@ -186,8 +186,8 @@ def test_initiate_fetchquestioninfo_with_previous_answers():
     })
     question1 = Mock(deleted=False, id='1111', author=Mock(id='1'))
     question2 = Mock(deleted=False, id='2222', author=Mock(id='2'))
-    _ = FetchQuestionInfo(test_tid, question1)
-    _ = FetchQuestionInfo(test_tid, question2)
+    _ = FetchQuestionInfo(test_tid, question1, from_db=True)
+    _ = FetchQuestionInfo(test_tid, question2, from_db=True)
     old_answers = set([task.answer.id for task in task_queue])
     assert old_answers == {1, 2}
 
