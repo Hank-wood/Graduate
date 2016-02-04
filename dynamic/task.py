@@ -16,40 +16,47 @@ from zhihu.acttype import ActType
 from utils import *
 from common import *
 from manager import QuestionManager, AnswerManager
+from client_pool import get_client
 import huey_tasks
 
 logger = logging.getLogger(__name__)
 
 
 class FetchQuestionInfo():
-    def __init__(self, tid, question, from_db=False):
+    def __init__(self, tid, question=None, question_doc=None):
         """
         :param question: zhihu.Question object
         :return:
         """
         self.tid = tid
-        self.question = question
-        self.qid = question.id
-
-        if self.question.deleted:
-            QuestionManager.remove_question(self.tid, self.qid)
-            return
-
-        self.asker = question.author.id if question.author is not ANONYMOUS else ''
         self.aids = set()
-        if from_db:
-            self._create_existing_answer_task()
-            self.follower_num = QuestionManager. \
-                get_question_follower_num(self.tid, self.qid)
-        else:
+        if question:
+            self.question = question
+            self.qid = str(question.id)
+
+            if self.question.deleted:
+                QuestionManager.remove_question(self.tid, self.qid)
+                return
+
+            self.asker = question.author.id if question.author is not ANONYMOUS else ''
             self.follower_num = 0
             logger.info("New Question: %s" % self.question.title)
+        elif question_doc:
+            self.question = get_client().question(question_doc['url'])
+            self.qid = str(self.question.id)
 
-    def _create_existing_answer_task(self):
-        for aid, url in AnswerManager.\
-                get_question_answer_attrs(self.tid, self.qid, 'aid', 'url'):
-            self.aids.add(aid)
-            task_queue.append(FetchAnswerInfo(self.tid, url=url))
+            if self.question.deleted:
+                QuestionManager.remove_question(self.tid, self.qid)
+                return
+
+            self.asker = question_doc['asker']
+            self.follower_num = QuestionManager.get_question_follower_num(self.tid, self.qid)
+            for aid, url in AnswerManager.get_question_answer_attrs(
+                            self.tid, self.qid, 'aid', 'url'):
+                self.aids.add(aid)
+                task_queue.append(FetchAnswerInfo(self.tid, url=url))
+        else:
+            raise Exception("FetchQuestionInfo needs question or question_doc")
 
     def execute(self):
         self.question.refresh()
@@ -131,7 +138,7 @@ class FetchAnswerInfo():
                                      time=answer.creation_time)
         elif url:
             # 已经存在于数据库中的答案
-            self.answer = client.answer(url)
+            self.answer = get_client().answer(url)
             self.manager = AnswerManager(tid, self.answer.id)
 
     def execute(self):

@@ -119,7 +119,7 @@ def main(preroutine=None, postroutine=None):
     if fetch_new == False:
         stop_fetch_questions_event.set()
     TaskLoop(stop_fetch_questions_event, daemon=True).start()
-    m = TopicMonitor(client)
+    m = TopicMonitor()
 
     while True:
         start = time.time()

@@ -7,38 +7,35 @@
 import logging
 
 import requests
+from zhihu.question import Question
 
 from task import *
 from manager import QuestionManager
 from utils import task_queue
 from common import *
-from zhihu.question import Question
+from client_pool import get_client
 
 logger = logging.getLogger(__name__)
 
 
 class TopicMonitor:
 
-    def __init__(self, client):
-        self.client = client
+    def __init__(self):
+        self.client = get_client()
         self.topics = [
-            client.topic(TOPIC_PREFIX + tid) for tid in topics
+            self.client.topic(TOPIC_PREFIX + tid) for tid in topics
         ]
         self._load_old_question()
 
     def _load_old_question(self):
         # 数据库中已有的 question 加入 task queue, answer 不用管
-        session = requests.Session()
-        session.cookies = self.client._session.cookies
         logger.info('Loading old questions from database............')
 
-        for question in QuestionManager.get_all_questions('url', 'topic'):
-            url = question['url'] if question['url'].endswith('?sort=created') \
-                  else question['url'][:-1] + '?sort=created'
-            task_queue.append(FetchQuestionInfo(tid=question['topic'],
-                                                question=Question(url,
-                                                               session=session),
-                                                from_db=True))
+        for question_doc in QuestionManager.get_all_questions('url', 'topic', 'asker'):
+            if question_doc['url'].endswith('/'):
+                question_doc['url'] = question_doc['url'][:-1] + '?sort=created'
+            task_queue.append(FetchQuestionInfo(tid=question_doc['topic'],
+                                                question_doc=question_doc))
 
         logger.info('Loading old questions from database succeed :)')
 

@@ -1,7 +1,6 @@
 import os
 from collections import deque
 
-import zhihu
 import ezcf
 from config.dynamic_config import topics, TASKLOOP_INTERVAL, \
                 MAX_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL, restart, \
@@ -32,8 +31,6 @@ if hasattr(os, '_called_from_test'):
 
 if not os.path.exists(os.path.join(ROOT, 'dynamic/logs')):
     os.mkdir(os.path.join(ROOT, 'dynamic/logs'))
-
-client = zhihu.ZhihuClient(test_cookie)
 
 
 class EndProgramException(Exception):
