@@ -116,7 +116,7 @@ class FetchQuestionInfo():
             elif follower.id not in answerers:
                 for i, act in enumerate(follower.activities):
                     if act.type == ActType.FOLLOW_QUESTION and \
-                    act.content.id == self.qid:
+                    str(act.content.id) == self.qid:
                         new_followers.append({
                             'uid': follower.id,
                             'time': act.time
