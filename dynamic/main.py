@@ -136,7 +136,8 @@ def main(preroutine=None, postroutine=None):
             break
 
         task_execution_time = time.time() - start
-        time.sleep(FETCH_QUESTION_INTERVAL - task_execution_time)
+        if FETCH_QUESTION_INTERVAL > task_execution_time:
+            time.sleep(FETCH_QUESTION_INTERVAL - task_execution_time)
 
 
 def cleaning():
