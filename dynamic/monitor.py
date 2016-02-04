@@ -56,7 +56,7 @@ class TopicMonitor:
                     question._url = question.url[:-1] + '?sort=created'
                     new_questions.append(question)
                     asker = '' if question.author is ANONYMOUS else question.author.id
-                    QuestionManager.save_question(tid, question._url, question.qid,
+                    QuestionManager.save_question(tid, question._url, question.id,
                                                   question.creation_time, asker,
                                                   question.title)
                     task_queue.append(FetchQuestionInfo(tid, question))

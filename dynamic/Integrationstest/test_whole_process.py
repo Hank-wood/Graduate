@@ -22,6 +22,13 @@ def setup_module(module):
     DB.db = db  # replace db with test db
 
 
+def teardown_function(function):
+    for collection_name in DB.db.collection_names():
+        if 'system' not in collection_name:
+            DB.db[collection_name].drop()
+    task_queue.clear()
+
+
 @patch('huey_tasks.fetch_followers_followees', Mock())
 @patch('task.FetchQuestionInfo.execute')
 @patch('config.dynamic_config.topics', {"19550517": "互联网"})
@@ -38,7 +45,7 @@ def test_fetch_questions_without_previous_data(mk_execute):
         """
         def __init__(self, url, id, creation_time, title, author=''):
             self._url = self.url = url
-            self.id = self.qid = id
+            self.id = id
             self.creation_time = self.time = creation_time
             self.title = title
             self.author = self.asker = author
