@@ -71,9 +71,10 @@ class TaskLoop(threading.Thread):
                 self.event.set()  # set stop_fetch_questions_event
                 logger.warning("Stop fetching new questions")
             else:
-                self.event.clear()  # unset stop_fetch_questions_event
                 time.sleep(TASKLOOP_INTERVAL - task_execution_time)
-                logger.info("Start fetching new questions")
+                if fetch_new:
+                    self.event.clear()  # unset stop_fetch_questions_event
+                    logger.info("Start fetching new questions")
 
 
 def configure():
@@ -116,7 +117,7 @@ def configure():
 def main(preroutine=None, postroutine=None):
     configure()
     stop_fetch_questions_event = threading.Event()
-    if fetch_new == False:
+    if not fetch_new:
         stop_fetch_questions_event.set()
     TaskLoop(stop_fetch_questions_event, daemon=True).start()
     m = TopicMonitor()
