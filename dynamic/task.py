@@ -28,12 +28,13 @@ class FetchQuestionInfo():
         """
         self.tid = tid
         self.aids = set()
+        self.execution_count = 0
         if question:
             self.question = question
             self.qid = str(question.id)
 
             if self.question.deleted:
-                QuestionManager.remove_question(self.tid, self.qid)
+                self._delete_question()
                 return
 
             self.asker = question.author.id if question.author is not ANONYMOUS else ''
@@ -44,7 +45,7 @@ class FetchQuestionInfo():
             self.qid = str(self.question.id)
 
             if self.question.deleted:
-                QuestionManager.remove_question(self.tid, self.qid)
+                self._delete_question()
                 return
 
             self.asker = question_doc['asker']
@@ -62,7 +63,7 @@ class FetchQuestionInfo():
         self.question.refresh()
 
         if self.question.deleted:
-            QuestionManager.remove_question(self.tid, self.qid)
+            self._delete_question()
             return
 
         if self.question.answer_num > len(self.aids):
@@ -87,7 +88,15 @@ class FetchQuestionInfo():
             # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
             self.follower_num = self.question.follower_num
 
-        task_queue.append(self)
+        self.execution_count += 1
+        if self.execution_count > 15 and len(self.aids) == 0:
+            self._delete_question()
+            return  # 15min没有回答，删除问题
+        else:
+            task_queue.append(self)
+
+    def _delete_question(self):
+        QuestionManager.remove_question(self.tid, self.qid)
 
     def _mount_pool(self):
         prefix = self.question.url[:-1]
