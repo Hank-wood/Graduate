@@ -11,8 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util import Retry
 
-from zhihu.acttype import ActType
-
 from utils import *
 from common import *
 from manager import QuestionManager, AnswerManager
@@ -116,19 +114,17 @@ class FetchQuestionInfo():
                 break
             elif follower.id not in answerers:
                 for _, act in zip(r, follower.activities):
-                    if act.type == ActType.FOLLOW_QUESTION and \
-                    str(act.content.id) == self.qid:
+                    if act.type == FOLLOW_QUESTION and str(act.content.id) == self.qid:
                         new_followers.append({
                             'uid': follower.id,
                             'time': act.time
                         })
-                        huey_tasks.fetch_followers_followees(follower.id,
-                                                             datetime.now())
+                        huey_tasks.fetch_followers_followees(
+                            follower.id, datetime.now())
                         break
                 else:
                     logger.warning("Can't find follow question activity")
                     logger.warning("question: %s, follower: %s" % (self.qid, follower.id))
-                    break
 
         QuestionManager.add_question_follower(self.tid, self.qid, new_followers)
 

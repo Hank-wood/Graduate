@@ -6,6 +6,9 @@ from config.dynamic_config import topics, TASKLOOP_INTERVAL, \
                 MAX_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL, restart, \
                 fetch_new
 from zhihu import ANONYMOUS
+from zhihu.acttype import ActType
+
+FOLLOW_QUESTION = ActType.FOLLOW_QUESTION
 
 task_queue = deque()
 
