@@ -104,27 +104,32 @@ class FetchQuestionInfo():
         old_followers = QuestionManager.get_question_follower(self.tid,self.qid,
                                                               limit=5)
         new_followers = []
+        now = datetime.now()
 
         # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
-        r = range(20)
+        r = range(20)  # 20个刚好只需要一次请求
         for follower in self.question.followers:
             if follower is ANONYMOUS:
                 continue
             if follower.id in old_followers:
                 break
             elif follower.id not in answerers:
+                huey_tasks.fetch_followers_followees(follower.id, now)
                 for _, act in zip(r, follower.activities):
                     if act.type == FOLLOW_QUESTION and str(act.content.id) == self.qid:
                         new_followers.append({
                             'uid': follower.id,
                             'time': act.time
                         })
-                        huey_tasks.fetch_followers_followees(
-                            follower.id, datetime.now())
                         break
                 else:
                     logger.warning("Can't find follow question activity")
                     logger.warning("question: %s, follower: %s" % (self.qid, follower.id))
+                    # 没有具体时间，就不记录。因为follower有序，时间可之后推定。
+                    new_followers.append({
+                        'uid': follower.id,
+                        'time': None
+                    })
 
         QuestionManager.add_question_follower(self.tid, self.qid, new_followers)
 
