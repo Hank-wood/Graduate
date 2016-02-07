@@ -5,6 +5,7 @@
 import os
 import time
 import json
+import logging
 from datetime import datetime
 from unittest.mock import patch, PropertyMock, Mock
 from pprint import pprint
@@ -24,6 +25,7 @@ from task import FetchQuestionInfo, FetchAnswerInfo
 def setup_module(module):
     db = MongoClient('127.0.0.1', 27017).test
     DB.db = db  # replace db with test db
+    logging.basicConfig(level=logging.INFO)
 
 
 def teardown_function(function):
@@ -48,9 +50,6 @@ def test_find_latest():
     QuestionManager.save_question(tid, 'url2', '2', datetime.now(), 'asker2', '')
     time.sleep(1)
     QuestionManager.save_question(tid, 'url3', '3', datetime.now(), 'asker3', '')
-
-    for doc in DB.db[q_col(tid)].find({}):
-        print(doc)
 
     latest = DB.find_latest_question(tid)
     assert latest['url'] == 'url3'
@@ -139,8 +138,9 @@ def test_initiate_fetchquestioninfo_with_previous_answers():
 
     assert isinstance(task_queue[2], FetchQuestionInfo)
     assert task_queue[2].qid == '38717319'
-    assert isinstance(task_queue[3], FetchQuestionInfo)
-    assert task_queue[3].qid == '39880296'
+
+    # 测试删除没有答案的问题
+    assert DB.db[a_col(test_tid)].find_one({'qid': '39880296'}) is None
 
 
 @pytest.mark.skipif(skip, reason="")
@@ -228,7 +228,6 @@ def test_update_question_info():
         'fid1', 'fid2', 'fid3'
     }
     assert task_queue.popleft() is task
-    pprint(DB.get_question_follower(tid, 'q1'))
 
     # 测试 limit 属性
     assert QuestionManager.get_question_follower(tid, 'q1', limit=1) == {'fid3'}
@@ -238,6 +237,7 @@ def test_update_question_info():
 
 
 @pytest.mark.skipif(skip, reason="")
+@patch('huey_tasks.fetch_followers_followees', Mock())
 def test_get_question_attrs():
     QuestionManager.save_question(test_tid, 'http:/q/1', '1', datetime.now(),
                                   'asker', 'title')
@@ -246,6 +246,7 @@ def test_get_question_attrs():
            ['1', 'title']
 
 
+@patch('huey_tasks.fetch_followers_followees', Mock())
 def test_get_question_follower_num():
     QuestionManager.save_question(test_tid, 'http:/q/1', '1', datetime.now(),
                                   'asker', 'title')

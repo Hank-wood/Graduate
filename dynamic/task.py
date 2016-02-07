@@ -49,13 +49,17 @@ class FetchQuestionInfo():
                 return
 
             self.asker = question_doc['asker']
-            self.follower_num = QuestionManager.get_question_follower_num(self.tid, self.qid)
             for aid, url in AnswerManager.get_question_answer_attrs(
                             self.tid, self.qid, 'aid', 'url'):
                 self.aids.add(aid)
                 task_queue.append(FetchAnswerInfo(self.tid, url=url))
             if len(self.aids) > 0:
                 self._mount_pool()  # 已经有答案
+            else:
+                self._delete_question()  # 数据库中的问题没有答案, 删除
+                return
+
+            self.follower_num = QuestionManager.get_question_follower_num(self.tid, self.qid)
         else:
             raise Exception("FetchQuestionInfo needs question or question_doc")
 
@@ -90,12 +94,12 @@ class FetchQuestionInfo():
 
         self.execution_count += 1
         if self.execution_count > 15 and len(self.aids) == 0:
-            self._delete_question()
-            return  # 15min没有回答，删除问题
+            self._delete_question()  # 15min没有回答，删除问题
         else:
             task_queue.append(self)
 
     def _delete_question(self):
+        logger.info("remove question: " + self.qid)
         QuestionManager.remove_question(self.tid, self.qid)
 
     def _mount_pool(self):
