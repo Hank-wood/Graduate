@@ -28,8 +28,10 @@ def _fetch_followers_followees(uid, dateime, db_name=None, limit_to=None):
         return  # 匿名用户
 
     logger.info("fetch: " + uid)
-    prefix = 'https://www.zhihu.com/people/'
-    user = client.author(prefix + uid)
+    url = 'https://www.zhihu.com/people/' + uid
+    user = client.author(url)
+    user._session.mount(url, HTTPAdapter(pool_connections=1, max_retries=3))
+    # 如果有需要, 把/node/ProfileFollowersListV2和/node/ProfileFolloweesListV2也mount
 
     if limit_to is None:
         if user.followee_num < 500:
@@ -49,6 +51,9 @@ def _fetch_followers_followees(uid, dateime, db_name=None, limit_to=None):
         _fetch_followees(user, dateime, db_name)
     else:
         raise FetchTypeError("No such type: " + str(limit_to))
+
+    # 防止 adapters 无限增长
+    del user._session.adapters[url]
 
 
 def _fetch_followers(user, datetime, db_name=None):
@@ -179,6 +184,6 @@ def get_user(uid, db_name=None):
     return user_coll.find_one({'uid': uid})
 
 
-fetch_followers = huey.task()(_fetch_followers)
-fetch_followees = huey.task()(_fetch_followees)
-fetch_followers_followees = huey.task()(_fetch_followers_followees)
+fetch_followers = huey.task(retries=3, retry_delay=2)(_fetch_followers)
+fetch_followees = huey.task(retries=3, retry_delay=2)(_fetch_followees)
+fetch_followers_followees = huey.task(retries=3, retry_delay=2)(_fetch_followers_followees)
