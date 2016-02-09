@@ -1,4 +1,8 @@
+import sys
 import logging
+import os
+import json
+import logging.handlers
 from functools import reduce, wraps
 from pprint import pprint
 
@@ -7,11 +11,28 @@ from pymongo import MongoClient
 from huey import RedisHuey
 from requests.adapters import HTTPAdapter
 
-from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError
-
+from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError,\
+    logging_config_file, smtp_config_file
 
 huey = RedisHuey()
 logger = logging.getLogger('huey.consumer')
+if os.path.isfile(logging_config_file):
+    with open(logging_config_file, 'rt') as f:
+        config = json.load(f)
+        mail_handler_cfg = config['handlers']['mail_handler']
+        smtp_handler = logging.handlers.SMTPHandler(
+            mailhost=(mail_handler_cfg['mailhost'], 25),
+            fromaddr=mail_handler_cfg['fromaddr'],
+            toaddrs=mail_handler_cfg['toaddrs'],
+            subject="Huey Error")
+        smtp_handler.setLevel(logging.ERROR)
+        logger.addHandler(smtp_handler)
+
+    with open(smtp_config_file, 'rt') as f:
+        smtp_config = json.load(f)
+        smtp_handler.username, smtp_handler.password = \
+            smtp_config['username'], smtp_config['password']
+
 client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
 db = MongoClient('127.0.0.1', 27017).zhihu_data
 user_coll = db.user

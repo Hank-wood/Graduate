@@ -7,6 +7,9 @@ from datetime import datetime
 from huey_tasks import fetch_followers_followees, remove_all_users, show_users,\
                         get_user
 
+import pytest
+
+
 fetch_followers_followees = partial(fetch_followers_followees, db_name='test')
 remove_all_users = partial(remove_all_users, db_name='test')
 show_users = partial(show_users, db_name='test')
@@ -23,3 +26,8 @@ def test_fetch_few2():
     doc = get_user('aiwanxin')
     assert len(doc['follower'][0]['uids']) >= 32
     assert len(doc['followee'][0]['uids']) >= 44
+
+
+def test_smtp_handler():
+    # should send error alert email
+    fetch_followers_followees(1, None)
