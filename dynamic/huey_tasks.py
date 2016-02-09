@@ -13,6 +13,7 @@ from requests.adapters import HTTPAdapter
 
 from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError,\
     logging_config_file, smtp_config_file
+from client_pool import get_client
 
 huey = RedisHuey()
 logger = logging.getLogger('huey.consumer')
@@ -33,7 +34,6 @@ if os.path.isfile(logging_config_file):
         smtp_handler.username, smtp_handler.password = \
             smtp_config['username'], smtp_config['password']
 
-client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
 db = MongoClient('127.0.0.1', 27017).zhihu_data
 user_coll = db.user
 
@@ -50,7 +50,7 @@ def _fetch_followers_followees(uid, dateime, db_name=None, limit_to=None):
 
     logger.info("fetch: " + uid)
     url = 'https://www.zhihu.com/people/' + uid
-    user = client.author(url)
+    user = get_client().author(url)
     user._session.mount(url, HTTPAdapter(pool_connections=1, max_retries=3))
     # 如果有需要, 把/node/ProfileFollowersListV2和/node/ProfileFolloweesListV2也mount
 
