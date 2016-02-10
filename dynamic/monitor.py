@@ -55,12 +55,16 @@ class TopicMonitor:
                 while QuestionManager.latest_question[tid] != question.id:
                     question._url = question.url[:-1] + '?sort=created'
                     new_questions.append(question)
-                    asker = '' if question.author is ANONYMOUS else question.author.id
-                    QuestionManager.save_question(tid, question._url, question.id,
-                                                  question.creation_time, asker,
-                                                  question.title)
-                    task_queue.append(FetchQuestionInfo(tid, question))
-                    question = next(it)
+                    try:
+                        asker = '' if question.author is ANONYMOUS else question.author.id
+                        QuestionManager.save_question(tid, question._url, question.id,
+                                                      question.creation_time, asker,
+                                                      question.title)
+                        task_queue.append(FetchQuestionInfo(tid, question))
+                    except TypeError:
+                        logger.exception(question.url)
+                    finally:
+                        question = next(it)
 
                 if new_questions:
                     QuestionManager.set_latest(tid, latest_question)
