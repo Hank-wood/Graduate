@@ -101,7 +101,7 @@ class AnswerManager:
     def save_answer(self, qid, url, answerer, time):
         DB.save_answer(tid=self.tid, aid=self.aid, url=url, qid=qid,
                        time=time, answerer=answerer)
-        huey_tasks.fetch_followers(answerer, time)
+        huey_tasks.fetch_followers_followees(answerer, time, limit_to=FETCH_FOLLOWER)
 
     def sync_affected_users(self, new_upvoters=None, new_commenters=None,
                             new_collectors=None):
