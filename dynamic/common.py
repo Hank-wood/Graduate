@@ -34,6 +34,7 @@ if hasattr(os, '_called_from_test'):
 
 if not os.path.exists(os.path.join(ROOT, 'dynamic/logs')):
     os.mkdir(os.path.join(ROOT, 'dynamic/logs'))
+logging_dir = os.path.join(ROOT, 'dynamic/logs')
 
 
 class EndProgramException(Exception):

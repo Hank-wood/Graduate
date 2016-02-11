@@ -12,7 +12,7 @@ from huey import RedisHuey
 from requests.adapters import HTTPAdapter
 
 from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError,\
-    logging_config_file, smtp_config_file
+    logging_config_file, smtp_config_file, logging_dir
 from client_pool import get_client
 
 huey = RedisHuey()
@@ -54,24 +54,32 @@ def _fetch_followers_followees(uid, dateime, db_name=None, limit_to=None):
     user._session.mount(url, HTTPAdapter(pool_connections=1, max_retries=3))
     # 如果有需要, 把/node/ProfileFollowersListV2和/node/ProfileFolloweesListV2也mount
 
-    if limit_to is None:
-        if user.followee_num < 500:
-            _fetch_followees(user, dateime, db_name)
-
-        if user.follower_num < 500:
-            _fetch_followers(user, dateime, db_name)
-
-        if user.followee_num >= 500 and user.follower_num >= 500:
-            if user.followee_num < user.follower_num:
+    try:
+        if limit_to is None:
+            if user.followee_num < 500:
                 _fetch_followees(user, dateime, db_name)
-            else:
+
+            if user.follower_num < 500:
                 _fetch_followers(user, dateime, db_name)
-    elif limit_to == FETCH_FOLLOWER:
-        _fetch_followers(user, dateime, db_name)
-    elif limit_to == FETCH_FOLLOWEE:
-        _fetch_followees(user, dateime, db_name)
-    else:
-        raise FetchTypeError("No such type: " + str(limit_to))
+
+            if user.followee_num >= 500 and user.follower_num >= 500:
+                if user.followee_num < user.follower_num:
+                    _fetch_followees(user, dateime, db_name)
+                else:
+                    _fetch_followers(user, dateime, db_name)
+        elif limit_to == FETCH_FOLLOWER:
+            _fetch_followers(user, dateime, db_name)
+        elif limit_to == FETCH_FOLLOWEE:
+            _fetch_followees(user, dateime, db_name)
+        else:
+            raise FetchTypeError("No such type: " + str(limit_to))
+    except AttributeError:
+        # dump error user profile html
+        html = user.soup.prettify("utf-8")
+        filename = '_'.join([user.name, user.url])
+        with open(os.path.join(logging_dir, filename), "wb") as file:
+            file.write(html)
+        logger.exception(' '.join([user.name, user.url]))
 
     # 防止 adapters 无限增长
     del user._session.adapters[url]
