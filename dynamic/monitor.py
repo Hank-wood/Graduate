@@ -51,18 +51,22 @@ class TopicMonitor:
             QuestionManager.set_latest(tid, question.creation_time)
 
             # latest_ctime is None 代表第一次执行, 此时不抓取新问题
-            if latest_ctime is not None:
-                while question.creation_time > latest_ctime:
-                    question._url = question.url[:-1] + '?sort=created'
-                    try:
-                        asker = '' if question.author is ANONYMOUS else question.author.id
-                        QuestionManager.save_question(tid, question._url, question.id,
-                                                      question.creation_time, asker,
-                                                      question.title)
-                        task_queue.append(FetchQuestionInfo(tid, question))
-                    except TypeError:
-                        logger.exception(question.url)
-                    finally:
+            if latest_ctime is None:
+                return
+
+            while question.creation_time > latest_ctime:
+                question._url = question.url[:-1] + '?sort=created'
+                try:
+                    asker = '' if question.author is ANONYMOUS else question.author.id
+                    QuestionManager.save_question(tid, question._url, question.id,
+                                                  question.creation_time, asker,
+                                                  question.title)
+                    task_queue.append(FetchQuestionInfo(tid, question))
+                except (TypeError, IndexError):
+                    logger.exception(question.url)
+                finally:
+                    question = next(it)
+                    while question.deleted == True:
                         question = next(it)
 
 
