@@ -74,15 +74,19 @@ def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
             _fetch_followees(user, datetime, db_name)
         else:
             raise FetchTypeError("No such type: " + str(limit_to))
-    except AttributeError:
+    except AttributeError as e:
         # dump error user profile html
         html = user.soup.prettify("utf-8")
-        with open(os.path.join(logging_dir, user.url), "wb") as file:
+        with open(os.path.join(logging_dir, user.id), "wb") as file:
             file.write(html)
         logger.exception(user.url)
+        raise e  # reraise so that retry can fire
 
     # 防止 adapters 无限增长
-    del user._session.adapters[url]
+    try:
+        del user._session.adapters[url]
+    except KeyError:
+        pass
 
 
 def _fetch_followers(user, datetime, db_name=None):

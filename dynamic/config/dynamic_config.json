@@ -3,7 +3,7 @@
     "19550517": "互联网",
     "19551147": "生活"
   },
-  "restart": true,
+  "restart": false,
   "fetch_new": true,
   "TASKLOOP_INTERVAL": 60,
   "MAX_TASK_EXECUTION_TIME": 55,
