@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch, PropertyMock
 import requests
 import pytest
 import zhihu
+from zhihu import ANONYMOUS
 
 import huey_tasks
 from huey_tasks import _fetch_followers, _fetch_followees, show_users,\
@@ -23,6 +24,8 @@ client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
 laike9m = client.author('https://www.zhihu.com/people/laike9m')
 aiwanxin = client.author('https://www.zhihu.com/people/aiwanxin')
 
+skip = False
+
 
 def teardown_function(function):
     remove_all_users()
@@ -32,7 +35,7 @@ def teardown_module(module):
     huey_tasks.db.client.close()
 
 
-# @pytest.mark.skipif(True, reason='')
+@pytest.mark.skipif(skip, reason='')
 def test_fetch_few():
     _fetch_followers(aiwanxin, datetime.now())
     _fetch_followees(aiwanxin, datetime.now())
@@ -42,7 +45,7 @@ def test_fetch_few():
     assert len(doc['followee'][0]['uids']) >= 44
 
 
-# @pytest.mark.skipif(True, reason='')
+@pytest.mark.skipif(skip, reason='')
 def test_fetch_few2():
     _fetch_followers_followees('aiwanxin', datetime.now())
     show_users()
@@ -51,7 +54,7 @@ def test_fetch_few2():
     assert len(doc['followee'][0]['uids']) >= 44
 
 
-# @pytest.mark.skipif(True, reason='')
+@pytest.mark.skipif(skip, reason='')
 def test_fetch_many():
     # 多follower, 少followee
     _fetch_followers_followees('laike9m', datetime.now())
@@ -68,7 +71,7 @@ def test_fetch_many():
     show_users()
 
 
-# @pytest.mark.skipif(True, reason='')
+@pytest.mark.skipif(skip, reason='')
 @patch('huey_tasks.zhihu.Author.follower_num', new_callable=PropertyMock)
 @patch('huey_tasks.zhihu.Author.followers', new_callable=PropertyMock)
 @patch('huey_tasks.zhihu.Author.followee_num', new_callable=PropertyMock)
@@ -78,34 +81,38 @@ def test_fetch_many2(ees, ee_num, ers, er_num):
     # follower_num < followwee_num
     er_num.return_value = 501
     ers.return_value  = [Mock(id='uid'+str(i)) for i in range(501)]
+    # 测试匿名用户不存储
+    ers.return_value[0] = ANONYMOUS
     ee_num.return_value  = 502
     ees.return_value = [Mock(id='uid'+str(i)) for i in range(502)]
     _fetch_followers_followees('test_user', datetime.now())
     doc = get_user('test_user')
     assert 'followee' not in doc
-    assert len(doc['follower'][0]['uids']) == 501
+    assert len(doc['follower'][0]['uids']) == 500
 
     # follower_num > followwee_num
     er_num.return_value = 502
     ers.return_value  = [Mock(id='uid'+str(i)) for i in range(502)]
     ee_num.return_value  = 501
     ees.return_value = [Mock(id='uid'+str(i)) for i in range(501)]
+    ees.return_value[0] = ANONYMOUS
     _fetch_followers_followees('test_user2', datetime.now())
     doc = get_user('test_user2')
     assert 'follower' not in doc
-    assert len(doc['followee'][0]['uids']) == 501
+    assert len(doc['followee'][0]['uids']) == 500
 
 
-#@pytest.mark.skipif(True, reason='')
+@pytest.mark.skipif(skip, reason='')
 @patch('huey_tasks.zhihu.Author.follower_num', new_callable=PropertyMock)
 @patch('huey_tasks.zhihu.Author.followers', new_callable=PropertyMock)
 def test_fetch_increased_followers(ers, er_num):
     ers.side_effect = [
         [Mock(id='a'), Mock(id='b')],
+        [ANONYMOUS, Mock(id='a'), Mock(id='b')],
         [Mock(id='c'), Mock(id='a'), Mock(id='b')],
         [Mock(id='e'), Mock(id='d'), Mock(id='c'), Mock(id='b')], # a unfollowed
     ]
-    er_num.side_effect = [2, 2, 3, 4]
+    er_num.side_effect = [2, 3, 3, 4]
     now = datetime.now()
     _fetch_followers(laike9m, now)
     doc = get_user('laike9m')
@@ -131,16 +138,17 @@ def test_fetch_increased_followers(ers, er_num):
     assert doc['follower'][2]['uids'] == ['e', 'd']
 
 
-#@pytest.mark.skipif(True, reason='')
+@pytest.mark.skipif(skip, reason='')
 @patch('huey_tasks.zhihu.Author.followee_num', new_callable=PropertyMock)
 @patch('huey_tasks.zhihu.Author.followees', new_callable=PropertyMock)
 def test_increased_followees(ees, ee_num):
     ees.side_effect = [
         [Mock(id='a'), Mock(id='b')],
+        [ANONYMOUS, Mock(id='a'), Mock(id='b')],
         [Mock(id='c'), Mock(id='a'), Mock(id='b')],
         [Mock(id='e'), Mock(id='d'), Mock(id='c'), Mock(id='b')], # a unfollowed
     ]
-    ee_num.side_effect = [2, 2, 3, 4]
+    ee_num.side_effect = [2, 3, 3, 4]
     now = datetime.now()
     _fetch_followees(laike9m, now)
     doc = get_user('laike9m')

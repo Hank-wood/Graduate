@@ -10,6 +10,7 @@ import zhihu
 from pymongo import MongoClient
 from huey import RedisHuey
 from requests.adapters import HTTPAdapter
+from zhihu import ANONYMOUS
 
 from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError,\
     logging_config_file, smtp_config_file, logging_dir
@@ -92,8 +93,7 @@ def _fetch_followers(user, datetime, db_name=None):
     doc = user_coll.find_one({'uid': user.id}, {'follower':1, '_id':0})
     if doc is None:
         # new user
-        uids = [follower.id for follower in user.followers]
-        assert len(uids) == follower_num
+        uids = [follower.id for follower in user.followers if follower is not ANONYMOUS]
         user_coll.insert({
             'uid': user.id,
             "follower": [{
@@ -119,11 +119,14 @@ def _fetch_followers(user, datetime, db_name=None):
 
             new_followers = []
             for follower in user.followers:
-                if follower.id not in old_followers:
-                    new_followers.append(follower.id)
-                elif min_follower_increase <= 0:
-                    break
-                min_follower_increase -= 1
+                if follower is ANONYMOUS:
+                    min_follower_increase -= 1
+                else:
+                    if follower.id not in old_followers:
+                        new_followers.append(follower.id)
+                    elif min_follower_increase <= 0:
+                        break
+                    min_follower_increase -= 1
 
             if new_followers:
                 user_coll.update({'uid': user.id}, {
@@ -148,8 +151,7 @@ def _fetch_followees(user, datetime, db_name=None):
     doc = user_coll.find_one({'uid': user.id}, {'followee':1, '_id':0})
     if doc is None:
         # new user
-        uids = [followee.id for followee in user.followees]
-        assert len(uids) == followee_num
+        uids = [followee.id for followee in user.followees if followee is not ANONYMOUS]
         user_coll.insert({
             'uid': user.id,
             "followee": [{
@@ -175,11 +177,14 @@ def _fetch_followees(user, datetime, db_name=None):
 
             new_followees = []
             for followee in user.followees:
-                if followee.id not in old_followees:
-                    new_followees.append(followee.id)
-                elif min_followee_increase <= 0:
-                    break
-                min_followee_increase -= 1
+                if followee is ANONYMOUS:
+                    min_followee_increase -= 1
+                else:
+                    if followee.id not in old_followees:
+                        new_followees.append(followee.id)
+                    elif min_followee_increase <= 0:
+                        break
+                    min_followee_increase -= 1
 
             if new_followees:
                 user_coll.update({'uid': user.id}, {
