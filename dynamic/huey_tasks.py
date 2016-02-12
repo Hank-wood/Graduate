@@ -44,7 +44,7 @@ def replace_database(db_name=None):
         user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
 
 
-def _fetch_followers_followees(uid, dateime, db_name=None, limit_to=None):
+def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
     if uid == '':
         return  # 匿名用户
 
@@ -57,29 +57,28 @@ def _fetch_followers_followees(uid, dateime, db_name=None, limit_to=None):
     try:
         if limit_to is None:
             if user.followee_num < 500:
-                _fetch_followees(user, dateime, db_name)
+                _fetch_followees(user, datetime, db_name)
 
             if user.follower_num < 500:
-                _fetch_followers(user, dateime, db_name)
+                _fetch_followers(user, datetime, db_name)
 
             if user.followee_num >= 500 and user.follower_num >= 500:
                 if user.followee_num < user.follower_num:
-                    _fetch_followees(user, dateime, db_name)
+                    _fetch_followees(user, datetime, db_name)
                 else:
-                    _fetch_followers(user, dateime, db_name)
+                    _fetch_followers(user, datetime, db_name)
         elif limit_to == FETCH_FOLLOWER:
-            _fetch_followers(user, dateime, db_name)
+            _fetch_followers(user, datetime, db_name)
         elif limit_to == FETCH_FOLLOWEE:
-            _fetch_followees(user, dateime, db_name)
+            _fetch_followees(user, datetime, db_name)
         else:
             raise FetchTypeError("No such type: " + str(limit_to))
     except AttributeError:
         # dump error user profile html
         html = user.soup.prettify("utf-8")
-        filename = '_'.join([user.name, user.url])
-        with open(os.path.join(logging_dir, filename), "wb") as file:
+        with open(os.path.join(logging_dir, user.url), "wb") as file:
             file.write(html)
-        logger.exception(' '.join([user.name, user.url]))
+        logger.exception(user.url)
 
     # 防止 adapters 无限增长
     del user._session.adapters[url]
