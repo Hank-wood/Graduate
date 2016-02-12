@@ -39,7 +39,7 @@ class FetchQuestionInfo():
 
             self.asker = question.author.id if question.author is not ANONYMOUS else ''
             self.follower_num = 0
-            logger.info("New Question: %s" % self.question.title)
+            logger.info("New Question %s: %s" % (self.qid, self.question.title))
         elif question_doc:
             self.question = get_client().question(question_doc['url'])
             self.qid = str(self.question.id)
@@ -241,6 +241,7 @@ class FetchAnswerInfo():
                     return act.time
             if i > 10:
                 logger.error("Can't find upvote activity")
+                logger.error("%s upvotes %s" % (upvoter.id, answer.url))
                 raise NoSuchActivity
 
     @staticmethod
@@ -257,6 +258,7 @@ class FetchAnswerInfo():
                 return log.time
         else:
             logger.error("Can't find collect activity")
+            logger.error("%s collects %s" % (collection.owner.id, answer.url))
             raise NoSuchActivity
 
 __all__ = [
