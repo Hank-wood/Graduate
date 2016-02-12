@@ -23,17 +23,16 @@ class QuestionManager:
     在某些的情况下用来缓存数据避免查询过多
     """
 
-    latest_question = {
+    latest_question_creation_time = {
         tid: None for tid in topics  # save qid of lastest question in a topic
     }
 
     @classmethod
-    def set_latest(cls, tid, question):
+    def set_latest(cls, tid, creation_time):
         """
         :param question: zhihu.Question object
         """
-        logger.debug("Set latest question of %s to %s" % (topics[tid], question.id))
-        cls.latest_question[tid] = question.id
+        cls.latest_question_creation_time[tid] = creation_time
 
     @classmethod
     def save_question(cls, tid, url, qid, time, asker, title):

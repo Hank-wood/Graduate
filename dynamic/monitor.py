@@ -46,15 +46,14 @@ class TopicMonitor:
         for topic in self.topics:
             tid = str(topic.id)
             it = iter(topic.questions)
-            question = latest_question = next(it)
+            question = next(it)
+            latest_ctime = QuestionManager.latest_question_creation_time[tid]
+            QuestionManager.set_latest(tid, question.creation_time)
 
-            if QuestionManager.latest_question[tid] is None:
-                QuestionManager.set_latest(tid, latest_question)
-            else:
-                new_questions = []
-                while QuestionManager.latest_question[tid] != question.id:
+            # latest_ctime is None 代表第一次执行, 此时不抓取新问题
+            if latest_ctime is not None:
+                while question.creation_time > latest_ctime:
                     question._url = question.url[:-1] + '?sort=created'
-                    new_questions.append(question)
                     try:
                         asker = '' if question.author is ANONYMOUS else question.author.id
                         QuestionManager.save_question(tid, question._url, question.id,
@@ -66,6 +65,4 @@ class TopicMonitor:
                     finally:
                         question = next(it)
 
-                if new_questions:
-                    QuestionManager.set_latest(tid, latest_question)
 
