@@ -72,7 +72,7 @@ class TaskLoop(threading.Thread):
                 logger.warning("Stop fetching new questions")
             else:
                 time.sleep(TASKLOOP_INTERVAL - task_execution_time)
-                if fetch_new:
+                if fetch_new and self.event.is_set():
                     self.event.clear()  # unset stop_fetch_questions_event
                     logger.info("Start fetching new questions")
 
