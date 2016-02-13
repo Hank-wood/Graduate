@@ -16,6 +16,7 @@ from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError,\
     logging_config_file, smtp_config_file, logging_dir
 from client_pool import get_client
 
+
 huey = RedisHuey()
 logger = logging.getLogger('huey.consumer')
 if os.path.isfile(logging_config_file):
@@ -27,7 +28,9 @@ if os.path.isfile(logging_config_file):
             fromaddr=mail_handler_cfg['fromaddr'],
             toaddrs=mail_handler_cfg['toaddrs'],
             subject="Huey Error")
-        smtp_handler.setLevel(logging.ERROR)
+        # level=critical, 防止每次 retry 的时候都发邮件
+        # 只有最后一次 attribute error retry 和未知错误才发邮件
+        smtp_handler.setLevel(logging.CRITICAL)
         logger.addHandler(smtp_handler)
 
     with open(smtp_config_file, 'rt') as f:
@@ -37,6 +40,11 @@ if os.path.isfile(logging_config_file):
 
 db = MongoClient('127.0.0.1', 27017).zhihu_data
 user_coll = db.user
+
+# 1. 防止两个线程同时抓取一个用户
+# 2. 保证在 retries 用完时才输出错误
+# {uid: {'retries': 3, 'running': True}
+task_info = {}
 
 
 def replace_database(db_name=None):
@@ -48,6 +56,15 @@ def replace_database(db_name=None):
 def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
     if uid == '':
         return  # 匿名用户
+
+    if uid in task_info:
+        if task_info[uid]['running']:
+            logger.info("重复用户:" + uid)
+            return
+        else:
+            task_info[uid]['running'] = True
+    else:
+        task_info[uid] = {'retries': 3, 'running': True}
 
     logger.info("fetch: " + uid)
     url = 'https://www.zhihu.com/people/' + uid
@@ -79,8 +96,19 @@ def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
         html = user.soup.prettify("utf-8")
         with open(os.path.join(logging_dir, user.id), "wb") as file:
             file.write(html)
-        logger.exception(user.url)
+        if task_info[uid]['retries'] == 0:
+            del task_info[uid]  # remove if task failed completely
+            logger.critical(user.url, exc_info=True)
+        else:
+            task_info[uid]['retries'] -= 1
+            task_info[uid]['running'] = False
         raise e  # reraise so that retry can fire
+    except Exception as e:
+        del task_info[uid]  # remove if task failed completely
+        logger.critical(user.url, exc_info=True)
+        raise e.with_traceback(sys.exc_info()[2])
+    else:
+        del task_info[uid]  # remove if task succeed
 
     # 防止 adapters 无限增长
     try:
