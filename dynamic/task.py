@@ -235,14 +235,14 @@ class FetchAnswerInfo():
         :param answer: zhihu.Answer
         :return: datatime.datetime
         """
-        for i, act in enumerate(upvoter.activities):
+        for i, act in enumerate(upvoter.activities, 1):
             if act.type == ActType.UPVOTE_ANSWER:
                 if act.content.url == answer.url:
                     return act.time
-            if i > 10:
-                logger.error("Can't find upvote activity")
-                logger.error("%s upvotes %s" % (upvoter.id, answer.url))
-                raise NoSuchActivity
+            if i >= 20:
+                logger.warning("Can't find upvote activity")
+                logger.warning("%s upvotes %s" % (upvoter.id, answer.url))
+                return None
 
     @staticmethod
     def get_collect_time(answer, collection):
@@ -251,15 +251,17 @@ class FetchAnswerInfo():
         :param collection: zhihu.Collection
         :return: datatime.datetime
         """
-        for log in collection.logs:
+        for i, log in enumerate(collection.logs, 1):
             if log.answer is None:  # create collection
-                continue
+                break
             if answer.url == log.answer.url:
                 return log.time
-        else:
-            logger.error("Can't find collect activity")
-            logger.error("%s collects %s" % (collection.owner.id, answer.url))
-            raise NoSuchActivity
+            if i >= 20:
+                break
+
+        logger.warning("Can't find collect activity")
+        logger.warning("%s collects %s" % (collection.owner.id, answer.url))
+        return None
 
 __all__ = [
     'FetchQuestionInfo',
