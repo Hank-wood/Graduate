@@ -15,6 +15,7 @@ from zhihu import ANONYMOUS
 from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError,\
     logging_config_file, smtp_config_file, logging_dir
 from client_pool import get_client
+from utils import config_smtp_handler
 
 
 huey = RedisHuey()
@@ -32,11 +33,7 @@ if os.path.isfile(logging_config_file):
         # 只有最后一次 attribute error retry 和未知错误才发邮件
         smtp_handler.setLevel(logging.CRITICAL)
         logger.addHandler(smtp_handler)
-
-    with open(smtp_config_file, 'rt') as f:
-        smtp_config = json.load(f)
-        smtp_handler.username, smtp_handler.password = \
-            smtp_config['username'], smtp_config['password']
+        config_smtp_handler(smtp_handler)
 
 db = MongoClient('127.0.0.1', 27017).zhihu_data
 user_coll = db.user

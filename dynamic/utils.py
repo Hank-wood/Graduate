@@ -134,9 +134,20 @@ def list_of_dict_equal(list_of_dict_more_key, list_of_dict_less_key):
     pass
 
 
+def config_smtp_handler(smtp_handler):
+    if 'mailgun_username' in os.environ:
+        smtp_handler.username, smtp_handler.password = \
+            os.environ['mailgun_username'], os.environ['mailgun_password']
+    else:
+        with open(smtp_config_file, 'rt') as f:
+            smtp_config = json.load(f)
+            smtp_handler.username, smtp_handler.password = \
+                smtp_config['username'], smtp_config['password']
+
+
 __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
-    'dict_equal', 'is_a_col', 'is_q_col'
+    'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler'
 ]
