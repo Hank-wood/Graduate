@@ -57,6 +57,8 @@ class TopicMonitor:
             while question.creation_time > latest_ctime:
                 question._url = question.url[:-1] + '?sort=created'
                 try:
+                    if question.deleted:
+                        continue
                     asker = '' if question.author is ANONYMOUS else question.author.id
                     QuestionManager.save_question(tid, question._url, question.id,
                                                   question.creation_time, asker,
@@ -66,7 +68,3 @@ class TopicMonitor:
                     logger.exception(question.url)
                 finally:
                     question = next(it)
-                    while question.deleted == True:
-                        question = next(it)
-
-
