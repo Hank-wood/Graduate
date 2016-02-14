@@ -1,9 +1,12 @@
 {
   "topics": {
     "19550517": "互联网",
-    "19551147": "生活"
+    "19551147": "生活",
+    "19552266": "文化",
+    "19566206": "世界"
   },
-  "restart": false,
+  "restart": true,
+  "fetch_old": false,
   "fetch_new": true,
   "TASKLOOP_INTERVAL": 60,
   "MAX_TASK_EXECUTION_TIME": 55,

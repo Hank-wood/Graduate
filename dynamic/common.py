@@ -4,7 +4,7 @@ from collections import deque
 import ezcf
 from config.dynamic_config import topics, TASKLOOP_INTERVAL, \
                 MAX_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL, restart, \
-                fetch_new
+                fetch_new, fetch_old
 from zhihu import ANONYMOUS
 from zhihu.acttype import ActType
 
@@ -30,6 +30,7 @@ if hasattr(os, '_called_from_test'):
     topics = {"1234": "test_topic"}
     test_tid = '1234'
     test_tid2 = '5678'
+    fetch_old = True
 
 
 if not os.path.exists(os.path.join(ROOT, 'dynamic/logs')):

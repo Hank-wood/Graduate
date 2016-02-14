@@ -5,6 +5,7 @@
 """
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from zhihu.question import Question
@@ -25,7 +26,9 @@ class TopicMonitor:
         self.topics = [
             self.client.topic(TOPIC_PREFIX + tid) for tid in topics
         ]
-        self._load_old_question()
+        if fetch_old:
+            self._load_old_question()
+        self.executor = ThreadPoolExecutor(max_workers=len(topics))
 
     def _load_old_question(self):
         # 数据库中已有的 question 加入 task queue, answer 不用管
@@ -44,27 +47,31 @@ class TopicMonitor:
         爬取话题页面，寻找新问题
         """
         for topic in self.topics:
-            tid = str(topic.id)
-            it = iter(topic.questions)
-            question = next(it)
-            latest_ctime = QuestionManager.latest_question_creation_time[tid]
-            QuestionManager.set_latest(tid, question.creation_time)
+            self.executor.submit(self.execute, topic)
+            # self.execute(topic)
 
-            # latest_ctime is None 代表第一次执行, 此时不抓取新问题
-            if latest_ctime is None:
-                return
+    def execute(self, topic):
+        tid = str(topic.id)
+        it = iter(topic.questions)
+        question = next(it)
+        latest_ctime = QuestionManager.latest_question_creation_time[tid]
+        QuestionManager.set_latest(tid, question.creation_time)
 
-            while question.creation_time > latest_ctime:
-                question._url = question.url[:-1] + '?sort=created'
-                try:
-                    if question.deleted:
-                        continue
-                    asker = '' if question.author is ANONYMOUS else question.author.id
-                    QuestionManager.save_question(tid, question._url, question.id,
-                                                  question.creation_time, asker,
-                                                  question.title)
-                    task_queue.append(FetchQuestionInfo(tid, question))
-                except (TypeError, IndexError):
-                    logger.exception(question.url)
-                finally:
-                    question = next(it)
+        # latest_ctime is None 代表第一次执行, 此时不抓取新问题
+        if latest_ctime is None:
+            return
+
+        while question.creation_time > latest_ctime:
+            question._url = question.url[:-1] + '?sort=created'
+            try:
+                if question.deleted:
+                    continue
+                asker = '' if question.author is ANONYMOUS else question.author.id
+                QuestionManager.save_question(tid, question._url, question.id,
+                                              question.creation_time, asker,
+                                              question.title)
+                task_queue.append(FetchQuestionInfo(tid, question))
+            except (TypeError, IndexError):
+                logger.exception(question.url)
+            finally:
+                question = next(it)

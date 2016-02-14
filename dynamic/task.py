@@ -70,6 +70,7 @@ class FetchQuestionInfo():
             self._delete_question()
             return
 
+        # TODO: 或许可以用id 来判断先后,不需要set
         if self.question.answer_num > len(self.aids):
             # We can't just fetch the latest new_answer_num - old_answer_num
             # answers, cause there exist collapsed answers
@@ -98,6 +99,7 @@ class FetchQuestionInfo():
         else:
             task_queue.append(self)
 
+    # TODO: delete question 可以用huey 执行
     def _delete_question(self):
         logger.info("remove question: " + self.qid)
         QuestionManager.remove_question(self.tid, self.qid)
@@ -108,7 +110,7 @@ class FetchQuestionInfo():
                                      HTTPAdapter(pool_connections=1,
                                                  pool_maxsize=100,
                                                  max_retries=Retry(100)))
-
+    # TODO: 可以用 Huey
     def _fetch_question_follower(self):
         # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
         # 回答者 id 从数据库里取，因为在初始化 FetchAnswerInfo 的时候就入库了

@@ -70,6 +70,7 @@ def test_fetch_questions_without_previous_data(mk_execute):
         ]
 
         def test():
+            time.sleep(1)
             if mock_q.call_count == 1:
                 assert len(QuestionManager.get_all_questions_one_topic(tid))==0
             if mock_q.call_count == 2:

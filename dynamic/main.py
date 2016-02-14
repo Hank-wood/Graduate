@@ -44,7 +44,7 @@ class TaskLoop(threading.Thread):
 
     def __init__(self, event, routine=None, *args, **kwargs):
         self.routine = routine
-        self.executor = ThreadPoolExecutor(max_workers=10)
+        self.executor = ThreadPoolExecutor(max_workers=100)
         self.event = event
         super().__init__(*args, **kwargs)
 
