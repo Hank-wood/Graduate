@@ -66,6 +66,9 @@ class TopicMonitor:
             try:
                 if question.deleted:
                     continue
+                # 去掉占了多个所选话题的问题
+                if len(set(question.topics).intersection(self.topics)) > 1:
+                    continue
                 asker = '' if question.author is ANONYMOUS else question.author.id
                 QuestionManager.save_question(tid, question._url, question.id,
                                               question.creation_time, asker,
