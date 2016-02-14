@@ -68,8 +68,9 @@ class TaskLoop(threading.Thread):
             logger.info("Task execution time is %d" % task_execution_time)
 
             if task_execution_time > MAX_TASK_EXECUTION_TIME:
-                self.event.set()  # set stop_fetch_questions_event
-                logger.warning("Stop fetching new questions")
+                if not self.event.is_set():
+                    self.event.set()  # set stop_fetch_questions_event
+                    logger.warning("Stop fetching new questions")
             else:
                 time.sleep(TASKLOOP_INTERVAL - task_execution_time)
                 if fetch_new and self.event.is_set():

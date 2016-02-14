@@ -20,6 +20,11 @@ from utils import config_smtp_handler
 
 huey = RedisHuey()
 logger = logging.getLogger('huey.consumer')
+logger2 = logging.getLogger('huey.consumer.Worker')
+logger2.setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
+
 if os.path.isfile(logging_config_file):
     with open(logging_config_file, 'rt') as f:
         config = json.load(f)
