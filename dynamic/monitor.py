@@ -75,6 +75,6 @@ class TopicMonitor:
                                               question.title)
                 task_queue.append(FetchQuestionInfo(tid, question))
             except (TypeError, IndexError):
-                logger.exception(question.url)
+                logger.warning(question.url)
             finally:
                 question = next(it)
