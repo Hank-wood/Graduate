@@ -26,8 +26,10 @@ class TopicMonitor:
         self.topics = [
             self.client.topic(TOPIC_PREFIX + tid) for tid in topics
         ]
+        self.topic_names = set(topics.values())
         if fetch_old:
             self._load_old_question()
+
         self.executor = ThreadPoolExecutor(max_workers=len(topics))
 
     def _load_old_question(self):
@@ -67,7 +69,7 @@ class TopicMonitor:
                 if question.deleted:
                     continue
                 # 去掉占了多个所选话题的问题
-                if len(set(question.topics).intersection(self.topics)) > 1:
+                if len(self.topic_names.intersection(self.topics)) > 1:
                     continue
                 asker = '' if question.author is ANONYMOUS else question.author.id
                 QuestionManager.save_question(tid, question._url, question.id,

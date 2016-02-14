@@ -53,6 +53,7 @@ def test_fetch_questions_without_previous_data(mk_execute):
             self.deleted = False
             self.follower_num = 0
             self.author = Mock(id='asker')
+            self.topics = ['互联网']
 
     t = datetime.now()
     mock_question1 = MockQuestion('http://q/1', '1', t+timedelta(1), 'question1')
