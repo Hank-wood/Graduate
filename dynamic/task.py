@@ -28,7 +28,6 @@ class FetchQuestionInfo():
         """
         self.tid = tid
         self.aids = set()
-        self.last_update_time = datetime.now()  # 最后一次增加新答案的时间
         if question:
             self.question = question
             self.qid = str(question.id)
@@ -39,6 +38,7 @@ class FetchQuestionInfo():
 
             self.asker = question.author.id if question.author is not ANONYMOUS else ''
             self.follower_num = 0
+            self.last_update_time = datetime.now()  # 最后一次增加新答案的时间
             logger.info("New Question %s: %s" % (self.qid, self.question.title))
         elif question_doc:
             self.question = get_client().question(question_doc['url'])
@@ -49,10 +49,14 @@ class FetchQuestionInfo():
                 return
 
             self.asker = question_doc['asker']
-            for aid, url in AnswerManager.get_question_answer_attrs(
-                            self.tid, self.qid, 'aid', 'url'):
+            self.last_update_time = datetime(1970, 1, 1)  # 最后一次增加新答案的时间
+            for aid, url, ctime in AnswerManager.get_question_answer_attrs(
+                            self.tid, self.qid, 'aid', 'url', 'time'):
                 self.aids.add(aid)
                 task_queue.append(FetchAnswerInfo(self.tid, url=url))
+                if ctime > self.last_update_time:
+                    self.last_update_time = ctime
+
             if len(self.aids) > 0:
                 self._mount_pool()  # 已经有答案
             else:
@@ -176,7 +180,6 @@ class FetchQuestionInfo():
 class FetchAnswerInfo():
     def __init__(self, tid, answer=None, url=None):
         self.tid = tid
-        self.last_update_time = datetime.now()  # 最后一次增加新upvote的时间
         if answer:
             self.answer = answer
             self.manager = AnswerManager(tid, answer.id)
@@ -185,12 +188,14 @@ class FetchAnswerInfo():
                                      url=answer.url,
                                      answerer=answerer,
                                      time=answer.creation_time)
+            self.last_update_time = datetime.now()  # 最后一次增加新upvote的时间
             logger.info("New answer: %s - %s" % (self.answer.author.name,
                                                  self.answer.question.title))
         elif url:
             # 已经存在于数据库中的答案
             self.answer = get_client().answer(url)
             self.manager = AnswerManager(tid, self.answer.id)
+            self.last_update_time = self.manager.lastest_upvote_time
 
     def _check_answer_activation(self):
         active_interval = datetime.now() - self.last_update_time

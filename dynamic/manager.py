@@ -88,6 +88,11 @@ class AnswerManager:
                 self.lastest_comment_time = answer_doc['commenters'][-1]['time']
             else:
                 self.lastest_comment_time = datetime(1970, 1, 1, 0, 0, 0)
+
+            if answer_doc['upvoters']:
+                self.lastest_upvote_time = answer_doc['upvoters'][-1]['time']
+            else:
+                self.lastest_upvote_time = answer_doc['time']
         else:
             self.upvoters = set()
             self.commenters = set()

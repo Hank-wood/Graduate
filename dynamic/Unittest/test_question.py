@@ -38,7 +38,7 @@ def teardown_function(function):
 def teardown_module(module):
     DB.db.client.close()
 
-skip = False
+skip = True
 
 
 @pytest.mark.skipif(skip, reason="")
@@ -95,6 +95,10 @@ def test_initiate_fetchquestioninfo_with_previous_answers():
     :return:
     """
     prefix = 'https://www.zhihu.com/question/'
+    time1 = datetime.now().replace(microsecond=0)
+    time2 = time1 + timedelta(hours=1)
+    time3 = time2 + timedelta(hours=1)
+    time4 = time3 + timedelta(hours=1)
 
     # 因为要获取 deleted 属性,故使用真实的问题url
     DB.db[q_col(test_tid)].insert({
@@ -117,27 +121,35 @@ def test_initiate_fetchquestioninfo_with_previous_answers():
         'url': prefix + '38717319/answer/1',
         'upvoters': [],
         'commenters': [],
-        'collectors': []
+        'collectors': [],
+        'time': time1
     })
     DB.db[a_col(test_tid)].insert({
         'qid': '38717319',
         'aid': '2',
         'url': prefix + '38717319/answer/2',
-        'upvoters': [],
+        'upvoters': [
+            {'uid':'1', 'time': time3},
+            {'uid':'2', 'time': time4},
+        ],
         'commenters': [],
-        'collectors': []
+        'collectors': [],
+        'time': time2
     })
     _ = TopicMonitor()
 
     # 初始化 FetchQuestionInfo 时 FetchAnswerInfo 进入 task_queue
     # 然后 FetchQuestionInfo 进入 task_queue
     assert isinstance(task_queue[0], FetchAnswerInfo)
+    assert task_queue[0].last_update_time == time1
     assert isinstance(task_queue[1], FetchAnswerInfo)
+    assert task_queue[1].last_update_time == time4
     old_answers = set([task.answer.id for task in list(task_queue)[:2]])
     assert old_answers == {1, 2}
 
     assert isinstance(task_queue[2], FetchQuestionInfo)
     assert task_queue[2].qid == '38717319'
+    assert task_queue[2].last_update_time == time2
 
     # 测试删除没有答案的问题
     assert DB.db[a_col(test_tid)].find_one({'qid': '39880296'}) is None
