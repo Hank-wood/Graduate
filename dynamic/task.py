@@ -103,13 +103,16 @@ class FetchQuestionInfo():
     def _delete_question(self):
         logger.info("remove question: " + self.qid)
         QuestionManager.remove_question(self.tid, self.qid)
+        try:
+            del self.question._session.adapters[self.question.url[:-1]]
+        except KeyError:
+            pass
 
     def _mount_pool(self):
-        prefix = self.question.url[:-1]
-        self.question._session.mount(prefix,
+        self.question._session.mount(self.question.url[:-1],
                                      HTTPAdapter(pool_connections=1,
                                                  pool_maxsize=100,
-                                                 max_retries=Retry(100)))
+                                                 max_retries=Retry(10)))
     # TODO: 可以用 Huey
     def _fetch_question_follower(self):
         # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
