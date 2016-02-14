@@ -70,6 +70,7 @@ class TopicMonitor:
                     continue
                 # 去掉占了多个所选话题的问题
                 if len(self.topic_names.intersection(self.topics)) > 1:
+                    logger.info("重复话题, 跳过: " + question.id)
                     continue
                 asker = '' if question.author is ANONYMOUS else question.author.id
                 QuestionManager.save_question(tid, question._url, question.id,

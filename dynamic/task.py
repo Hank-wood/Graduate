@@ -232,6 +232,8 @@ class FetchAnswerInfo():
             self.last_update_time = datetime.now()
 
         if not self._check_answer_activation():
+            logger.info("Cancel inactive answer task %s - %s" % (self.answer.id,
+                                                self.answer.question.title))
             return  # 不删除回答!!
 
         # add commenters, 匿名用户不记录
