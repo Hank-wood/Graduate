@@ -28,7 +28,7 @@ class FetchQuestionInfo():
         """
         self.tid = tid
         self.aids = set()
-        self.execution_count = 0
+        self.last_update_time = datetime.now()  # 最后一次增加新答案的时间
         if question:
             self.question = question
             self.qid = str(question.id)
@@ -71,6 +71,7 @@ class FetchQuestionInfo():
             return
 
         # TODO: 或许可以用id 来判断先后,不需要set
+        answer_count = len(self.aids)
         if self.question.answer_num > len(self.aids):
             # We can't just fetch the latest new_answer_num - old_answer_num
             # answers, cause there exist collapsed answers
@@ -88,21 +89,41 @@ class FetchQuestionInfo():
                 else:
                     break
 
+        if len(self.aids) > answer_count:
+            self.last_update_time = datetime.now()
+
+        if not self._check_question_activation():
+            self.cancel_task()
+            return
+
         if self.question.follower_num > self.follower_num:
             self._fetch_question_follower()
             # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
             self.follower_num = self.question.follower_num
 
-        self.execution_count += 1
-        if self.execution_count > 15 and len(self.aids) == 0:
-            self._delete_question()  # 15min没有回答，删除问题
+        task_queue.append(self)
+
+    def _check_question_activation(self):
+        active_interval = datetime.now() - self.last_update_time
+        if len(self.aids) == 0 and active_interval > MAX_NO_ANSWER_INTERVAL:
+            return False  # 15min没有回答，删除问题
+        elif active_interval > QUESTION_INACTIVE_INTERVAL:
+            return False  # 3h没有新回答，删除问题
         else:
-            task_queue.append(self)
+            return True
 
     # TODO: delete question 可以用huey 执行
     def _delete_question(self):
-        logger.info("remove question: " + self.qid)
+        logger.info("Remove 0 answer question: " + self.qid)
         QuestionManager.remove_question(self.tid, self.qid)
+        try:
+            del self.question._session.adapters[self.question.url[:-1]]
+        except KeyError:
+            pass
+
+    def cancel_task(self):
+        """已有答案的问题不从数据库删除, 仅移除 task"""
+        logger.info("Cancel inactive question task: " + self.qid)
         try:
             del self.question._session.adapters[self.question.url[:-1]]
         except KeyError:
@@ -155,6 +176,7 @@ class FetchQuestionInfo():
 class FetchAnswerInfo():
     def __init__(self, tid, answer=None, url=None):
         self.tid = tid
+        self.last_update_time = datetime.now()  # 最后一次增加新upvote的时间
         if answer:
             self.answer = answer
             self.manager = AnswerManager(tid, answer.id)
@@ -170,6 +192,18 @@ class FetchAnswerInfo():
             self.answer = get_client().answer(url)
             self.manager = AnswerManager(tid, self.answer.id)
 
+    def _check_answer_activation(self):
+        active_interval = datetime.now() - self.last_update_time
+        if active_interval > ANSWER_INACTIVE_INTERVAL:
+            return False  # 3h没有新upvote，删除回答
+        else:
+            return True
+
+    def _delete_answer(self):
+        logger.info("Answer deleted %s - %s" % (self.answer.id,
+                                                self.answer.question.title))
+        self.manager.remove_answer()
+
     def execute(self):
         new_upvoters = deque()
         new_commenters = OrderedDict()
@@ -177,9 +211,7 @@ class FetchAnswerInfo():
         self.answer.refresh()
 
         if self.answer.deleted:
-            logger.info("Answer deleted %s - %s" % (self.answer.id,
-                                                    self.answer.question.title))
-            self.manager.remove_answer()
+            self._delete_answer()
             return
 
         # Note: put older event in lower index
@@ -195,6 +227,12 @@ class FetchAnswerInfo():
                     'uid': upvoter.id,
                     'time': self.get_upvote_time(upvoter, self.answer)
                 })
+
+        if new_upvoters:
+            self.last_update_time = datetime.now()
+
+        if not self._check_answer_activation():
+            return  # 不删除回答!!
 
         # add commenters, 匿名用户不记录
         # 同一个人可能发表多条评论, 所以还得 check 不是同一个 commenter
