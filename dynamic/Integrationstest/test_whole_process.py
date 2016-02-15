@@ -26,7 +26,8 @@ def teardown_function(function):
     for collection_name in DB.db.collection_names():
         if 'system' not in collection_name:
             DB.db[collection_name].drop()
-    task_queue.clear()
+    answer_task_queue.clear()
+    question_task_queue.clear()
 
 
 @patch('huey_tasks.fetch_followers_followees', Mock())

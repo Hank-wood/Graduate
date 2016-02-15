@@ -53,7 +53,7 @@ class FetchQuestionInfo():
             for aid, url, ctime in AnswerManager.get_question_answer_attrs(
                             self.tid, self.qid, 'aid', 'url', 'time'):
                 self.aids.add(aid)
-                task_queue.append(FetchAnswerInfo(self.tid, url=url))
+                answer_task_queue.append(FetchAnswerInfo(self.tid, url=url))
                 if ctime > self.last_update_time:
                     self.last_update_time = ctime
 
@@ -90,7 +90,7 @@ class FetchQuestionInfo():
                         # 答案的url 是 question/qid/answer/aid
                         self._mount_pool()
                     self.aids.add(str(answer.id))
-                    task_queue.append(FetchAnswerInfo(self.tid, answer))
+                    answer_task_queue.append(FetchAnswerInfo(self.tid, answer))
                 else:
                     break
 
@@ -105,7 +105,7 @@ class FetchQuestionInfo():
         if not self._check_question_activation():
             return
 
-        task_queue.append(self)
+        question_task_queue.append(self)
 
     def _check_question_activation(self):
         active_interval = datetime.now() - self.last_update_time
@@ -280,7 +280,7 @@ class FetchAnswerInfo():
         self.manager.sync_affected_users(new_upvoters=new_upvoters,
                                          new_commenters=new_commenters,
                                          new_collectors=new_collectors)
-        task_queue.append(self)
+        answer_task_queue.append(self)
 
     @staticmethod
     def get_upvote_time(upvoter, answer):

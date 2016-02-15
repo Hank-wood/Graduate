@@ -13,7 +13,7 @@ from zhihu.question import Question
 
 from task import *
 from manager import QuestionManager
-from utils import task_queue
+from utils import answer_task_queue
 from common import *
 from client_pool import get_client
 
@@ -40,8 +40,8 @@ class TopicMonitor:
         for question_doc in QuestionManager.get_all_questions('url', 'topic', 'asker'):
             if question_doc['url'].endswith('/'):
                 question_doc['url'] = question_doc['url'][:-1] + '?sort=created'
-            task_queue.append(FetchQuestionInfo(tid=question_doc['topic'],
-                                                question_doc=question_doc))
+            question_task_queue.append(FetchQuestionInfo(tid=question_doc['topic'],
+                                                       question_doc=question_doc))
 
         logger.info('Loading old questions from database succeed :)')
 
@@ -82,7 +82,7 @@ class TopicMonitor:
                 QuestionManager.save_question(tid, question._url, question.id,
                                               question.creation_time, asker,
                                               question.title)
-                task_queue.append(FetchQuestionInfo(tid, question))
+                question_task_queue.append(FetchQuestionInfo(tid, question))
             except (TypeError, IndexError):
                 logger.warning(question.url)
             finally:

@@ -32,7 +32,8 @@ def teardown_function(function):
     for collection_name in DB.db.collection_names():
         if 'system' not in collection_name:
             DB.db[collection_name].drop()
-    task_queue.clear()
+    question_task_queue.clear()
+    answer_task_queue.clear()
 
 
 def teardown_module(module):
@@ -80,7 +81,7 @@ def test_initiate_monitor_with_previous_questions():
         'url': prefix + '4444?sort=created'
     })
     _ = monitor.TopicMonitor()
-    urls = [task.question._url for task in task_queue]
+    urls = [task.question._url for task in question_task_queue]
     assert set(urls) == {
         prefix + '1111?sort=created',
         prefix + '2222?sort=created',
@@ -140,16 +141,16 @@ def test_initiate_fetchquestioninfo_with_previous_answers():
 
     # 初始化 FetchQuestionInfo 时 FetchAnswerInfo 进入 task_queue
     # 然后 FetchQuestionInfo 进入 task_queue
-    assert isinstance(task_queue[0], FetchAnswerInfo)
-    assert task_queue[0].last_update_time == time1
-    assert isinstance(task_queue[1], FetchAnswerInfo)
-    assert task_queue[1].last_update_time == time4
-    old_answers = set([task.answer.id for task in list(task_queue)[:2]])
+    assert isinstance(answer_task_queue[0], FetchAnswerInfo)
+    assert answer_task_queue[0].last_update_time == time1
+    assert isinstance(answer_task_queue[1], FetchAnswerInfo)
+    assert answer_task_queue[1].last_update_time == time4
+    old_answers = set([task.answer.id for task in list(answer_task_queue)])
     assert old_answers == {1, 2}
 
-    assert isinstance(task_queue[2], FetchQuestionInfo)
-    assert task_queue[2].qid == '38717319'
-    assert task_queue[2].last_update_time == time2
+    assert isinstance(question_task_queue[0], FetchQuestionInfo)
+    assert question_task_queue[0].qid == '38717319'
+    assert question_task_queue[0].last_update_time == time2
 
     # 测试删除没有答案的问题
     assert DB.db[a_col(test_tid)].find_one({'qid': '39880296'}) is None
@@ -194,7 +195,7 @@ def test_update_question_info():
     mock_question.follower_num = 1
     mock_question.followers.appendleft(Mock(id='asker'))
     task.execute()
-    assert task_queue.popleft() is task
+    assert question_task_queue.popleft() is task
 
     mock_question.answer_num = 1
     mock_question.answers.appendleft(
@@ -203,8 +204,8 @@ def test_update_question_info():
     mock_question.follower_num = 2
     mock_question.followers.appendleft(Mock(id='uid1'))
     task.execute()
-    assert task_queue.popleft().answer.id == 'aid1'
-    assert task_queue.popleft() is task
+    assert answer_task_queue.popleft().answer.id == 'aid1'
+    assert question_task_queue.popleft() is task
 
     mock_question.answer_num = 2
     mock_question.answers.appendleft(
@@ -225,8 +226,8 @@ def test_update_question_info():
     task.execute()
     assert task.follower_num == 5
     assert QuestionManager.get_question_follower(tid, 'q1') == {'fid1', 'fid2'}
-    assert task_queue.popleft().answer.id == 'aid2'
-    assert task_queue.popleft() is task
+    assert answer_task_queue.popleft().answer.id == 'aid2'
+    assert question_task_queue.popleft() is task
 
     mock_question.follower_num = 6
     mock_question.followers.appendleft(
@@ -239,7 +240,7 @@ def test_update_question_info():
     assert QuestionManager.get_question_follower(tid, 'q1') == {
         'fid1', 'fid2'
     }
-    assert task_queue.popleft() is task
+    assert question_task_queue.popleft() is task
 
     mock_question.answers.appendleft(
         Mock(question=mock_question, url='answer/3', author=Mock(id='uid3'),

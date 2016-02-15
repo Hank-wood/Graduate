@@ -3,16 +3,18 @@ from datetime import timedelta
 from collections import deque
 
 import ezcf
-from config.dynamic_config import topics, TASKLOOP_INTERVAL, \
+from config.dynamic_config import topics, ANSWER_TASKLOOP_INTERVAL, \
                 MAX_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL, restart, \
                 fetch_new, fetch_old, QUESTION_INACTIVE_INTERVAL, \
-                ANSWER_INACTIVE_INTERVAL, MAX_NO_ANSWER_INTERVAL
+                ANSWER_INACTIVE_INTERVAL, MAX_NO_ANSWER_INTERVAL, \
+                QUESTION_TASKLOOP_INTERVAL
 from zhihu import ANONYMOUS
 from zhihu.acttype import ActType
 
 FOLLOW_QUESTION = ActType.FOLLOW_QUESTION
 
-task_queue = deque()
+answer_task_queue = deque()
+question_task_queue = deque()
 
 # zhihu-analysis folder
 ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -29,7 +31,8 @@ QUESTION_INACTIVE_INTERVAL = timedelta(hours=QUESTION_INACTIVE_INTERVAL)
 ANSWER_INACTIVE_INTERVAL = timedelta(hours=ANSWER_INACTIVE_INTERVAL)
 
 if hasattr(os, '_called_from_test'):
-    TASKLOOP_INTERVAL = 5
+    ANSWER_TASKLOOP_INTERVAL = 5
+    QUESTION_TASKLOOP_INTERVAL = 5
     MAX_TASK_EXECUTION_TIME = 4
     FETCH_QUESTION_INTERVAL = 5
     topics = {"1234": "test_topic"}

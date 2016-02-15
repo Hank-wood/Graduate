@@ -49,7 +49,6 @@ class AnswerTaskLoop(threading.Thread):
         super().__init__(*args, **kwargs)
 
     def run(self):
-        logger = logging.getLogger(__name__)
         while True:
             start = time.time()
 
@@ -57,9 +56,9 @@ class AnswerTaskLoop(threading.Thread):
                 self.routine()
 
             futures = []
-            count = len(task_queue)
+            count = len(answer_task_queue)
             for _ in range(count):
-                task = task_queue.popleft()
+                task = answer_task_queue.popleft()
                 futures.append(self.executor.submit(task.execute))
 
             # wait for all tasks to complete
@@ -76,6 +75,26 @@ class AnswerTaskLoop(threading.Thread):
                 if fetch_new and self.event.is_set():
                     self.event.clear()  # unset stop_fetch_questions_event
                     logger.info("Start fetching new questions")
+
+
+class QuestionTaskLoop(threading.Thread):
+
+    def __init__(self, routine=None, *args, **kwargs):
+        self.routine = routine
+        self.executor = ThreadPoolExecutor(max_workers=20)
+        super().__init__(*args, **kwargs)
+
+    def run(self):
+        while True:
+            if self.routine and callable(self.routine):
+                self.routine()
+
+            count = len(question_task_queue)
+            for _ in range(count):
+                task = question_task_queue.popleft()
+                self.executor.submit(task.execute)
+
+            time.sleep(QUESTION_TASKLOOP_INTERVAL)
 
 
 def configure():
@@ -119,6 +138,7 @@ def main(preroutine=None, postroutine=None):
     if not fetch_new:
         stop_fetch_questions_event.set()
     AnswerTaskLoop(stop_fetch_questions_event, daemon=True).start()
+    QuestionTaskLoop(daemon=True).start()
     m = TopicMonitor()
 
     while True:

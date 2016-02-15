@@ -3,16 +3,16 @@
     "19550517": "互联网",
     "19551147": "生活",
     "19561087": "第三产业（服务业）",
-    "19553298": "自然科学",
-    "19552062": "食物"
+    "19553298": "自然科学"
   },
   "restart": false,
   "fetch_old": true,
-  "fetch_new": false,
-  "TASKLOOP_INTERVAL": 60,
+  "fetch_new": true,
+  "ANSWER_TASKLOOP_INTERVAL": 60,
+  "QUESTION_TASKLOOP_INTERVAL": 600,
   "MAX_TASK_EXECUTION_TIME": 55,
   "FETCH_QUESTION_INTERVAL": 60,
   "MAX_NO_ANSWER_INTERVAL": 30,
-  "QUESTION_INACTIVE_INTERVAL": 6,
+  "QUESTION_INACTIVE_INTERVAL": 3,
   "ANSWER_INACTIVE_INTERVAL": 3
 }
