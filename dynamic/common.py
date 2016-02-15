@@ -36,6 +36,7 @@ if hasattr(os, '_called_from_test'):
     test_tid = '1234'
     test_tid2 = '5678'
     fetch_old = True
+    fetch_new = True
 
 
 if not os.path.exists(os.path.join(ROOT, 'dynamic/logs')):

@@ -5,6 +5,7 @@
 """
 
 import logging
+from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -22,11 +23,11 @@ logger = logging.getLogger(__name__)
 class TopicMonitor:
 
     def __init__(self):
+        self.lock = Lock()
         self.client = get_client()
         self.topics = [
             self.client.topic(TOPIC_PREFIX + tid) for tid in topics
         ]
-        self.topic_names = set(topics.values())
         if fetch_old:
             self._load_old_question()
 
@@ -48,9 +49,9 @@ class TopicMonitor:
         """
         爬取话题页面，寻找新问题
         """
+        self.new_questions = set()
         for topic in self.topics:
             self.executor.submit(self.execute, topic)
-            # self.execute(topic)
 
     def execute(self, topic):
         tid = str(topic.id)
@@ -68,10 +69,15 @@ class TopicMonitor:
             try:
                 if question.deleted:
                     continue
+
                 # 去掉占了多个所选话题的问题
-                if len(self.topic_names.intersection(self.topics)) > 1:
-                    logger.info("重复话题, 跳过: " + question.id)
-                    continue
+                with self.lock:
+                    if question.id in self.new_questions:
+                        logger.info("重复话题, 跳过: " + str(question.id))
+                        continue
+                    else:
+                        self.new_questions.add(question.id)
+
                 asker = '' if question.author is ANONYMOUS else question.author.id
                 QuestionManager.save_question(tid, question._url, question.id,
                                               question.creation_time, asker,
