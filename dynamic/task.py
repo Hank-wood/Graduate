@@ -95,15 +95,15 @@ class FetchQuestionInfo():
 
         if len(self.aids) > answer_count:
             self.last_update_time = datetime.now()
+            # 有新答案才抓取 question follower, 节省操作
+            if self.question.follower_num > self.follower_num:
+                self._fetch_question_follower()
+                # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
+                self.follower_num = self.question.follower_num
 
         if not self._check_question_activation():
             self.cancel_task()
             return
-
-        if self.question.follower_num > self.follower_num:
-            self._fetch_question_follower()
-            # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
-            self.follower_num = self.question.follower_num
 
         task_queue.append(self)
 
@@ -150,7 +150,7 @@ class FetchQuestionInfo():
         now = datetime.now()
 
         # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
-        r = range(20)  # 20个刚好只需要一次请求
+        r = range(100)  # 抓取follower的时间间隔增加了, 增加至100
         for follower in self.question.followers:
             if follower is ANONYMOUS:
                 continue

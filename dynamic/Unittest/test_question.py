@@ -38,7 +38,7 @@ def teardown_function(function):
 def teardown_module(module):
     DB.db.client.close()
 
-skip = True
+skip = False
 
 
 @pytest.mark.skipif(skip, reason="")
@@ -235,11 +235,21 @@ def test_update_question_info():
                  time=datetime.now())
         ]))
     task.execute()
+    assert task.follower_num == 5  # 答案数不变, 不抓取新 follower
+    assert QuestionManager.get_question_follower(tid, 'q1') == {
+        'fid1', 'fid2'
+    }
+    assert task_queue.popleft() is task
+
+    mock_question.answers.appendleft(
+        Mock(question=mock_question, url='answer/3', author=Mock(id='uid3'),
+             creation_time=datetime.now(), id='aid3'))
+    mock_question.answer_num = 3
+    task.execute()
     assert task.follower_num == 6
     assert QuestionManager.get_question_follower(tid, 'q1') == {
         'fid1', 'fid2', 'fid3'
     }
-    assert task_queue.popleft() is task
 
     # 测试 limit 属性
     assert QuestionManager.get_question_follower(tid, 'q1', limit=1) == {'fid3'}
