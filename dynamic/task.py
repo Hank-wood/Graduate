@@ -33,7 +33,7 @@ class FetchQuestionInfo():
             self.qid = str(question.id)
 
             if self.question.deleted:
-                self._delete_question()
+                self._delete_question('Question deleted:' + self.qid)
                 return
 
             self.asker = question.author.id if question.author is not ANONYMOUS else ''
@@ -45,7 +45,7 @@ class FetchQuestionInfo():
             self.qid = str(self.question.id)
 
             if self.question.deleted:
-                self._delete_question()
+                self._delete_question('Question deleted:' + self.qid)
                 return
 
             self.asker = question_doc['asker']
@@ -60,7 +60,8 @@ class FetchQuestionInfo():
             if len(self.aids) > 0:
                 self._mount_pool()  # 已经有答案
             else:
-                self._delete_question()  # 数据库中的问题没有答案, 删除
+                # 数据库中的问题没有答案, 删除
+                self._delete_question("Remove 0 answer question: " + self.qid)
                 return
 
             self.follower_num = QuestionManager.get_question_follower_num(self.tid, self.qid)
@@ -71,7 +72,7 @@ class FetchQuestionInfo():
         self.question.refresh()
 
         if self.question.deleted:
-            self._delete_question()
+            self._delete_question('Question deleted:' + self.qid)
             return
 
         # TODO: 或许可以用id 来判断先后,不需要set
@@ -117,8 +118,8 @@ class FetchQuestionInfo():
             return True
 
     # TODO: delete question 可以用huey 执行
-    def _delete_question(self):
-        logger.info("Remove 0 answer question: " + self.qid)
+    def _delete_question(self, msg=''):
+        logger.info(msg)
         QuestionManager.remove_question(self.tid, self.qid)
         try:
             del self.question._session.adapters[self.question.url[:-1]]
