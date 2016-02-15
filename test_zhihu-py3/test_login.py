@@ -5,7 +5,7 @@ import platform
 from threading import Timer
 from zhihu import ZhihuClient
 
-cookie = '../cookies/zhuoyi.json'
+cookie = '../cookies/luya.json'
 client = ZhihuClient()
 
 

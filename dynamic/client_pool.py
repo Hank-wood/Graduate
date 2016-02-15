@@ -1,7 +1,9 @@
+import os
+
 from zhihu import ZhihuClient
 from requests.adapters import HTTPAdapter, Retry
 
-from common import test_cookie
+from common import test_cookie, ROOT
 
 
 class _ClientPool:
@@ -23,9 +25,9 @@ class _ClientPool:
         return self.clients[self.index]
 
 pool = _ClientPool()
-client1 = ZhihuClient(test_cookie)
-pool.add_client(client1)
-
+for cookie in os.listdir(os.path.join(ROOT, 'cookies')):
+    client = ZhihuClient(os.path.join(ROOT, 'cookies', test_cookie))
+    pool.add_client(client)
 
 def get_client():
     return pool.get_next_client()
