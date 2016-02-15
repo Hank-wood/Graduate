@@ -113,6 +113,7 @@ def configure():
 
 def main(preroutine=None, postroutine=None):
     configure()
+    logger.info("\n\n\nPROGRAM START\n")
     stop_fetch_questions_event = threading.Event()
     if not fetch_new:
         stop_fetch_questions_event.set()
@@ -140,6 +141,7 @@ def main(preroutine=None, postroutine=None):
 
 def cleaning():
     DB.db.client.close()
+    logger.info("\nPROGRAM EXIT\n\n\n")
 
 
 if __name__ == '__main__':
