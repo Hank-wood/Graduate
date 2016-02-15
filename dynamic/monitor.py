@@ -24,9 +24,8 @@ class TopicMonitor:
 
     def __init__(self):
         self.lock = Lock()
-        self.client = get_client()
         self.topics = [
-            self.client.topic(TOPIC_PREFIX + tid) for tid in topics
+            get_client().topic(TOPIC_PREFIX + tid) for tid in topics
         ]
         if fetch_old:
             self._load_old_question()
