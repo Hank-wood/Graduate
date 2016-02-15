@@ -40,7 +40,7 @@ def install_threadExcepthook():
     threading.Thread.__init__ = init
 
 
-class TaskLoop(threading.Thread):
+class AnswerTaskLoop(threading.Thread):
 
     def __init__(self, event, routine=None, *args, **kwargs):
         self.routine = routine
@@ -72,7 +72,7 @@ class TaskLoop(threading.Thread):
                     self.event.set()  # set stop_fetch_questions_event
                     logger.warning("Stop fetching new questions")
             else:
-                time.sleep(TASKLOOP_INTERVAL - task_execution_time)
+                time.sleep(ANSWER_TASKLOOP_INTERVAL - task_execution_time)
                 if fetch_new and self.event.is_set():
                     self.event.clear()  # unset stop_fetch_questions_event
                     logger.info("Start fetching new questions")
@@ -87,6 +87,7 @@ def configure():
     logger = logging.getLogger(__name__)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("requests").setLevel(logging.WARNING)
+    sys.modules[__name__].__dict__['logger'] = logger
 
     smtp_handler = logging.getLogger().handlers[2]
     assert isinstance(smtp_handler, logging.handlers.SMTPHandler)
@@ -117,7 +118,7 @@ def main(preroutine=None, postroutine=None):
     stop_fetch_questions_event = threading.Event()
     if not fetch_new:
         stop_fetch_questions_event.set()
-    TaskLoop(stop_fetch_questions_event, daemon=True).start()
+    AnswerTaskLoop(stop_fetch_questions_event, daemon=True).start()
     m = TopicMonitor()
 
     while True:
@@ -141,7 +142,7 @@ def main(preroutine=None, postroutine=None):
 
 def cleaning():
     DB.db.client.close()
-    logger.info("\nPROGRAM EXIT\n\n\n")
+    logger.info("PROGRAM EXIT\n\n\n")
 
 
 if __name__ == '__main__':
