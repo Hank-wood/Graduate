@@ -8,7 +8,7 @@
   },
   "restart": false,
   "fetch_old": true,
-  "fetch_new": true,
+  "fetch_new": false,
   "TASKLOOP_INTERVAL": 60,
   "MAX_TASK_EXECUTION_TIME": 55,
   "FETCH_QUESTION_INTERVAL": 60,

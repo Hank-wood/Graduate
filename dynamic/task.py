@@ -103,7 +103,6 @@ class FetchQuestionInfo():
                 self.follower_num = self.question.follower_num
 
         if not self._check_question_activation():
-            self.cancel_task()
             return
 
         task_queue.append(self)
@@ -111,9 +110,13 @@ class FetchQuestionInfo():
     def _check_question_activation(self):
         active_interval = datetime.now() - self.last_update_time
         if len(self.aids) == 0 and active_interval > MAX_NO_ANSWER_INTERVAL:
-            return False  # 15min没有回答，删除问题
+            # x min没有回答，删除问题
+            self._delete_question("Remove 0 answer question: " + self.qid)
+            return False
         elif active_interval > QUESTION_INACTIVE_INTERVAL:
-            return False  # 3h没有新回答，删除问题
+            # x h没有新回答，删除问题
+            self.cancel_task()
+            return False
         else:
             return True
 
@@ -121,18 +124,18 @@ class FetchQuestionInfo():
     def _delete_question(self, msg=''):
         logger.info(msg)
         QuestionManager.remove_question(self.tid, self.qid)
-        try:
-            del self.question._session.adapters[self.question.url[:-1]]
-        except KeyError:
-            pass
+        # try:
+        #     del self.question._session.adapters[self.question.url[:-1]]
+        # except KeyError:
+        #     pass
 
     def cancel_task(self):
         """已有答案的问题不从数据库删除, 仅移除 task"""
         logger.info("Cancel inactive question task: " + self.qid)
-        try:
-            del self.question._session.adapters[self.question.url[:-1]]
-        except KeyError:
-            pass
+        # try:
+        #     del self.question._session.adapters[self.question.url[:-1]]
+        # except KeyError:
+        #     pass
 
     def _mount_pool(self):
         self.question._session.mount(self.question.url[:-1],
