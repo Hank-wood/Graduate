@@ -93,7 +93,7 @@ def configure():
     config_smtp_handler(smtp_handler)
 
     if restart:
-        DB.drop_all_collections()
+        DB.drop_qa_collections()
 
     validate_config()
 

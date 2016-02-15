@@ -215,3 +215,9 @@ class DB:
         for collection_name in cls.db.collection_names():
             if 'system' not in collection_name:
                 cls.db[collection_name].drop()
+
+    @classmethod
+    def drop_qa_collections(cls):
+        for collection_name in cls.db.collection_names():
+            if 'system' not in collection_name and collection_name != 'user':
+                cls.db[collection_name].drop()
