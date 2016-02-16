@@ -1,10 +1,13 @@
 import os
+import logging
 
 from zhihu import ZhihuClient
 from requests.adapters import HTTPAdapter, Retry
 
 from common import test_cookie, ROOT
+from utils import validate_cookie
 
+logger = logging.getLogger(__name__)
 
 class _ClientPool:
     def __init__(self):
@@ -26,8 +29,16 @@ class _ClientPool:
 
 pool = _ClientPool()
 for cookie in os.listdir(os.path.join(ROOT, 'cookies')):
-    client = ZhihuClient(os.path.join(ROOT, 'cookies', test_cookie))
+    if validate_cookie(os.path.join(ROOT, 'cookies', cookie)):
+        logger.info('cookie %s is valid' % cookie)
+        # print('cookie %s is valid' % cookie)
+    else:
+        logger.error('cookie %s is invalid' % cookie)
+        # print('cookie %s is invalid' % cookie)
+
+    client = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
     pool.add_client(client)
+
 
 def get_client():
     return pool.get_next_client()
