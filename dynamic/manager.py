@@ -10,7 +10,7 @@ from datetime import datetime
 
 import zhihu
 
-from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, topics
+from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, topics, epoch
 from db import DB
 import huey_tasks
 
@@ -87,7 +87,7 @@ class AnswerManager:
             if answer_doc['commenters']:
                 self.lastest_comment_time = answer_doc['commenters'][-1]['time']
             else:
-                self.lastest_comment_time = datetime(1970, 1, 1, 0, 0, 0)
+                self.lastest_comment_time = epoch
 
             if answer_doc['upvoters']:
                 self.lastest_upvote_time = answer_doc['upvoters'][-1]['time']
@@ -97,7 +97,8 @@ class AnswerManager:
             self.upvoters = set()
             self.commenters = set()
             self.collectors = set()
-            self.lastest_comment_time = datetime(1970, 1, 1, 0, 0, 0)
+            self.lastest_comment_time = epoch
+            self.lastest_upvote_time = epoch
 
     def __eq__(self, other):
         return self.aid == other.aid

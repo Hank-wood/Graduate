@@ -49,7 +49,7 @@ class FetchQuestionInfo():
                 return
 
             self.asker = question_doc['asker']
-            self.last_update_time = datetime(1970, 1, 1)  # 最后一次增加新答案的时间
+            self.last_update_time = epoch  # 最后一次增加新答案的时间
             for aid, url, ctime in AnswerManager.get_question_answer_attrs(
                             self.tid, self.qid, 'aid', 'url', 'time'):
                 self.aids.add(aid)
@@ -193,6 +193,7 @@ class FetchAnswerInfo():
                                      answerer=answerer,
                                      time=answer.creation_time)
             self.last_update_time = datetime.now()  # 最后一次增加新upvote的时间
+            self.upvote_num = self.comment_num = self.collect_num = 0
             logger.info("New answer: %s - %s" % (self.answer.author.name,
                                                  self.answer.question.title))
         elif url:
