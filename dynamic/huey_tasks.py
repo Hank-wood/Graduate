@@ -94,10 +94,6 @@ def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
         else:
             raise FetchTypeError("No such type: " + str(limit_to))
     except AttributeError as e:
-        # dump error user profile html
-        html = user.soup.prettify("utf-8")
-        with open(os.path.join(logging_dir, user.id), "wb") as file:
-            file.write(html)
         if task_info[uid]['retries'] == 0:
             del task_info[uid]  # remove if task failed completely
             logger.critical(user.url, exc_info=True)
