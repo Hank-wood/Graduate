@@ -136,10 +136,10 @@ class DB:
         return cls.db[a_col(tid)].find_one({'aid': str(aid)})
 
     @classmethod
-    def get_one_answer_with_limit(cls, tid, aid, limit=10):
+    def get_answer_affected_user_with_limit(cls, tid, aid, limit=5):
         limit *= -1
         return cls._get_answer_affected_user(
-            tid, aid, ['commenters', 'upvoters', 'collectors'], limit=5)
+            tid, aid, ['commenters', 'upvoters', 'collectors'], limit=limit)
 
     @classmethod
     def get_upvoters(cls, tid, aid, limit=None):
@@ -221,3 +221,17 @@ class DB:
         for collection_name in cls.db.collection_names():
             if 'system' not in collection_name and collection_name != 'user':
                 cls.db[collection_name].drop()
+
+    @classmethod
+    def get_answer_affecter_num(cls, tid, aid):
+        cursor = cls.db[a_col(tid)].aggregate([
+            {'$match': {'aid': str(aid)}},
+            {
+                '$project': {
+                    'up_count': {'$size': "$upvoters"},
+                    'com_count': {'$size': "$commenters"},
+                    'col_count': {'$size': "$collectors"},
+                }
+            }
+        ])
+        return list(cursor)[0]

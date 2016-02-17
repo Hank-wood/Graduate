@@ -1,5 +1,5 @@
 import os
-from datetime import timedelta, _EPOCH
+from datetime import timedelta, datetime
 from collections import deque
 
 import ezcf
@@ -29,7 +29,7 @@ FETCH_FOLLOWEE = 2
 MAX_NO_ANSWER_INTERVAL = timedelta(minutes=MAX_NO_ANSWER_INTERVAL)
 QUESTION_INACTIVE_INTERVAL = timedelta(hours=QUESTION_INACTIVE_INTERVAL)
 ANSWER_INACTIVE_INTERVAL = timedelta(hours=ANSWER_INACTIVE_INTERVAL)
-epoch = _EPOCH
+epoch = datetime(1970, 1, 1)
 
 if hasattr(os, '_called_from_test'):
     ANSWER_TASKLOOP_INTERVAL = 5

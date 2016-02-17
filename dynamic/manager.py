@@ -7,6 +7,7 @@ not aware of zhihu.XXX object
 
 import logging
 from datetime import datetime
+from collections import deque
 
 import zhihu
 
@@ -79,22 +80,18 @@ class AnswerManager:
     def __init__(self, tid, aid):
         self.tid = tid
         self.aid = aid
-        answer_doc = DB.get_one_answer_with_limit(tid, aid, limit=5)
+        answer_doc = DB.get_answer_affected_user_with_limit(tid, aid)
         if answer_doc:
-            self.upvoters = set(u['uid'] for u in answer_doc['upvoters'])
+            self.upvoters = deque([u['uid'] for u in answer_doc['upvoters']],
+                                  maxlen=5)
             self.commenters = set(u['uid'] for u in answer_doc['commenters'])
             self.collectors = set(u['uid'] for u in answer_doc['collectors'])
-            if answer_doc['commenters']:
-                self.lastest_comment_time = answer_doc['commenters'][-1]['time']
-            else:
-                self.lastest_comment_time = epoch
-
-            if answer_doc['upvoters']:
-                self.lastest_upvote_time = answer_doc['upvoters'][-1]['time']
-            else:
-                self.lastest_upvote_time = answer_doc['time']
+            self.lastest_comment_time = answer_doc['commenters'][-1]['time'] \
+                if len(answer_doc['commenters']) > 0 else epoch
+            self.lastest_upvote_time = answer_doc['upvoters'][-1]['time'] \
+                if len(answer_doc['upvoters']) > 0 else answer_doc['time']
         else:
-            self.upvoters = set()
+            self.upvoters = deque()
             self.commenters = set()
             self.collectors = set()
             self.lastest_comment_time = epoch
@@ -117,8 +114,9 @@ class AnswerManager:
         :return:
         """
         if new_upvoters:
+            # deque maxlen=5, 防止 upvoters 过多占用大量内存
+            self.upvoters.extend([upvoter['uid'] for upvoter in new_upvoters])
             for upvoter in new_upvoters:
-                self.upvoters.add(upvoter['uid'])
                 huey_tasks.fetch_followers_followees(upvoter['uid'],
                                                      upvoter['time'])
             DB.add_upvoters(self.tid, self.aid, new_upvoters)
@@ -162,6 +160,14 @@ class AnswerManager:
             return [[doc[arg] for arg in args] for doc in cursor]
         else:
             return [doc[args[0]] for doc in cursor]
+
+    @classmethod
+    def get_answer_affecter_num(cls, tid, aid):
+        """ 获取 upvoter, commenter, collector 数量
+        :return: (len_upvoters, len_commenters, len_collectors)
+        """
+        doc = DB.get_answer_affecter_num(tid, aid)
+        return doc['up_count'], doc['com_count'], doc['col_count']
 
 
 class User:

@@ -53,7 +53,8 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
 
     mock_answer = Mock(url=None, id=aid, creation_time=None, collect_num=0,
                        upvoters=deque(), latest_comments=deque(), collections=[],
-                       question=Mock(title='test question'), deleted=False)
+                       question=Mock(title='test question'), deleted=False,
+                       upvote_num=0, comment_num=0)
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)
@@ -61,24 +62,31 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     def update_attrs():
         if refresh.call_count == 1:
             mock_answer.upvoters.appendleft(Mock(id='up1'))
+            mock_answer.upvote_num += 1
         elif refresh.call_count == 2:
             mock_answer.upvoters.appendleft(Mock(id='up2'))
             mock_answer.latest_comments.appendleft(Mock(cid=1, author=Mock(id='cm1'),
                                              creation_time=datetime(2016,1,9,13,1,0)))
+            mock_answer.upvote_num += 1
+            mock_answer.comment_num += 1
         elif refresh.call_count == 3:
             mock_answer.upvoters.appendleft(Mock(id='up3'))
             mock_answer.latest_comments.appendleft(Mock(cid=2, author=Mock(id='cm2'),
                                              creation_time=datetime(2016,1,9,13,2,0)))
             mock_answer.collections.append(Mock(id=1, owner=Mock(id='cl1')))
+            mock_answer.upvote_num += 1
+            mock_answer.comment_num += 1
             mock_answer.collect_num += 1
         elif refresh.call_count == 4:
             mock_answer.latest_comments.appendleft(Mock(cid=3, author=Mock(id='cm1'),
                                              creation_time=datetime(2016,1,9,13,3,0)))
+            mock_answer.comment_num += 1
         elif refresh.call_count == 5:
             mock_answer.latest_comments.appendleft(Mock(cid=4, author=Mock(id='cm3'),
                                              creation_time=datetime(2016,1,9,13,4,0)))
             mock_answer.latest_comments.appendleft(Mock(cid=5, author=Mock(id='cm1'),
                                              creation_time=datetime(2016,1,9,13,5,0)))
+            mock_answer.comment_num += 2
         elif refresh.call_count == 6:
             # test deleted answer
             mock_answer.deleted = True
@@ -167,14 +175,15 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
         datetime(2016,1,9,2,0,0),
     ]
 
-    mock_answer = Mock(url=None, id=aid, creation_time=None, collect_num=1,
+    mock_answer = Mock(url=None, id=aid, creation_time=None,
                        upvoters=deque([
                            Mock(id='up1'), Mock(id='up2'), Mock(id='up3')]),
                        latest_comments=deque([Mock(uid='cm1', cid=1,
                                       creation_time=datetime(2016,1,9,20,9,0),
                                       author=Mock(id='cm1'))]),
                        collections=[Mock(owner=Mock(id='cl1'), id=1)],
-                       question=Mock(title='test question'), deleted=False)
+                       question=Mock(title='test question'), deleted=False,
+                       upvote_num=3, comment_num=1, collect_num=1)
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)
@@ -193,7 +202,9 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
             mock_answer.collections.append(Mock(id=2, owner=Mock(id='cl2')))
             mock_answer.collections.append(Mock(id=3, owner=Mock(id='cl3')))
             mock_answer.collections.append(Mock(id=4, owner=Mock(id='cl4')))
+            mock_answer.upvote_num += 1
             mock_answer.collect_num += 3
+            mock_answer.comment_num += 4
         elif refresh.call_count == 2:
             mock_answer.deleted = True
 

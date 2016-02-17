@@ -186,21 +186,26 @@ class FetchAnswerInfo():
         self.tid = tid
         if answer:
             self.answer = answer
-            self.manager = AnswerManager(tid, answer.id)
+            self.aid = str(answer.id)
+            self.manager = AnswerManager(tid, self.aid)
             answerer = '' if answer.author is ANONYMOUS else answer.author.id
             self.manager.save_answer(qid=answer.question.id,
                                      url=answer.url,
                                      answerer=answerer,
                                      time=answer.creation_time)
-            self.last_update_time = datetime.now()  # 最后一次增加新upvote的时间
+            self.last_update_time = answer.creation_time  # 最后一次增加新upvote的时间
             self.upvote_num = self.comment_num = self.collect_num = 0
             logger.info("New answer: %s - %s" % (self.answer.author.name,
                                                  self.answer.question.title))
         elif url:
             # 已经存在于数据库中的答案
             self.answer = get_client().answer(url)
-            self.manager = AnswerManager(tid, self.answer.id)
+            self.aid = str(self.answer.id)
+            self.manager = AnswerManager(tid, self.aid)
             self.last_update_time = self.manager.lastest_upvote_time
+            # 这里的 comment_num 是 commenter_num, 实际可能更多
+            self.upvote_num, self.comment_num, self.collect_num = \
+                self.manager.get_answer_affecter_num(tid, self.aid)
 
     def _check_answer_activation(self):
         active_interval = datetime.now() - self.last_update_time
@@ -227,19 +232,20 @@ class FetchAnswerInfo():
         # Note: put older event in lower index
 
         # add upvoters, 匿名用户不记录
-        for upvoter in self.answer.upvoters:
-            if upvoter is ANONYMOUS:
-                continue
-            if upvoter.id in self.manager.upvoters:
-                break
-            else:
-                new_upvoters.appendleft({
-                    'uid': upvoter.id,
-                    'time': self.get_upvote_time(upvoter, self.answer)
-                })
-
-        if new_upvoters:
-            self.last_update_time = datetime.now()
+        if self.answer.upvote_num > self.upvote_num:
+            self.upvote_num = self.answer.upvote_num
+            for upvoter in self.answer.upvoters:
+                if upvoter is ANONYMOUS:
+                    continue
+                if upvoter.id in self.manager.upvoters:
+                    break
+                else:
+                    new_upvoters.appendleft({
+                        'uid': upvoter.id,
+                        'time': self.get_upvote_time(upvoter, self.answer)
+                    })
+            if new_upvoters:
+                self.last_update_time = new_upvoters[-1]['time']
 
         if not self._check_answer_activation():
             logger.info("Cancel inactive answer task %s - %s" % (self.answer.id,
@@ -250,24 +256,27 @@ class FetchAnswerInfo():
         # 同一个人可能发表多条评论, 所以还得 check 不是同一个 commenter
         # 注意, 一次新增的评论中也会有同一个人发表多条评论的情况, 需要收集最早的那个
         # 下面的逻辑保证了同一个 commenter 的更早的 comment 会替代新的
-        for comment in self.answer.latest_comments:
-            if comment.author is ANONYMOUS:
-                continue
-            if comment.author.id in self.manager.commenters:
-                if comment.creation_time <= self.manager.lastest_comment_time:
-                    break
-            else:
-                new_commenters[comment.author.id] = {
-                    'uid': comment.author.id,
-                    'time': comment.creation_time,
-                    'cid': comment.cid
-                }
-
-        new_commenters = list(reversed(new_commenters.values()))
+        if self.answer.comment_num > self.comment_num:
+            self.comment_num = self.answer.comment_num
+            for comment in self.answer.latest_comments:
+                if comment.author is ANONYMOUS:
+                    continue
+                if comment.author.id in self.manager.commenters:
+                    if comment.creation_time <= self.manager.lastest_comment_time:
+                        break
+                else:
+                    new_commenters[comment.author.id] = {
+                        'uid': comment.author.id,
+                        'time': comment.creation_time,
+                        'cid': comment.cid
+                    }
+            if new_commenters:
+                new_commenters = list(reversed(new_commenters.values()))
 
         # add collectors
         # 收藏夹不是按时间返回, 所以只能全部扫一遍
-        if self.answer.collect_num > len(self.manager.collectors):
+        if self.answer.collect_num > self.collect_num:
+            self.collect_num = self.answer.collect_num
             for collection in self.answer.collections:
                 if collection.owner.id not in self.manager.collectors:
                     new_collectors.append({
@@ -275,8 +284,7 @@ class FetchAnswerInfo():
                         'time': self.get_collect_time(self.answer, collection),
                         'cid': collection.id
                     })
-
-        new_collectors.sort(key=lambda x: x['time'])
+            new_collectors.sort(key=lambda x: x['time'])
 
         self.manager.sync_affected_users(new_upvoters=new_upvoters,
                                          new_commenters=new_commenters,
