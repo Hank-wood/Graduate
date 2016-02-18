@@ -9,7 +9,7 @@ from datetime import datetime
 from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util import Retry
+# from requests.packages.urllib3.util import Retry
 
 from utils import *
 from common import *
@@ -102,13 +102,14 @@ class FetchQuestionInfo():
 
         if len(self.aids) > answer_count:
             self.last_update_time = datetime.now()
-            # 有新答案才抓取 question follower, 节省操作
-            if self.question.follower_num > self.follower_num:
-                self._fetch_question_follower()
-                # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
-                self.follower_num = self.question.follower_num
 
-        self._check_question_activation()
+        if not self._check_question_activation():
+            return
+
+        if self.question.follower_num > self.follower_num:
+            huey_tasks.fetch_question_follower(self.tid, self.qid, self.asker)
+            # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
+            self.follower_num = self.question.follower_num
 
     def _check_question_activation(self):
         active_interval = datetime.now() - self.last_update_time
@@ -138,44 +139,6 @@ class FetchQuestionInfo():
         self.question._session.mount(self.question.url[:-1],
                                      HTTPAdapter(pool_connections=1,
                                                  pool_maxsize=10))
-
-    # TODO: 可以用 Huey
-    def _fetch_question_follower(self):
-        # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
-        # 回答者 id 从数据库里取，因为在初始化 FetchAnswerInfo 的时候就入库了
-        answerers = AnswerManager.get_question_answerer(self.tid, self.qid)
-        answerers.add(self.asker)
-        old_followers = QuestionManager.get_question_follower(self.tid,self.qid,
-                                                              limit=5)
-        new_followers = []
-        now = datetime.now()
-
-        # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
-        r = range(100)  # 抓取follower的时间间隔增加了, 增加至100
-        for follower in self.question.followers:
-            if follower is ANONYMOUS:
-                continue
-            if follower.id in old_followers:
-                break
-            elif follower.id not in answerers:
-                huey_tasks.fetch_followers_followees(follower.id, now)
-                for _, act in zip(r, follower.activities):
-                    if act.type == FOLLOW_QUESTION and str(act.content.id) == self.qid:
-                        new_followers.append({
-                            'uid': follower.id,
-                            'time': act.time
-                        })
-                        break
-                else:
-                    logger.warning("Can't find follow question activity")
-                    logger.warning("question: %s, follower: %s" % (self.qid, follower.id))
-                    # 没有具体时间，就不记录。因为follower有序，时间可之后推定。
-                    new_followers.append({
-                        'uid': follower.id,
-                        'time': None
-                    })
-
-        QuestionManager.add_question_follower(self.tid, self.qid, new_followers)
 
 
 class FetchAnswerInfo():

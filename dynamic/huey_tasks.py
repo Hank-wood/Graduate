@@ -5,6 +5,7 @@ import json
 import logging.handlers
 from functools import reduce, wraps
 from pprint import pprint
+from datetime import datetime
 
 import zhihu
 from pymongo import MongoClient
@@ -12,8 +13,7 @@ from huey import RedisHuey
 from requests.adapters import HTTPAdapter
 from zhihu import ANONYMOUS
 
-from common import FETCH_FOLLOWEE, FETCH_FOLLOWER, FetchTypeError,\
-    logging_config_file, smtp_config_file, logging_dir
+from common import *
 from client_pool import get_client
 from utils import config_smtp_handler
 
@@ -245,6 +245,46 @@ def get_user(uid, db_name=None):
     return user_coll.find_one({'uid': uid})
 
 
+def _fetch_question_follower(tid, qid, asker, db_name=None):
+    from manager import AnswerManager, QuestionManager
+    replace_database(db_name)
+    # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
+    # 回答者 id 从数据库里取，因为在初始化 FetchAnswerInfo 的时候就入库了
+    answerers = AnswerManager.get_question_answerer(tid, qid)
+    answerers.add(asker)
+    old_followers = QuestionManager.get_question_follower(tid, qid, limit=5)
+    new_followers = []
+    now = datetime.now()
+    question = get_client().question(QUESTION_PREFIX + qid)
+
+    # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
+    r = range(100)  # 抓取follower的时间间隔增加了, 增加至100
+    for follower in question.followers:
+        if follower is ANONYMOUS:
+            continue
+        if follower.id in old_followers:
+            break
+        elif follower.id not in answerers:
+            fetch_followers_followees(follower.id, now)
+            for _, act in zip(r, follower.activities):
+                if act.type == FOLLOW_QUESTION and str(act.content.id) == qid:
+                    new_followers.append({
+                        'uid': follower.id,
+                        'time': act.time
+                    })
+                    break
+            else:
+                logger.warning("Can't find follow question activity")
+                logger.warning("question: %s, follower: %s" % (qid, follower.id))
+                # 没有具体时间，就不记录。因为follower有序，时间可之后推定。
+                new_followers.append({
+                    'uid': follower.id,
+                    'time': None
+                })
+
+    QuestionManager.add_question_follower(tid, qid, new_followers)
+
 fetch_followers = huey.task(retries=3, retry_delay=2)(_fetch_followers)
 fetch_followees = huey.task(retries=3, retry_delay=2)(_fetch_followees)
 fetch_followers_followees = huey.task(retries=3, retry_delay=2)(_fetch_followers_followees)
+fetch_question_follower = huey.task(retries=3, retry_delay=2)(_fetch_question_follower)

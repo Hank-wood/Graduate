@@ -10,9 +10,10 @@ from utils import validate_cookie
 
 logger = logging.getLogger(__name__)
 
+
 class _ClientPool:
     auth = HTTPProxyAuth('laike9m', '123')
-    proxies = {'http': '162.213.39.201:31280'}
+    proxies = {'http': '162.213.39.201:31280'}  # us-ca
 
     def __init__(self):
         self.index = 0

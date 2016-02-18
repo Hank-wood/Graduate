@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from unittest.mock import patch, PropertyMock, Mock
 from pprint import pprint
+from functools import partial
 
 from pymongo import MongoClient
 import pytest
@@ -20,6 +21,9 @@ from utils import *
 from common import *
 from monitor import TopicMonitor
 from task import FetchQuestionInfo, FetchAnswerInfo
+from huey_tasks import _fetch_question_follower
+
+_fetch_question_follower = partial(_fetch_question_follower, db_name='test')
 
 
 def setup_module(module):
@@ -180,13 +184,16 @@ def test_get_all_questions():
 
 @pytest.mark.skipif(skip, reason="")
 @patch('huey_tasks.fetch_followers_followees', Mock())
-def test_update_question_info():
+@patch('huey_tasks.fetch_question_follower', _fetch_question_follower)
+@patch('huey_tasks.get_client')
+def test_update_question_info(mock_client):
     """
     测试问题 follower 更新，答案更新, 测试question follower 不会包含提问回答者
     """
     mock_question = Mock(refresh=Mock(), id='q1', url='q/1/', deleted=False,
                          follower_num=0, answer_num=0, answers=deque(),
                          followers=deque(), author=Mock(id='asker'))
+    mock_client.return_value = Mock(question=Mock(return_value=mock_question))
     tid = test_tid
     QuestionManager.save_question(tid, mock_question.url, mock_question.id,
                                   datetime.now(), 'asker', 'title')
@@ -236,9 +243,9 @@ def test_update_question_info():
                  time=datetime.now())
         ]))
     task.execute()
-    assert task.follower_num == 5  # 答案数不变, 不抓取新 follower
+    assert task.follower_num == 6
     assert QuestionManager.get_question_follower(tid, 'q1') == {
-        'fid1', 'fid2'
+        'fid1', 'fid2', 'fid3'
     }
     assert question_task_queue.popleft() is task
 
