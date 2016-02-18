@@ -64,6 +64,7 @@ class TopicMonitor:
             return
 
         while question.creation_time > latest_ctime:
+            # 已经是 http
             question._url = question.url[:-1] + '?sort=created'
             try:
                 if question.deleted:

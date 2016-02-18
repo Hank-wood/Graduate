@@ -44,7 +44,7 @@ class AnswerTaskLoop(threading.Thread):
 
     def __init__(self, event, routine=None, *args, **kwargs):
         self.routine = routine
-        self.executor = ThreadPoolExecutor(max_workers=100)
+        self.executor = ThreadPoolExecutor(max_workers=20)
         self.event = event
         super().__init__(*args, **kwargs)
 
@@ -62,7 +62,7 @@ class AnswerTaskLoop(threading.Thread):
                 futures.append(self.executor.submit(task.execute))
 
             # wait for all tasks to complete
-            cf.wait(futures, return_when=cf.ALL_COMPLETED)
+            cf.wait(futures, timeout=60, return_when=cf.ALL_COMPLETED)
             task_execution_time = time.time() - start
             logger.info("Task execution time is %d" % task_execution_time)
 

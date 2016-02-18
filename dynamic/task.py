@@ -140,8 +140,8 @@ class FetchQuestionInfo():
     def _mount_pool(self):
         self.question._session.mount(self.question.url[:-1],
                                      HTTPAdapter(pool_connections=1,
-                                                 pool_maxsize=100,
-                                                 max_retries=Retry(10)))
+                                                 pool_maxsize=100))
+
     # TODO: 可以用 Huey
     def _fetch_question_follower(self):
         # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
@@ -184,8 +184,11 @@ class FetchQuestionInfo():
 class FetchAnswerInfo():
     def __init__(self, tid, answer=None, url=None):
         self.tid = tid
+        self.continue_task = True  # 是否应该删除task
         if answer:
             self.answer = answer
+            if answer.url.startswith('https'):
+                answer._url = 'http' + answer.url[5:]  #为了能够使用代理,走http
             self.aid = str(answer.id)
             self.manager = AnswerManager(tid, self.aid)
             answerer = '' if answer.author is ANONYMOUS else answer.author.id

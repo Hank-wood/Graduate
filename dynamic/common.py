@@ -22,8 +22,8 @@ test_cookie = os.path.join(ROOT, 'cookies/zhuoyi.json')
 dynamic_config_file = os.path.join(ROOT, 'dynamic/config/dynamic_config.json')
 logging_config_file = os.path.join(ROOT, 'dynamic/config/logging_config.json')
 smtp_config_file = os.path.join(ROOT, 'dynamic/config/smtp_config.json')
-TOPIC_PREFIX = "https://www.zhihu.com/topic/"
-QUESTION_PREFIX = "https://www.zhihu.com/question/"
+TOPIC_PREFIX = "http://www.zhihu.com/topic/"
+QUESTION_PREFIX = "http://www.zhihu.com/question/"
 FETCH_FOLLOWER = 1
 FETCH_FOLLOWEE = 2
 MAX_NO_ANSWER_INTERVAL = timedelta(minutes=MAX_NO_ANSWER_INTERVAL)

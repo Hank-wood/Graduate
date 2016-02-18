@@ -3,6 +3,7 @@ import logging
 
 from zhihu import ZhihuClient
 from requests.adapters import HTTPAdapter, Retry
+from requests.auth import HTTPProxyAuth
 
 from common import test_cookie, ROOT
 from utils import validate_cookie
@@ -10,6 +11,9 @@ from utils import validate_cookie
 logger = logging.getLogger(__name__)
 
 class _ClientPool:
+    auth = HTTPProxyAuth('laike9m', '123')
+    proxies = {'http': '162.213.39.201:31280'}
+
     def __init__(self):
         self.index = 0
         self.clients = []
@@ -18,8 +22,9 @@ class _ClientPool:
     def add_client(self, client):
         client._session.mount('https://www.zhihu.com',
                               HTTPAdapter(pool_connections=1,
-                                          pool_maxsize=1000,
-                                          max_retries=Retry(100)))
+                                          pool_maxsize=1000))
+        client._session.auth = self.auth
+        client._session.proxies = self.proxies
         self.clients.append(client)
         self.POOL_SIZE += 1
 
