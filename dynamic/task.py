@@ -28,6 +28,7 @@ class FetchQuestionInfo():
         """
         self.tid = tid
         self.aids = set()
+        self.continue_task = True  # 是否继续执行 task
         if question:
             self.question = question
             self.qid = str(question.id)
@@ -69,6 +70,11 @@ class FetchQuestionInfo():
             raise Exception("FetchQuestionInfo needs question or question_doc")
 
     def execute(self):
+        if self.continue_task:
+            question_task_queue.append(self)
+        else:
+            return
+
         self.question.refresh()
 
         if self.question.deleted:
@@ -102,36 +108,27 @@ class FetchQuestionInfo():
                 # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
                 self.follower_num = self.question.follower_num
 
-        if not self._check_question_activation():
-            return
-
-        question_task_queue.append(self)
+        self._check_question_activation()
 
     def _check_question_activation(self):
         active_interval = datetime.now() - self.last_update_time
         if len(self.aids) == 0 and active_interval > MAX_NO_ANSWER_INTERVAL:
-            # x min没有回答，删除问题
+            # x min 没有回答，删除问题
             self._delete_question("Remove 0 answer question: " + self.qid)
             return False
         elif active_interval > QUESTION_INACTIVE_INTERVAL:
-            # x h没有新回答，删除问题
-            self.cancel_task()
+            # 已有答案的问题不从数据库删除, 仅移除 task
+            self.continue_task = False
+            logger.info("Cancel inactive question task: " + self.qid)
             return False
         else:
             return True
 
     # TODO: delete question 可以用huey 执行
     def _delete_question(self, msg=''):
+        self.continue_task = False
         logger.info(msg)
         QuestionManager.remove_question(self.tid, self.qid)
-        # try:
-        #     del self.question._session.adapters[self.question.url[:-1]]
-        # except KeyError:
-        #     pass
-
-    def cancel_task(self):
-        """已有答案的问题不从数据库删除, 仅移除 task"""
-        logger.info("Cancel inactive question task: " + self.qid)
         # try:
         #     del self.question._session.adapters[self.question.url[:-1]]
         # except KeyError:
@@ -140,7 +137,7 @@ class FetchQuestionInfo():
     def _mount_pool(self):
         self.question._session.mount(self.question.url[:-1],
                                      HTTPAdapter(pool_connections=1,
-                                                 pool_maxsize=100))
+                                                 pool_maxsize=10))
 
     # TODO: 可以用 Huey
     def _fetch_question_follower(self):
@@ -184,11 +181,11 @@ class FetchQuestionInfo():
 class FetchAnswerInfo():
     def __init__(self, tid, answer=None, url=None):
         self.tid = tid
-        self.continue_task = True  # 是否应该删除task
+        self.continue_task = True  # 是否继续执行 task
         if answer:
             self.answer = answer
             if answer.url.startswith('https'):
-                answer._url = 'http' + answer.url[5:]  #为了能够使用代理,走http
+                answer._url = 'http' + answer.url[5:]  #为了能够使用代理,走httpx
             self.aid = str(answer.id)
             self.manager = AnswerManager(tid, self.aid)
             answerer = '' if answer.author is ANONYMOUS else answer.author.id
@@ -213,16 +210,26 @@ class FetchAnswerInfo():
     def _check_answer_activation(self):
         active_interval = datetime.now() - self.last_update_time
         if active_interval > ANSWER_INACTIVE_INTERVAL:
-            return False  # 3h没有新upvote，删除回答
+            self.continue_task = False
+            logger.info("Cancel inactive answer task %s - %s" %
+                        (self.answer.id, self.answer.question.title))
+            return False  # 3h没有新upvote
         else:
             return True
 
     def _delete_answer(self):
+        self.continue_task = False
         logger.info("Answer deleted %s - %s" % (self.answer.id,
                                                 self.answer.question.title))
         self.manager.remove_answer()
 
     def execute(self):
+        # 保证不会因为下面卡住导致task 不加入queue
+        if self.continue_task:
+            answer_task_queue.append(self)
+        else:
+            return
+
         new_upvoters = deque()
         new_commenters = OrderedDict()
         new_collectors = []
@@ -251,8 +258,6 @@ class FetchAnswerInfo():
                 self.last_update_time = new_upvoters[-1]['time']
 
         if not self._check_answer_activation():
-            logger.info("Cancel inactive answer task %s - %s" % (self.answer.id,
-                                                self.answer.question.title))
             return  # 不删除回答!!
 
         # add commenters, 匿名用户不记录
@@ -292,7 +297,6 @@ class FetchAnswerInfo():
         self.manager.sync_affected_users(new_upvoters=new_upvoters,
                                          new_commenters=new_commenters,
                                          new_collectors=new_collectors)
-        answer_task_queue.append(self)
 
     @staticmethod
     def get_upvote_time(upvoter, answer):
