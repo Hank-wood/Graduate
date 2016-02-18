@@ -8,7 +8,7 @@
   "restart": false,
   "fetch_old": true,
   "fetch_new": true,
-  "ANSWER_TASKLOOP_INTERVAL": 60,
+  "ANSWER_TASKLOOP_INTERVAL": 120,
   "QUESTION_TASKLOOP_INTERVAL": 600,
   "MAX_TASK_EXECUTION_TIME": 55,
   "FETCH_QUESTION_INTERVAL": 60,

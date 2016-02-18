@@ -80,10 +80,10 @@ def test_fetch_many2(ees, ee_num, ers, er_num):
     # 测试 follower 和 followee 均超过 500 的情况
     # follower_num < followwee_num
     er_num.return_value = 501
-    ers.return_value  = [Mock(id='uid'+str(i)) for i in range(501)]
+    ers.return_value = [Mock(id='uid'+str(i)) for i in range(501)]
     # 测试匿名用户不存储
     ers.return_value[0] = ANONYMOUS
-    ee_num.return_value  = 502
+    ee_num.return_value = 502
     ees.return_value = [Mock(id='uid'+str(i)) for i in range(502)]
     _fetch_followers_followees('test_user', datetime.now())
     doc = get_user('test_user')
@@ -92,8 +92,8 @@ def test_fetch_many2(ees, ee_num, ers, er_num):
 
     # follower_num > followwee_num
     er_num.return_value = 502
-    ers.return_value  = [Mock(id='uid'+str(i)) for i in range(502)]
-    ee_num.return_value  = 501
+    ers.return_value = [Mock(id='uid'+str(i)) for i in range(502)]
+    ee_num.return_value = 501
     ees.return_value = [Mock(id='uid'+str(i)) for i in range(501)]
     ees.return_value[0] = ANONYMOUS
     _fetch_followers_followees('test_user2', datetime.now())
