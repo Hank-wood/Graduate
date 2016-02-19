@@ -61,8 +61,10 @@ class AnswerTaskLoop(threading.Thread):
                 task = answer_task_queue.popleft()
                 futures.append(self.executor.submit(task.execute))
 
-            # wait for all tasks to complete
-            cf.wait(futures, timeout=60, return_when=cf.ALL_COMPLETED)
+            # wait for all tasks to complet
+            # 即使用时超过MAX_TASK_EXECUTION_TIME, 也尽可能让它执行完
+            cf.wait(futures, timeout=ANSWER_TASKLOOP_INTERVAL,
+                    return_when=cf.ALL_COMPLETED)
             task_execution_time = time.time() - start
             logger.info("Task execution time is %d" % task_execution_time)
 
