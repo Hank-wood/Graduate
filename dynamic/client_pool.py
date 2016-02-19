@@ -47,9 +47,10 @@ for cookie in os.listdir(os.path.join(ROOT, 'cookies')):
         logger.error('cookie %s is invalid' % cookie)
         # print('cookie %s is invalid' % cookie)
 
-    client = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
-    pool1.add_client(client, 'us-ca')
-    pool2.add_client(client)
+    client1 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
+    pool1.add_client(client1, 'us-ca')
+    client2 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
+    pool2.add_client(client2)
 
 
 def get_client():
