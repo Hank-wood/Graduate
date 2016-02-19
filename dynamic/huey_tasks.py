@@ -246,6 +246,7 @@ def get_user(uid, db_name=None):
 
 
 def _fetch_question_follower(tid, qid, asker, db_name=None):
+    logger.info("fetch question %s follower by asker %s" % (qid, asker))
     from manager import AnswerManager, QuestionManager
     replace_database(db_name)
     # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
@@ -265,13 +266,16 @@ def _fetch_question_follower(tid, qid, asker, db_name=None):
         if follower.id in old_followers:
             break
         elif follower.id not in answerers:
-            fetch_followers_followees(follower.id, now)
             for _, act in zip(r, follower.activities):
                 if act.type == FOLLOW_QUESTION and str(act.content.id) == qid:
                     new_followers.append({
                         'uid': follower.id,
                         'time': act.time
                     })
+                    fetch_followers_followees(follower.id, now)
+                    break
+                elif act.type == ANSWER_QUESTION and str(act.content.question.id) == qid:
+                    # 有可能这个时候 answerer 还没有入库
                     break
             else:
                 logger.warning("Can't find follow question activity")
