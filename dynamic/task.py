@@ -38,7 +38,7 @@ class FetchQuestionInfo():
                 return
 
             self.asker = question.author.id if question.author is not ANONYMOUS else ''
-            self.follower_num = 0
+            self.follower_num = 1  # 初始提问者
             self.last_update_time = datetime.now()  # 最后一次增加新答案的时间
             logger.info("New Question %s: %s" % (self.qid, self.question.title))
         elif question_doc:
@@ -102,14 +102,12 @@ class FetchQuestionInfo():
 
         if len(self.aids) > answer_count:
             self.last_update_time = datetime.now()
+            if self.question.follower_num > self.follower_num:
+                huey_tasks.fetch_question_follower(self.tid, self.qid, self.asker)
+                # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
+                self.follower_num = self.question.follower_num
 
-        if not self._check_question_activation():
-            return
-
-        if self.question.follower_num > self.follower_num:
-            huey_tasks.fetch_question_follower(self.tid, self.qid, self.asker)
-            # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
-            self.follower_num = self.question.follower_num
+        self._check_question_activation()
 
     def _check_question_activation(self):
         active_interval = datetime.now() - self.last_update_time
@@ -125,7 +123,6 @@ class FetchQuestionInfo():
         else:
             return True
 
-    # TODO: delete question 可以用huey 执行
     def _delete_question(self, msg=''):
         self.continue_task = False
         logger.info(msg)
