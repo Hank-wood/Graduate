@@ -12,6 +12,7 @@ from zhihu import ANONYMOUS
 from zhihu.acttype import ActType
 
 FOLLOW_QUESTION = ActType.FOLLOW_QUESTION
+ANSWER_QUESTION = ActType.ANSWER_QUESTION
 
 answer_task_queue = deque()
 question_task_queue = deque()

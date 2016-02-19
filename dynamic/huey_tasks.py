@@ -14,7 +14,7 @@ from requests.adapters import HTTPAdapter
 from zhihu import ANONYMOUS
 
 from common import *
-from client_pool import get_client
+from client_pool import get_client2 as get_client  # use open proxy
 from utils import config_smtp_handler
 
 
@@ -69,7 +69,7 @@ def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
         task_info[uid] = {'retries': 3, 'running': True}
 
     logger.info("fetch: " + uid)
-    url = 'https://www.zhihu.com/people/' + uid
+    url = 'http://www.zhihu.com/people/' + uid
     user = get_client().author(url)
     user._session.mount(url, HTTPAdapter(pool_connections=1, max_retries=3))
     # 如果有需要, 把/node/ProfileFollowersListV2和/node/ProfileFolloweesListV2也mount

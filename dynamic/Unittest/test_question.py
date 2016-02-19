@@ -243,9 +243,9 @@ def test_update_question_info(mock_client):
                  time=datetime.now())
         ]))
     task.execute()
-    assert task.follower_num == 6
+    assert task.follower_num == 5
     assert QuestionManager.get_question_follower(tid, 'q1') == {
-        'fid1', 'fid2', 'fid3'
+        'fid1', 'fid2'
     }
     assert question_task_queue.popleft() is task
 
