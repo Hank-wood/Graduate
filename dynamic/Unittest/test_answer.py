@@ -143,7 +143,9 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
 @patch('huey_tasks.fetch_followers_followees', Mock())
 @patch('task.FetchAnswerInfo.get_upvote_time')
 @patch('task.FetchAnswerInfo.get_collect_time')
-def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
+@patch('task.get_client')
+def test_fetch_answers_with_previous_data(mock_client, mock_collect_time,
+                                          mock_upvote_time):
     answer_info = {
         'topic': str(tid),
         'aid': str(aid),
@@ -175,7 +177,7 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
         datetime(2016,1,9,2,0,0),
     ]
 
-    mock_answer = Mock(url='', id=aid, creation_time=None,
+    mock_answer = Mock(url='https://zhihu.com/answer/1', id=aid, creation_time=None,
                        upvoters=deque([
                            Mock(id='up1'), Mock(id='up2'), Mock(id='up3')]),
                        latest_comments=deque([Mock(uid='cm1', cid=1,
@@ -187,6 +189,7 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
     refresh = Mock()
     mock_question = Mock(id=qid)
     mock_author = Mock(id=author_id)
+    mock_client.return_value = Mock(answer=Mock(return_value=mock_answer))
 
     def update_attrs():
         if refresh.call_count == 1:
@@ -212,7 +215,7 @@ def test_fetch_answers_with_previous_data(mock_collect_time, mock_upvote_time):
     mock_answer.configure_mock(refresh=refresh, question=mock_question,
                                author=mock_author)
 
-    task = FetchAnswerInfo(tid=tid, answer=mock_answer)
+    task = FetchAnswerInfo(tid=tid, url=mock_answer.url)
     assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
 
     task.execute()

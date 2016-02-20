@@ -126,10 +126,8 @@ class DB:
 
     @classmethod
     def answer_exists(cls, tid, aid):
-        if cls.db[a_col(tid)].find_one({'aid': str(aid)}, {'_id': 1}):
-            return True
-        else:
-            return False
+        return cls.db[a_col(tid)].find({'aid': str(aid)}, {'_id': 1}) \
+                  .limit(1).count() > 0
 
     @classmethod
     def get_one_answer(cls, tid, aid):

@@ -142,6 +142,10 @@ class AnswerManager:
         DB.remove_answer(self.tid, self.aid)
 
     @classmethod
+    def answer_exists(cls, tid, aid):
+        return DB.answer_exists(tid, aid)
+
+    @classmethod
     def get_question_answerer(cls, tid, qid):
         """
         :return: set of answerer ids

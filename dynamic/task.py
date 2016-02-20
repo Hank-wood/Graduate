@@ -149,6 +149,9 @@ class FetchAnswerInfo():
             self.aid = str(answer.id)
             self.manager = AnswerManager(tid, self.aid)
             answerer = '' if answer.author is ANONYMOUS else answer.author.id
+            if self.manager.answer_exists(tid, self.aid):
+                logger.warning("answer exists: " + answer.url)
+                return
             self.manager.save_answer(qid=answer.question.id,
                                      url=answer.url,
                                      answerer=answerer,
