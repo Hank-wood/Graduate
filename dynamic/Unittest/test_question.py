@@ -70,19 +70,23 @@ def test_initiate_monitor_with_previous_questions():
     prefix = 'https://www.zhihu.com/question/'
     DB.db[q_col(test_tid)].insert({
         'topic': test_tid,
-        'url': prefix + '1111/'
+        'url': prefix + '1111/',
+        'asker': ''
     })
     DB.db[q_col(test_tid)].insert({
         'topic': test_tid,
-        'url': prefix + '2222?sort=created'
+        'url': prefix + '2222?sort=created',
+        'asker': ''
     })
     DB.db[q_col(test_tid2)].insert({
         'topic': test_tid,
-        'url': prefix + '3333/'
+        'url': prefix + '3333/',
+        'asker': ''
     })
     DB.db[q_col(test_tid2)].insert({
         'topic': test_tid,
-        'url': prefix + '4444?sort=created'
+        'url': prefix + '4444?sort=created',
+        'asker': ''
     })
     _ = monitor.TopicMonitor()
     urls = [task.question._url for task in question_task_queue]

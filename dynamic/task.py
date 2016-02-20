@@ -27,7 +27,6 @@ class FetchQuestionInfo():
         :return:
         """
         self.tid = tid
-        self.aids = set()
         self.continue_task = True  # 是否继续执行 task
         if question:
             self.question = question
@@ -38,12 +37,14 @@ class FetchQuestionInfo():
                 return
 
             self.asker = question.author.id if question.author is not ANONYMOUS else ''
+            self.answer_num = 0
             self.follower_num = 1  # 初始提问者
             self.last_update_time = datetime.now()  # 最后一次增加新答案的时间
             logger.info("New Question %s: %s" % (self.qid, self.question.title))
         elif question_doc:
             self.question = get_client().question(question_doc['url'])
             self.qid = str(self.question.id)
+            self.answer_num = 0
 
             if self.question.deleted:
                 self._delete_question('Question deleted:' + self.qid)
@@ -51,14 +52,14 @@ class FetchQuestionInfo():
 
             self.asker = question_doc['asker']
             self.last_update_time = epoch  # 最后一次增加新答案的时间
-            for aid, url, ctime in AnswerManager.get_question_answer_attrs(
-                            self.tid, self.qid, 'aid', 'url', 'time'):
-                self.aids.add(aid)
+            for url, ctime in AnswerManager.get_question_answer_attrs(
+                            self.tid, self.qid, 'url', 'time'):
+                self.answer_num += 1
                 answer_task_queue.append(FetchAnswerInfo(self.tid, url=url))
                 if ctime > self.last_update_time:
                     self.last_update_time = ctime
 
-            if len(self.aids) > 0:
+            if self.answer_num > 0:
                 self._mount_pool()  # 已经有答案
             else:
                 # 数据库中的问题没有答案, 删除
@@ -81,27 +82,28 @@ class FetchQuestionInfo():
             self._delete_question('Question deleted:' + self.qid)
             return
 
-        # TODO: 或许可以用id 来判断先后,不需要set
-        answer_count = len(self.aids)
-        if self.question.answer_num > len(self.aids):
+        answer_num_old = self.answer_num
+        if self.question.answer_num > self.answer_num:
             # We can't just fetch the latest new_answer_num - old_answer_num
             # answers, cause there exist collapsed answers
             # 当然这里可能还是有问题,比如答案被折叠导致 question.answer_num 不增
             # 但实际上是有新答案的。暂时忽略。
-            for answer in self.question.answers:
-                if str(answer.id) not in self.aids:
-                    if len(self.aids) == 0:
+            for i, answer in enumerate(self.question.answers):
+                if answer.creation_time > self.last_update_time:
+                    if i == 0:
+                        latest_answer = answer
+                    if self.answer_num == 0:
                         # a new connection pool for question that has answer
                         # remove trailing slash so ?sort can use this pool
                         # 答案的url 是 question/qid/answer/aid
                         self._mount_pool()
-                    self.aids.add(str(answer.id))
                     answer_task_queue.append(FetchAnswerInfo(self.tid, answer))
+                    self.answer_num += 1
                 else:
                     break
 
-        if len(self.aids) > answer_count:
-            self.last_update_time = datetime.now()
+        if self.answer_num > answer_num_old:
+            self.last_update_time = latest_answer.creation_time
             if self.question.follower_num > self.follower_num:
                 huey_tasks.fetch_question_follower(self.tid, self.qid, self.asker)
                 # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
@@ -111,7 +113,7 @@ class FetchQuestionInfo():
 
     def _check_question_activation(self):
         active_interval = datetime.now() - self.last_update_time
-        if len(self.aids) == 0 and active_interval > MAX_NO_ANSWER_INTERVAL:
+        if self.answer_num == 0 and active_interval > MAX_NO_ANSWER_INTERVAL:
             # x min 没有回答，删除问题
             self._delete_question("Remove 0 answer question: " + self.qid)
             return False
