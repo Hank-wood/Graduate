@@ -1,3 +1,6 @@
+"""
+huey task 暂时全部使用 https, 即不使用代理
+"""
 import sys
 import logging
 import os
@@ -69,7 +72,7 @@ def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
         task_info[uid] = {'retries': 3, 'running': True}
 
     logger.info("fetch: " + uid)
-    url = 'http://www.zhihu.com/people/' + uid
+    url = 'https://www.zhihu.com/people/' + uid
     user = get_client().author(url)
     user._session.mount(url, HTTPAdapter(pool_connections=1, max_retries=3))
     # 如果有需要, 把/node/ProfileFollowersListV2和/node/ProfileFolloweesListV2也mount
@@ -256,7 +259,7 @@ def _fetch_question_follower(tid, qid, asker, db_name=None):
     old_followers = QuestionManager.get_question_follower(tid, qid, limit=5)
     new_followers = []
     now = datetime.now()
-    question = get_client().question(QUESTION_PREFIX + qid)
+    question = get_client().question(QUESTION_PREFIX_S + qid)
 
     # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
     r = range(100)  # 抓取follower的时间间隔增加了, 增加至100
