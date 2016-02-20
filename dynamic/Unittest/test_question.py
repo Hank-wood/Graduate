@@ -71,22 +71,26 @@ def test_initiate_monitor_with_previous_questions():
     DB.db[q_col(test_tid)].insert({
         'topic': test_tid,
         'url': prefix + '1111/',
-        'asker': ''
+        'asker': '',
+        'active': True
     })
     DB.db[q_col(test_tid)].insert({
         'topic': test_tid,
         'url': prefix + '2222?sort=created',
-        'asker': ''
+        'asker': '',
+        'active': True
     })
     DB.db[q_col(test_tid2)].insert({
         'topic': test_tid,
         'url': prefix + '3333/',
-        'asker': ''
+        'asker': '',
+        'active': True
     })
     DB.db[q_col(test_tid2)].insert({
         'topic': test_tid,
         'url': prefix + '4444?sort=created',
-        'asker': ''
+        'asker': '',
+        'active': True
     })
     _ = monitor.TopicMonitor()
     urls = [task.question._url for task in question_task_queue]
@@ -115,14 +119,16 @@ def test_initiate_fetchquestioninfo_with_previous_answers():
         'topic': test_tid,
         'qid': '38717319',
         'url': prefix + '38717319/',
-        'follower': []
+        'follower': [],
+        'active': True
     })
     DB.db[q_col(test_tid)].insert({
         'asker': 'asker2',
         'topic': test_tid,
         'qid': '39880296',
         'url': prefix + '39880296/',
-        'follower': []
+        'follower': [],
+        'active': True
     })
     DB.db[a_col(test_tid)].insert({
         'qid': '38717319',
@@ -289,3 +295,18 @@ def test_get_question_follower_num():
     assert QuestionManager.get_question_follower_num(test_tid, '1') == 0
     QuestionManager.add_question_follower(test_tid, '1', ['f1', 'f2'])
     assert QuestionManager.get_question_follower_num(test_tid, '1') == 2
+
+
+def test_set_inactive():
+    QuestionManager.save_question(test_tid, 'http:/q/1', '1', datetime.now(),
+                                  'asker', 'title')
+    QuestionManager.set_question_inactive(test_tid, '1')
+    assert QuestionManager.get_question_attrs(test_tid, '1', 'active') == False
+
+
+def test_skip_inactive():
+    QuestionManager.save_question(test_tid, 'http:/q/1', '1', datetime.now(),
+                                  'asker', 'title')
+    QuestionManager.set_question_inactive(test_tid, '1')
+    _ = TopicMonitor()
+    assert len(question_task_queue) == 0

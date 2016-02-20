@@ -32,15 +32,20 @@ class TopicMonitor:
 
         self.executor = ThreadPoolExecutor(max_workers=len(topics))
 
-    def _load_old_question(self):
+    @staticmethod
+    def _load_old_question():
         # 数据库中已有的 question 加入 task queue, answer 不用管
         logger.info('Loading old questions from database............')
 
-        for question_doc in QuestionManager.get_all_questions('url', 'topic', 'asker'):
+        for question_doc in QuestionManager.get_all_questions():
+            if not question_doc['active']:
+                continue
             if question_doc['url'].endswith('/'):
                 question_doc['url'] = question_doc['url'][:-1] + '?sort=created'
-            question_task_queue.append(FetchQuestionInfo(tid=question_doc['topic'],
-                                                       question_doc=question_doc))
+            question_task_queue.append(
+                FetchQuestionInfo(tid=question_doc['topic'],
+                                  question_doc=question_doc)
+            )
 
         logger.info('Loading old questions from database succeed :)')
 

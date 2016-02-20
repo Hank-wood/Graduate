@@ -41,7 +41,8 @@ class DB:
             'time': time,
             'asker': asker,
             'title': title,
-            'follower': []
+            'follower': [],
+            'active': True
         })
 
     @classmethod
@@ -76,6 +77,17 @@ class DB:
             }
         ])
         return list(cursor)[0]['follower_count']
+
+    @classmethod
+    def set_question_inactive(cls, tid, qid):
+        cls.db[q_col(tid)].update_one(
+            {'qid': str(qid)},
+            {
+                '$set': {
+                    'active': False
+                }
+            }
+        )
 
     @classmethod
     def save_answer(cls, tid, aid, url, qid, time, answerer, upvoters=None,

@@ -120,6 +120,7 @@ class FetchQuestionInfo():
         elif active_interval > QUESTION_INACTIVE_INTERVAL:
             # 已有答案的问题不从数据库删除, 仅移除 task
             self.continue_task = False
+            QuestionManager.set_question_inactive(self.tid, self.qid)
             logger.info("Cancel inactive question task: " + self.qid)
             return False
         else:

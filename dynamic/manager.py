@@ -75,6 +75,10 @@ class QuestionManager:
         return_value = [doc[arg] for arg in args]
         return return_value if len(return_value) > 1 else return_value[0]
 
+    @classmethod
+    def set_question_inactive(cls, tid, qid):
+        DB.set_question_inactive(tid, qid)
+
 
 class AnswerManager:
     def __init__(self, tid, aid):
