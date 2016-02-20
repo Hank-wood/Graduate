@@ -4,7 +4,7 @@ from collections import deque
 
 import ezcf
 from config.dynamic_config import topics, ANSWER_TASKLOOP_INTERVAL, \
-                MAX_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL, restart, \
+                MAX_ANSWER_TASK_EXECUTION_TIME, FETCH_QUESTION_INTERVAL, restart, \
                 fetch_new, fetch_old, QUESTION_INACTIVE_INTERVAL, \
                 ANSWER_INACTIVE_INTERVAL, MAX_NO_ANSWER_INTERVAL, \
                 QUESTION_TASKLOOP_INTERVAL

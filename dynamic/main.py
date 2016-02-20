@@ -66,9 +66,9 @@ class AnswerTaskLoop(threading.Thread):
             cf.wait(futures, timeout=ANSWER_TASKLOOP_INTERVAL,
                     return_when=cf.ALL_COMPLETED)
             task_execution_time = time.time() - start
-            logger.info("Task execution time is %d" % task_execution_time)
+            logger.info("Answer tasks execution time is %d" % task_execution_time)
 
-            if task_execution_time > MAX_TASK_EXECUTION_TIME:
+            if task_execution_time > MAX_ANSWER_TASK_EXECUTION_TIME:
                 if not self.event.is_set():
                     self.event.set()  # set stop_fetch_questions_event
                     logger.warning("Stop fetching new questions")
@@ -88,15 +88,22 @@ class QuestionTaskLoop(threading.Thread):
 
     def run(self):
         while True:
+            start = time.time()
             if self.routine and callable(self.routine):
                 self.routine()
 
+            futures = []
             count = len(question_task_queue)
             for _ in range(count):
                 task = question_task_queue.popleft()
-                self.executor.submit(task.execute)
+                futures.append(self.executor.submit(task.execute))
 
-            time.sleep(QUESTION_TASKLOOP_INTERVAL)
+            cf.wait(futures, timeout=QUESTION_TASKLOOP_INTERVAL,
+                    return_when=cf.ALL_COMPLETED)
+            task_execution_time = time.time() - start
+            logger.info("Question tasks execution time is %d" % task_execution_time)
+            if task_execution_time < QUESTION_TASKLOOP_INTERVAL:
+                time.sleep(QUESTION_TASKLOOP_INTERVAL - task_execution_time)
 
 
 def configure():
