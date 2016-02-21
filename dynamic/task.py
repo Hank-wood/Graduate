@@ -108,6 +108,11 @@ class FetchQuestionInfo():
                 huey_tasks.fetch_question_follower(self.tid, self.qid, self.asker)
                 # 注意 follower_num 多于数据库中的 follower, 只有纯follower会入库
                 self.follower_num = self.question.follower_num
+            if answer_num_old == 0:
+                # 第一个答案到来时抓取 asker 的 follower
+                huey_tasks.fetch_followers_followees(self.asker,
+                                                     self.last_update_time,
+                                                     limit_to=FETCH_FOLLOWER)
 
         self._check_question_activation()
 

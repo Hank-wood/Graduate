@@ -38,7 +38,6 @@ class QuestionManager:
     @classmethod
     def save_question(cls, tid, url, qid, time, asker, title):
         DB.save_question(tid, url, qid, time, asker, title)
-        huey_tasks.fetch_followers_followees(asker, time, limit_to=FETCH_FOLLOWER)
 
     @classmethod
     def get_all_questions(cls, *args):
