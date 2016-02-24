@@ -2,10 +2,22 @@
 定义推断所使用的
 
 方法的设计一定要支持多进程, 因为推断要使用多进程加速
+从数据库加载用 load
 """
+from queue import PriorityQueue
+
 import networkx
 from common import *
+from utils import *
 from client_pool import get_client
+
+class ListNode:
+    """
+    记录 propagator, 用 linkedlist 方便使用优先队列
+    """
+    def __init__(self, val):
+        self.val = val
+        self.next = None
 
 
 class InfoStorage:
@@ -16,32 +28,88 @@ class InfoStorage:
         self.tid = tid
         self.qid = qid
         # 记录各个答案提供的能影响其它用户的用户, 推断qlink
-        self.answer_data = {
-            'follower': []
-        }
-        self.followers = {}  # user follower
-        self.followees = {}  # user followee
+        self.question_followers = None  # linked list
+        self.answer_propagators = {}  # {aid: linked list}
+        self.followers = {}  # user follower, {uid: []}
+        self.followees = {}  # user followee, {uid: []}
 
-    def add_users_from_answer(self, answer):
+    def load_question_followers(self):
+        """
+        load question followers from database
+        """
         pass
 
+    def add_answer_propagator(self, aid, propagators):
+        """
+        记录每个 answer 的 upvoter+answerer
+        :param propagators: ListNode((time, uid, type))
+        """
+        self.answer_propagators[aid] = propagators
+
+    def get_user_follower(self, uid):
+        return self.followers.get(uid, None)
+
+    def set_user_follower(self, uid, followers):
+        self.followers[uid] = followers
+
+    def get_user_followee(self, uid):
+        return self.followees.get(uid, None)
+
+    def set_user_followee(self, uid, followees):
+        self.followees[uid] = followees
 
 class Answer:
-    def __init__(self, tid, aid, uid, q):
+    def __init__(self, tid, aid, uid, IS):
         self.tid = tid
         self.aid = aid
-        self.q = q  # Question object
+        self.InfoStorage = IS  # Question object
         self.graph = networkx.DiGraph()
         self.root = networkx.node(uid, ANSWER_QUESTION)
         self.graph.add_node(self.root)
-        self.user_data = {
-            'upvoters': [],
-            'commenters': [],
-            'collectors': []
-        }
+        self.upvoters = []
+        self.commenters = []
+        self.collectors = []
+        self._load_answer()
 
-    def infer(self, question_data):
-        pass
+    def _load_answer(self):
+        """
+        从数据库加载答案, 填充 up/com/col, InfoStorage.propagators
+        """
+        answer_doc = db[a_col(self.tid)].find_one({'aid': self.aid})
+        assert answer_doc is not None
+        self.answer_time = answer_doc['time']
+        self.upvoters = answer_doc['upvoters']
+        self.commenters = answer_doc['commenters']
+        self.collectors = answer_doc['collectors']
+        # TODO: gen propagators use answerer and upvoters, ListNode((time, uid, type))
+        propagators = []
+        self.InfoStorage.add_answer_propagator(self.aid, propagators)
+
+    def infer(self):
+        pq = PriorityQueue()
+        # 先从 upvoters 入手? 还是按时间顺序一起处理
+
+
+    def _infer_node(self, uid, time):
+        # TODO: 从本答案的upvoter推断follow 关系
+
+        # 如果不是follow 关系, 推断 qlink+notification, 优先级 noti > qlink
+        # 推断 notification
+        head = self.InfoStorage.question_followers
+        while head:
+            value = head.val  # (time, uid, type) #TODO: 试试namedtuple能否在pq 起作用
+            if value[0] < self.answer_time:
+                if value[1] == uid:
+                    # 找到了
+                    return something
+                else:
+                    head = head.next
+            else:
+                break  # 关注早于答案,才能收到notification
+
+        # 推断 qlink
+        # TODO: 把 self.IS.followers 和 self.answer_propagaters 加入优先队列
+
 
     def fetch_follower_followee(self):
         """
