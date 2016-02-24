@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test d3.js</title>
+    <script src="static/d3.min.js"></script>
+</head>
+<body>
+    <script>
+        d3.json("dump.json", function(err, object){
+            console.log(object);
+            var date = new Date(object["time"]);
+            console.log(date);
+        });
+    </script>
+</body>
+</html>
