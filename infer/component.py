@@ -5,19 +5,25 @@
 从数据库加载用 load
 """
 from queue import PriorityQueue
+from collections import namedtuple
+from copy import copy
 
 import networkx
 from common import *
 from utils import *
 from client_pool import get_client
 
-class ListNode:
-    """
-    记录 propagator, 用 linkedlist 方便使用优先队列
-    """
-    def __init__(self, val):
-        self.val = val
-        self.next = None
+
+# class ListNode:
+#     """
+#     记录 propagator, 用 linkedlist 方便使用优先队列
+#     """
+#     def __init__(self, val:UserAction):
+#         self.val = val
+#         self.next = None
+
+# follow question 操作, aid=None
+UserAction = namedtuple('UserAction', ['time', 'aid', 'uid', 'acttype'])
 
 
 class InfoStorage:
@@ -28,23 +34,29 @@ class InfoStorage:
         self.tid = tid
         self.qid = qid
         # 记录各个答案提供的能影响其它用户的用户, 推断qlink
-        self.question_followers = None  # linked list
-        self.answer_propagators = {}  # {aid: linked list}
+        self.question_followers = None  # [UserAction]
+        self.answer_propagators = {}  # {aid: [UserAction]}
         self.followers = {}  # user follower, {uid: []}
         self.followees = {}  # user followee, {uid: []}
+        self.propagators = PriorityQueue()
 
     def load_question_followers(self):
         """
-        load question followers from database
+        load question followers from database. 同时加入 propagators
         """
-        pass
+        question_doc = db[q_col(self.tid)].find_one({'qid': self.qid})
+        assert question_doc is not None
+        for f in question_doc['follower']:
+            self.propagators.put(
+                UserAction(f['time'], None, f['uid'], FOLLOW_QUESTION))
 
     def add_answer_propagator(self, aid, propagators):
         """
-        记录每个 answer 的 upvoter+answerer
-        :param propagators: ListNode((time, uid, type))
+        记录每个 answer 的 upvoter+answerer. 同时加入 propagators
+        :param propagators: List of UserAction
         """
         self.answer_propagators[aid] = propagators
+        map(self.propagators.put, propagators)
 
     def get_user_follower(self, uid):
         return self.followers.get(uid, None)
@@ -64,8 +76,7 @@ class Answer:
         self.aid = aid
         self.InfoStorage = IS  # Question object
         self.graph = networkx.DiGraph()
-        self.root = networkx.node(uid, ANSWER_QUESTION)
-        self.graph.add_node(self.root)
+        self.root = None  # 回答节点
         self.upvoters = []
         self.commenters = []
         self.collectors = []
@@ -78,28 +89,62 @@ class Answer:
         answer_doc = db[a_col(self.tid)].find_one({'aid': self.aid})
         assert answer_doc is not None
         self.answer_time = answer_doc['time']
-        self.upvoters = answer_doc['upvoters']
-        self.commenters = answer_doc['commenters']
-        self.collectors = answer_doc['collectors']
-        # TODO: gen propagators use answerer and upvoters, ListNode((time, uid, type))
-        propagators = []
+        uid = answer_doc['answerer']
+        self.graph.add_node(uid, aid=self.aid, acttype=ANSWER_QUESTION,
+                            time=answer_doc['time'])
+        self.root = self.graph.node[uid]
+        self.upvoters = [
+            UserAction(time=u['time'], aid=self.aid, uid=u['uid'], acttype=UPVOTE_ANSWER)
+            for u in answer_doc['upvoters']
+        ]
+        self.commenters = [
+            UserAction(time=u['time'], aid=self.aid, uid=u['uid'], acttype=COMMENT_ANSWER)
+            for u in answer_doc['commenters']
+        ]
+        self.collectors = [
+            UserAction(time=u['time'], aid=self.aid, uid=u['uid'], acttype=COLLECT_ANSWER)
+            for u in answer_doc['collectors']
+        ]
+
+        propagators = self.upvoters.copy()
+        propagators.insert(0, UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION))
         self.InfoStorage.add_answer_propagator(self.aid, propagators)
 
     def infer(self):
+        propagators = copy(self.InfoStorage.propagators)
+        upvoters_added = [] # 记录已经加入图中的点赞者
+        # 按时间顺序一起处理
         pq = PriorityQueue()
-        # 先从 upvoters 入手? 还是按时间顺序一起处理
+
+        # TODO: 处理length=0
+        map(pq.put, [self.upvoters[0], self.collectors[0], self.commenters[0]])
+        i1 = i2 = i3 = 1
+        l1, l2, l3 = len(self.upvoters), len(self.commenters), len(self.collectors)
+        while i1 < l1 or i2 < l2 or i3 < l3:
+            action = pq.get()
+            self._infer_node(action['uid'], action['time'], propagators, upvoters_added)
+            if action.acttype == UPVOTE_ANSWER and i1 < l1:
+                pq.put(self.upvoters[i1])
+                upvoters_added.append(action)
+                i1 += 1
+            elif action.acttype == COMMENT_ANSWER and i2 < l2:
+                pq.put(self.commenters[i2])
+                i2 += 1
+            elif action.acttype == COLLECT_ANSWER and i3 < l3:
+                pq.put(self.commenters[i3])
+                i3 += 1
 
 
-    def _infer_node(self, uid, time):
+    def _infer_node(self, uid, time, propagators, upvoters_added):
         # TODO: 从本答案的upvoter推断follow 关系
 
         # 如果不是follow 关系, 推断 qlink+notification, 优先级 noti > qlink
         # 推断 notification
         head = self.InfoStorage.question_followers
         while head:
-            value = head.val  # (time, uid, type) #TODO: 试试namedtuple能否在pq 起作用
-            if value[0] < self.answer_time:
-                if value[1] == uid:
+            value = head.val  # (time, uid, type)
+            if value.time < self.answer_time:
+                if value.uid == uid:
                     # 找到了
                     return something
                 else:
@@ -107,8 +152,12 @@ class Answer:
             else:
                 break  # 关注早于答案,才能收到notification
 
-        # 推断 qlink
-        # TODO: 把 self.IS.followers 和 self.answer_propagaters 加入优先队列
+        # 推断 qlink,
+        # 使用 copy 出来的 propagators
+        # 有一个候选列表, 如何决定是哪个? 越早越优先? 越靠近time 优先?那篇论文提到的问题
+        # 还是认为越早越优先. 同时记录其它的候选. 有x个, 可信度为 1/x
+        # 可以计算总体可信度 sum(单个用户行为推断可信度)/图中用户数
+
 
 
     def fetch_follower_followee(self):

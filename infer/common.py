@@ -1,10 +1,11 @@
-from zhihu import ActType
 from pymongo import MongoClient
 
-ANSWER_QUESTION = ActType.ANSWER_QUESTION.value
-UPVOTE_ANSWER = ActType.UPVOTE_ANSWER.value
-ASK_QUESTION = ActType.ASK_QUESTION.value
-FOLLOW_QUESTION = ActType.FOLLOW_QUESTION.value
+ANSWER_QUESTION = 1
+UPVOTE_ANSWER = 2
+ASK_QUESTION = 3
+FOLLOW_QUESTION = 4
+COMMENT_ANSWER = 5
+COLLECT_ANSWER = 6
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 
