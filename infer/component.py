@@ -4,6 +4,7 @@
 方法的设计一定要支持多进程, 因为推断要使用多进程加速
 从数据库加载用 load
 """
+import bisect
 from queue import PriorityQueue
 from collections import namedtuple
 from copy import copy
@@ -111,8 +112,14 @@ class Answer:
         self.InfoStorage.add_answer_propagator(self.aid, propagators)
 
     def infer(self):
-        propagators = copy(self.InfoStorage.propagators)
-        upvoters_added = [] # 记录已经加入图中的点赞者
+        cp = copy(self.InfoStorage.propagators)  # 防止修改IS.propagators
+        propagators = []
+        while not cp.empty():
+            action = cp.get()
+            if action.aid != self.aid:
+                propagators.append(action)  # 排除本答案的回答/点赞者
+
+        upvoters_added = []  # 记录已经加入图中的点赞者
         # 按时间顺序一起处理
         pq = PriorityQueue()
 
@@ -122,7 +129,7 @@ class Answer:
         l1, l2, l3 = len(self.upvoters), len(self.commenters), len(self.collectors)
         while i1 < l1 or i2 < l2 or i3 < l3:
             action = pq.get()
-            self._infer_node(action['uid'], action['time'], propagators, upvoters_added)
+            self._infer_node(action, propagators, upvoters_added)
             if action.acttype == UPVOTE_ANSWER and i1 < l1:
                 pq.put(self.upvoters[i1])
                 upvoters_added.append(action)
@@ -134,18 +141,16 @@ class Answer:
                 pq.put(self.commenters[i3])
                 i3 += 1
 
-
-    def _infer_node(self, uid, time, propagators, upvoters_added):
+    def _infer_node(self, action: UserAction, propagators, upvoters_added):
         # TODO: 从本答案的upvoter推断follow 关系
 
         # 如果不是follow 关系, 推断 qlink+notification, 优先级 noti > qlink
         # 推断 notification
         head = self.InfoStorage.question_followers
         while head:
-            value = head.val  # (time, uid, type)
-            if value.time < self.answer_time:
-                if value.uid == uid:
-                    # 找到了
+            follow_action = head.val  # (time, uid, type)
+            if follow_action.time < self.answer_time:
+                if follow_action.uid == uid:
                     return something
                 else:
                     head = head.next
@@ -155,8 +160,20 @@ class Answer:
         # 推断 qlink,
         # 使用 copy 出来的 propagators
         # 取最靠近 time 的那个propagator，因为在时间线上新的东西会先被看见
-        # 为了确定最接近的，使用 bisect_right 找到插入位置，左边的那个就是目标propagator
+        # 为了确定最接近的，使用 bisect_left 找到插入位置，左边的那个就是目标propagator
+        pos = bisect.bisect_left(propagators, action.time)
+        if pos > 0:
+            for i in range(pos-1, -1, -1):
+                cand = propagators[i]
+                if action.uid in self.get_user_followers(cand.uid):
+                    return something  # 找到了
 
+    @staticmethod
+    def get_user_followers(uid):
+        user_doc = db['user'].find_one({'uid': uid}, {'follower': 1, '_id': 0})
+        if user_doc is None:
+            self.fetch_follower(uid)
+        # TODO:
 
 
     def fetch_follower_followee(self):
