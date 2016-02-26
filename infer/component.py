@@ -214,7 +214,9 @@ class Answer:
             UserAction(time=u['time'], aid=self.aid, uid=u['uid'], acttype=COLLECT_ANSWER)
             for u in answer_doc['collectors']
         ]
-        # TODO: 处理 time 是 None 的情况
+        # comment 肯定有时间信息, 不处理
+        self.interpolate(self.upvoters)
+        self.interpolate(self.collectors)
 
         propagators = self.upvoters.copy()
         propagators.insert(0, UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION))
@@ -299,6 +301,39 @@ class Answer:
                             return something  # action.uid is cand's follower
 
         # 之前都不是, 只能是 recommendation 了
+
+    @staticmethod
+    def interpolate(useraction_list):
+        # TODO: TESTING!!!
+        index = 0
+        LEN = len(useraction_list)
+        while index < LEN:
+            action = useraction_list[index]
+            if action.time is None:
+                nonetime_start = index
+                while index < LEN and action.index is None:
+                    index += 1
+                nonetime_end = index  # [nonetime_start, nonetime_end)
+                if 0 < nonetime_start and nonetime_end < LEN:
+                    start_time = useraction_list[nonetime_end].time
+                    end_time = useraction_list[nonetime_start-1].time
+                    period = end_time - start_time
+                    length = nonetime_end - nonetime_start + 1
+                    for i in range(nonetime_start, nonetime_end):
+                        useraction_list[i].time = \
+                            start_time + period*(i+1-nonetime_start)/length
+                elif nonetime_end < LEN:
+                    # start 就是0, 都设成 endtime
+                    for i in range(nonetime_start, nonetime_end):
+                        useraction_list[i].time = useraction_list[nonetime_end].time
+                elif nonetime_start > 0:
+                    # end=LEN, 都设成 starttime
+                    for i in range(nonetime_start, nonetime_end):
+                        useraction_list[i].time = useraction_list[nonetime_start-1].time
+                else:
+                    # TODO: 如果全部都没有时间,怎么办
+                    pass
+
 
     def load_graph(self):
         """
