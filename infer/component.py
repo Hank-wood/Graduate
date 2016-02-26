@@ -8,6 +8,8 @@ import bisect
 from queue import PriorityQueue
 from collections import namedtuple
 from copy import copy
+from typing import Union
+from functools import reduce
 
 import networkx
 from common import *
@@ -59,17 +61,93 @@ class InfoStorage:
         self.answer_propagators[aid] = propagators
         map(self.propagators.put, propagators)
 
-    def get_user_follower(self, uid):
-        return self.followers.get(uid, None)
+    def get_user_follower(self, uid, time=None) -> Union[list, None]:
+        """
+        逻辑非常复杂
+        if uid in self.followers, 返回 self.followers[uid]
+        else
+            if 数据库中有doc且有follower, 更新self.followers, 返回follower, 可为[]
+            if 数据库中有doc但不包含follower, 返回None, self.followers[uid]=None
+            if 数据库中没有doc, 返回None, self.followers[uid]=None
+        time 指取到哪个时刻的follower
+        """
+        if uid in self.followers:
+            if self.followers[uid] is None:
+                return None
+            else:
+                return self.get_closest_users(self.followers[uid], time)
 
-    def set_user_follower(self, uid, followers):
+        user_doc = db['user'].find_one({'uid': uid}, {'follower': 1, '_id': 0})
+        if user_doc is None:
+            self.followers[uid] = None
+            return None
+        else:
+            if 'follower' in user_doc:
+                self.followers[uid] = user_doc['follower']
+                return self.get_closest_users(user_doc['follower'], time)
+            else:
+                self.followers[uid] = None
+                return None
+
+    def fetch_user_follower(self, uid) -> list:
+        """
+        之前没有follower, 要重新抓取, 返回抓到的, 并更新 self.followers
+        """
         self.followers[uid] = followers
 
-    def get_user_followee(self, uid):
-        return self.followees.get(uid, None)
+    def get_user_followee(self, uid, time=None):
+        """
+        逻辑同 get_user_followee
+        """
+        if uid in self.followees:
+            if self.followees[uid] is None:
+                return None
+            else:
+                return self.get_closest_users(self.followees[uid], time)
+
+        user_doc = db['user'].find_one({'uid': uid}, {'followee': 1, '_id': 0})
+        if user_doc is None:
+            self.followees[uid] = None
+            return None
+        else:
+            if 'followee' in user_doc:
+                self.followees[uid] = user_doc['followee']
+                return self.get_closest_users(user_doc['followee'], time)
+            else:
+                self.followees[uid] = None
+                return None
 
     def set_user_followee(self, uid, followees):
         self.followees[uid] = followees
+
+    @staticmethod
+    def get_closest_users(flist, time) -> list:
+        """
+        调用此方法时, 数据库中已经确保有相应数据
+        :param flist: user doc的 follower 或 followee list
+        :param time: 目标时刻
+        :return: accumulated users
+        """
+        if len(flist) == 0:
+            return []
+        elif len(flist) == 1:
+            return flist[0]['uids']
+        else:
+            times = [fdict['time'] for fdict in flist]
+            # if time is None, return all
+            pos = bisect.bisect(times, time) if time else len(times)
+            merge = lambda x, y: x + y
+            if pos == 0:
+                return flist[0]['uids']
+            elif pos == len(times):
+                return reduce(merge, [fdict['uids'] for fdict in flist])
+            else:
+                # 找到最接近time的那个时刻
+                if time - times[pos-1] < times[pos] - time:
+                    return reduce(merge, [fdict['uids'] for fdict in flist[:pos]])
+                else:
+                    return reduce(merge, [fdict['uids'] for fdict in flist[:pos+1]])
+
 
 class Answer:
     def __init__(self, tid, aid, uid, IS):
@@ -143,6 +221,9 @@ class Answer:
 
     def _infer_node(self, action: UserAction, propagators, upvoters_added):
         # TODO: 从本答案的upvoter推断follow 关系
+        # 所有的 user 信息都从 IS 获取
+        followees = self.InfoStorage.get_user_followee(action.uid, action.time)
+        followees = set(followees) if followees is not None else None
 
         # 如果不是follow 关系, 推断 qlink+notification, 优先级 noti > qlink
         # 推断 notification
@@ -157,7 +238,7 @@ class Answer:
             else:
                 break  # 关注早于答案,才能收到notification
 
-        # 推断 qlink,
+        # 推断 qlink
         # 使用 copy 出来的 propagators
         # 取最靠近 time 的那个propagator，因为在时间线上新的东西会先被看见
         # 为了确定最接近的，使用 bisect_left 找到插入位置，左边的那个就是目标propagator
@@ -165,16 +246,11 @@ class Answer:
         if pos > 0:
             for i in range(pos-1, -1, -1):
                 cand = propagators[i]
-                if action.uid in self.get_user_followers(cand.uid):
-                    return something  # 找到了
-
-    @staticmethod
-    def get_user_followers(uid):
-        user_doc = db['user'].find_one({'uid': uid}, {'follower': 1, '_id': 0})
-        if user_doc is None:
-            self.fetch_follower(uid)
-        # TODO:
-
+                if followees is not None:
+                    if cand.uid in followees:
+                        return something  # 找到了
+                else:
+                    pass  # TODO, 如果cand有follower 就用follower,没有就要抓er或ee
 
     def fetch_follower_followee(self):
         """
