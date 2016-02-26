@@ -5,6 +5,7 @@
 从数据库加载用 load
 """
 import bisect
+import logging
 from queue import PriorityQueue
 from collections import namedtuple
 from copy import copy
@@ -17,6 +18,7 @@ from utils import *
 from client_pool import get_client
 
 
+logger = logging.getLogger(__name__)
 # class ListNode:
 #     """
 #     记录 propagator, 用 linkedlist 方便使用优先队列
@@ -89,7 +91,7 @@ class InfoStorage:
                 self.followers[uid] = None
                 return None
 
-    def fetch_user_follower(self, uid) -> list:
+    def fetch_user_follower(self, user) -> list:
         """
         之前没有follower, 要重新抓取, 返回抓到的, 并更新 self.followers
         """
@@ -117,7 +119,7 @@ class InfoStorage:
                 self.followees[uid] = None
                 return None
 
-    def fetch_user_followee(self, uid) -> list:
+    def fetch_user_followee(self, user) -> list:
         self.followees[uid] = followees
 
     @staticmethod
@@ -186,6 +188,7 @@ class Answer:
             UserAction(time=u['time'], aid=self.aid, uid=u['uid'], acttype=COLLECT_ANSWER)
             for u in answer_doc['collectors']
         ]
+        # TODO: 处理 time 是 None 的情况
 
         propagators = self.upvoters.copy()
         propagators.insert(0, UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION))
@@ -256,7 +259,8 @@ class Answer:
                     if action.uid in followers:
                         return something  # action.uid is cand's follower
                 else:
-                    # TODO: log warning
+                    logger.warning("%s lacks follower,%s lacks followee" %
+                                   (cand.uid, action.uid))
                     u1 = get_client().author(self.USER_PREFIX + action.uid)
                     u2 = get_client().author(self.USER_PREFIX + cand.uid)
                     if u1.followee_num < u2.follower_num:
