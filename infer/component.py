@@ -13,6 +13,8 @@ from typing import Union
 from functools import reduce
 
 import networkx
+from zhihu.author import ANONYMOUS
+
 from common import *
 from utils import *
 from client_pool import get_client
@@ -95,9 +97,21 @@ class InfoStorage:
         """
         之前没有follower, 要重新抓取, 返回抓到的, 并更新 self.followers
         """
-        self.followers[uid] = followers
+        uids = [er.id for er in user.followers if er is not ANONYMOUS]
+        db.user.update_one({
+            'uid': user.id,
+        }, {
+            "$set": {
+                "follower": [{
+                    'time': datetime.now(),
+                    'uids': uids
+                }]
+            }
+        }, upsert=True)
+        self.followers[uid] = [{'time': datetime.now(), 'uids': uids}]
+        return self.followers[uid]
 
-    def get_user_followee(self, uid, time=None):
+    def get_user_followee(self, uid, time=None) -> Union[list, None]:
         """
         逻辑同 get_user_followee
         """
@@ -120,7 +134,19 @@ class InfoStorage:
                 return None
 
     def fetch_user_followee(self, user) -> list:
-        self.followees[uid] = followees
+        uids = [ee.id for ee in user.followees if ee is not ANONYMOUS]
+        db.user.update_one({
+            'uid': user.id,
+        }, {
+            "$set": {
+                "followee": [{
+                    'time': datetime.now(),
+                    'uids': uids
+                }]
+            }
+        }, upsert=True)
+        self.followees[uid] = [{'time': datetime.now(), 'uids': uids}]
+        return self.followees[uid]
 
     @staticmethod
     def get_closest_users(flist, time) -> list:
@@ -274,63 +300,9 @@ class Answer:
 
         # 之前都不是, 只能是 recommendation 了
 
-    def fetch_follower_followee(self):
-        """
-        获取缺失的 follower/followee 信息
-        有可能
-        1. 这个用户完全不在数据库里
-        2. 这个用户在数据库里, 但是缺少 follower 或 followee 信息
-        """
-        url = 'https://www.zhihu.com/people/' + uid
-        user = get_client().author(url)
-        user._session.mount(url, HTTPAdapter(pool_connections=1, max_retries=3))
-        try:
-            if limit_to is None:
-                if user.followee_num < 500:
-                    _fetch_followees(user, datetime, db_name)
-
-                if user.follower_num < 500:
-                    _fetch_followers(user, datetime, db_name)
-
-                if user.followee_num >= 500 and user.follower_num >= 500:
-                    if user.followee_num < user.follower_num:
-                        _fetch_followees(user, datetime, db_name)
-                    else:
-                        _fetch_followers(user, datetime, db_name)
-            elif limit_to == FETCH_FOLLOWER:
-                _fetch_followers(user, datetime, db_name)
-            elif limit_to == FETCH_FOLLOWEE:
-                _fetch_followees(user, datetime, db_name)
-            else:
-                raise FetchTypeError("No such type: " + str(limit_to))
-        except Exception as e:
-            logger.critical(user.url, exc_info=True)
-            raise e.with_traceback(sys.exc_info()[2])
-
-    def _fetch_followers(user, datetime):
-        follower_num = user.follower_num
-        if follower_num > 2000:
-            return
-        doc = user_coll.find_one({'uid': user.id}, {'follower':1, '_id':0})
-        if doc is None:
-            # new user
-            uids = [follower.id for follower in user.followers if follower is not ANONYMOUS]
-            user_coll.insert({
-                'uid': user.id,
-                "follower": [{
-                    'time': datetime,
-                    'uids': uids
-                }]
-            })
-
     def load_graph(self):
         """
         加载之前生成的graph
         :return:
         """
         pass
-
-
-
-
-
