@@ -117,7 +117,7 @@ class InfoStorage:
                 self.followees[uid] = None
                 return None
 
-    def set_user_followee(self, uid, followees):
+    def fetch_user_followee(self, uid) -> list:
         self.followees[uid] = followees
 
     @staticmethod
@@ -150,6 +150,8 @@ class InfoStorage:
 
 
 class Answer:
+    USER_PREFIX = 'http://www.zhihu.com/people/'
+
     def __init__(self, tid, aid, uid, IS):
         self.tid = tid
         self.aid = aid
@@ -246,11 +248,27 @@ class Answer:
         if pos > 0:
             for i in range(pos-1, -1, -1):
                 cand = propagators[i]
+                followers = self.InfoStorage.get_user_follower(cand.uid, action.time)
                 if followees is not None:
                     if cand.uid in followees:
-                        return something  # 找到了
+                        return something  # cand is action.uid's followee
+                elif followers is not None:
+                    if action.uid in followers:
+                        return something  # action.uid is cand's follower
                 else:
-                    pass  # TODO, 如果cand有follower 就用follower,没有就要抓er或ee
+                    # TODO: log warning
+                    u1 = get_client().author(self.USER_PREFIX + action.uid)
+                    u2 = get_client().author(self.USER_PREFIX + cand.uid)
+                    if u1.followee_num < u2.follower_num:
+                        followees = self.InfoStorage.fetch_user_followee(u1)
+                        if cand.uid in followees:
+                            return something  # cand is action.uid's followee
+                    else:
+                        followers = self.InfoStorage.fetch_user_follower(u2)
+                        if action.uid in followers:
+                            return something  # action.uid is cand's follower
+
+        # 之前都不是, 只能是 recommendation 了
 
     def fetch_follower_followee(self):
         """
