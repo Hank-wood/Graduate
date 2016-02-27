@@ -6,6 +6,7 @@
 """
 import bisect
 import logging
+from enum import Enum
 from queue import PriorityQueue
 from collections import namedtuple
 from copy import copy
@@ -31,6 +32,14 @@ logger = logging.getLogger(__name__)
 
 # follow question 操作, aid=None
 UserAction = namedtuple('UserAction', ['time', 'aid', 'uid', 'acttype'])
+Relation = namedtuple('Relation', ['head', 'tail', 'reltype'])
+
+
+class RelationType(Enum):
+    follow = 1
+    qlink = 2
+    notification = 3
+    recommendation = 4
 
 
 class InfoStorage:
@@ -41,7 +50,7 @@ class InfoStorage:
         self.tid = tid
         self.qid = qid
         # 记录各个答案提供的能影响其它用户的用户, 推断qlink
-        self.question_followers = None  # [UserAction]
+        self.question_followers = []  # [UserAction]
         self.answer_propagators = {}  # {aid: [UserAction]}
         self.followers = {}  # user follower, {uid: []}
         self.followees = {}  # user followee, {uid: []}
@@ -53,9 +62,11 @@ class InfoStorage:
         """
         question_doc = db[q_col(self.tid)].find_one({'qid': self.qid})
         assert question_doc is not None
+        # follower 是从老到新, 顺序遍历可保证 question_followers 从老到新
         for f in question_doc['follower']:
-            self.propagators.put(
-                UserAction(f['time'], None, f['uid'], FOLLOW_QUESTION))
+            follow_action = UserAction(f['time'], None, f['uid'], FOLLOW_QUESTION)
+            self.propagators.put(follow_action)
+            self.question_followers.append(follow_action)
 
     def add_answer_propagator(self, aid, propagators):
         """
@@ -199,9 +210,8 @@ class Answer:
         assert answer_doc is not None
         self.answer_time = answer_doc['time']
         uid = answer_doc['answerer']
-        self.graph.add_node(uid, aid=self.aid, acttype=ANSWER_QUESTION,
-                            time=answer_doc['time'])
-        self.root = self.graph.node[uid]
+        self.root = UserAction(answer_doc['time'], self.aid, uid, ANSWER_QUESTION)
+        self.add_node(self.root)
         self.upvoters = [
             UserAction(time=u['time'], aid=self.aid, uid=u['uid'], acttype=UPVOTE_ANSWER)
             for u in answer_doc['upvoters']
@@ -214,7 +224,7 @@ class Answer:
             UserAction(time=u['time'], aid=self.aid, uid=u['uid'], acttype=COLLECT_ANSWER)
             for u in answer_doc['collectors']
         ]
-        # comment 肯定有时间信息, 不处理
+        # 插值. comment 肯定有时间信息, 不处理
         self.interpolate(self.upvoters)
         self.interpolate(self.collectors)
 
@@ -230,7 +240,7 @@ class Answer:
             if action.aid != self.aid:
                 propagators.append(action)  # 排除本答案的回答/点赞者
 
-        upvoters_added = []  # 记录已经加入图中的点赞者
+        upvoters_added = [self.root]  # 记录已经加入图中的点赞者
         # 按时间顺序一起处理
         pq = PriorityQueue()
         i1 = i2 = i3 = 0
@@ -247,7 +257,7 @@ class Answer:
         l1, l2, l3 = len(self.upvoters), len(self.commenters), len(self.collectors)
         while i1 < l1 or i2 < l2 or i3 < l3:
             action = pq.get()
-            self._infer_node(action, propagators, upvoters_added)
+            relation = self._infer_node(action, propagators, upvoters_added)
             if action.acttype == UPVOTE_ANSWER and i1 < l1:
                 pq.put(self.upvoters[i1])
                 upvoters_added.append(action)
@@ -258,25 +268,44 @@ class Answer:
             elif action.acttype == COLLECT_ANSWER and i3 < l3:
                 pq.put(self.commenters[i3])
                 i3 += 1
+            # TODO: 把返回的relation在 self.graph 里添加点并连线
 
         # TODO 推断完成, dump graph
 
     def _infer_node(self, action: UserAction, propagators, upvoters_added):
-        # TODO: 从本答案的upvoter推断follow 关系
         # 所有的 user 信息都从 IS 获取
         followees = self.InfoStorage.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
 
+        # 从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
+        for cand in reversed(upvoters_added):
+            followers = self.InfoStorage.get_user_follower(cand.uid, action.time)
+            if followees is not None:
+                if cand.uid in followees:
+                    return Relation(cand, action, RelationType.follow)
+            elif followers is not None:
+                if action.uid in followers:
+                    return Relation(cand, action, RelationType.follow)
+            else:
+                logger.warning("%s lacks follower,%s lacks followee" %
+                               (cand.uid, action.uid))
+                u1 = get_client().author(self.USER_PREFIX + action.uid)
+                u2 = get_client().author(self.USER_PREFIX + cand.uid)
+                if u1.followee_num < u2.follower_num:
+                    followees = self.InfoStorage.fetch_user_followee(u1)
+                    if cand.uid in followees:
+                        return Relation(cand, action, RelationType.follow)
+                else:
+                    followers = self.InfoStorage.fetch_user_follower(u2)
+                    if action.uid in followers:
+                        return Relation(cand, action, RelationType.follow)
+
         # 如果不是follow 关系, 推断 qlink+notification, 优先级 noti > qlink
         # 推断 notification
-        head = self.InfoStorage.question_followers
-        while head:
-            follow_action = head.val  # (time, uid, type)
+        for follow_action in self.InfoStorage.question_followers:
             if follow_action.time < self.answer_time:
                 if follow_action.uid == uid:
-                    return something
-                else:
-                    head = head.next
+                    return Relation(follow_action, action, RelationType.follow)
             else:
                 break  # 关注早于答案,才能收到notification
 
@@ -288,13 +317,16 @@ class Answer:
         if pos > 0:
             for i in range(pos-1, -1, -1):
                 cand = propagators[i]
+                # 逻辑和推断follow完全一样,为了不重复生成followees,不单独写成函数
                 followers = self.InfoStorage.get_user_follower(cand.uid, action.time)
                 if followees is not None:
                     if cand.uid in followees:
-                        return something  # cand is action.uid's followee
+                        # cand is action.uid's followee
+                        return Relation(cand, action, RelationType.qlink)
                 elif followers is not None:
                     if action.uid in followers:
-                        return something  # action.uid is cand's follower
+                        # action.uid is cand's follower
+                        return Relation(cand, action, RelationType.qlink)
                 else:
                     logger.warning("%s lacks follower,%s lacks followee" %
                                    (cand.uid, action.uid))
@@ -303,13 +335,16 @@ class Answer:
                     if u1.followee_num < u2.follower_num:
                         followees = self.InfoStorage.fetch_user_followee(u1)
                         if cand.uid in followees:
-                            return something  # cand is action.uid's followee
+                            # cand is action.uid's followee
+                            return Relation(cand, action, RelationType.qlink)
                     else:
                         followers = self.InfoStorage.fetch_user_follower(u2)
                         if action.uid in followers:
-                            return something  # action.uid is cand's follower
+                            # action.uid is cand's follower
+                            return Relation(cand, action, RelationType.qlink)
 
         # 之前都不是, 只能是 recommendation 了
+        return Relation(None, action, RelationType.recommendation)
 
     @staticmethod
     def interpolate(useraction_list):
@@ -353,6 +388,15 @@ class Answer:
                     raise Exception('no time: ' + str(useraction_list))
             else:
                 index += 1
+
+    def add_node(self, useraction: UserAction):
+        self.graph.add_node(uid,
+                            aid=useraction.aid,
+                            acttype=useraction.acttype,
+                            time=useraction.time)
+
+    def add_edge(self, useraction1, useraction2, reltype):
+        self.graph.add_edge(useraction1.uid, useraction2.uid, reltype=reltype)
 
     def load_graph(self):
         """
