@@ -304,35 +304,46 @@ class Answer:
 
     @staticmethod
     def interpolate(useraction_list):
-        # TODO: TESTING!!!
         index = 0
         LEN = len(useraction_list)
         while index < LEN:
-            action = useraction_list[index]
-            if action.time is None:
+            if useraction_list[index].time is None:
                 nonetime_start = index
-                while index < LEN and action.index is None:
+                while index < LEN and useraction_list[index].time is None:
                     index += 1
                 nonetime_end = index  # [nonetime_start, nonetime_end)
                 if 0 < nonetime_start and nonetime_end < LEN:
-                    start_time = useraction_list[nonetime_end].time
-                    end_time = useraction_list[nonetime_start-1].time
+                    start_time = useraction_list[nonetime_start-1].time
+                    end_time = useraction_list[nonetime_end].time
                     period = end_time - start_time
                     length = nonetime_end - nonetime_start + 1
                     for i in range(nonetime_start, nonetime_end):
-                        useraction_list[i].time = \
-                            start_time + period*(i+1-nonetime_start)/length
+                        useraction_list[i] = \
+                            UserAction(start_time + period*(i+1-nonetime_start)/length,
+                                       useraction_list[i].aid,
+                                       useraction_list[i].uid,
+                                       useraction_list[i].acttype)
                 elif nonetime_end < LEN:
                     # start 就是0, 都设成 endtime
                     for i in range(nonetime_start, nonetime_end):
-                        useraction_list[i].time = useraction_list[nonetime_end].time
+                        useraction_list[i] = \
+                            UserAction(useraction_list[nonetime_end].time,
+                                       useraction_list[i].aid,
+                                       useraction_list[i].uid,
+                                       useraction_list[i].acttype)
                 elif nonetime_start > 0:
                     # end=LEN, 都设成 starttime
                     for i in range(nonetime_start, nonetime_end):
-                        useraction_list[i].time = useraction_list[nonetime_start-1].time
+                        useraction_list[i] = \
+                            UserAction(useraction_list[nonetime_start-1].time,
+                                       useraction_list[i].aid,
+                                       useraction_list[i].uid,
+                                       useraction_list[i].acttype)
                 else:
                     # TODO: 如果全部都没有时间,怎么办
-                    pass
+                    raise Exception('no time: ' + str(useraction_list))
+            else:
+                index += 1
 
 
     def load_graph(self):
