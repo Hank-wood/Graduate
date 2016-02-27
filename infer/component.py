@@ -233,10 +233,17 @@ class Answer:
         upvoters_added = []  # 记录已经加入图中的点赞者
         # 按时间顺序一起处理
         pq = PriorityQueue()
+        i1 = i2 = i3 = 0
 
-        # TODO: 处理length=0
-        map(pq.put, [self.upvoters[0], self.collectors[0], self.commenters[0]])
-        i1 = i2 = i3 = 1
+        if self.upvoters:
+            pq.put(self.upvoters[0])
+            i1 += 1
+        if self.commenters:
+            pq.put(self.commenters[0])
+            i2 += 1
+        if self.collectors:
+            pq.put(self.collectors[0])
+            i3 += 1
         l1, l2, l3 = len(self.upvoters), len(self.commenters), len(self.collectors)
         while i1 < l1 or i2 < l2 or i3 < l3:
             action = pq.get()
@@ -251,6 +258,8 @@ class Answer:
             elif action.acttype == COLLECT_ANSWER and i3 < l3:
                 pq.put(self.commenters[i3])
                 i3 += 1
+
+        # TODO 推断完成, dump graph
 
     def _infer_node(self, action: UserAction, propagators, upvoters_added):
         # TODO: 从本答案的upvoter推断follow 关系
@@ -344,7 +353,6 @@ class Answer:
                     raise Exception('no time: ' + str(useraction_list))
             else:
                 index += 1
-
 
     def load_graph(self):
         """
