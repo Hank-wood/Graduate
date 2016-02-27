@@ -230,12 +230,12 @@ def test_update_question_info(mock_client):
              creation_time=datetime.now(), id='aid2'))
     mock_question.follower_num = 5  # asker + 2 ans + 2 pure follower
     mock_question.followers.extendleft([
-        Mock(id='fid2', activities=[
+        Mock(id='fid1', activities=[
             Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
                  time=datetime.now())
         ]),
         Mock(id='uid2'),
-        Mock(id='fid1', activities=[
+        Mock(id='fid2', activities=[
             Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
                  time=datetime.now())
         ])
