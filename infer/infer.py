@@ -1,7 +1,7 @@
 import sys
 
 import pymongo
-from utils import *
+from iutils import *
 from component import InfoStorage, Answer
 
 
@@ -29,18 +29,18 @@ def test_dump_json():
         json.dump(data, f, cls=MyEncoder)
 
 
-def infer_one_question(tid, qid):
-    sys.modules['common'].__dict__['db'] = \
-        MongoClient('127.0.0.1', 27017).zhihu_data_0219
+def infer_one_question(tid, qid, db_name):
+    sys.modules['component'].__dict__['db'] = \
+        pymongo.MongoClient('127.0.0.1', 27017).get_database(db_name)
     info_storage = InfoStorage(tid, qid)
     db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
     collection = db.get_collection(a_col(tid))
 
     answers = []
-    for answer_doc in collection.find({'qid': qid}):
+    for answer_doc in collection.find({'qid': qid}, {'aid': 1}):
         answers.append(Answer(tid, answer_doc['aid'], info_storage))
 
     answers[0].infer()
 
 if __name__ == '__main__':
-    infer_one_question(tid='19551147', qid='40554112')
+    infer_one_question(tid='19551147', qid='40554112', db_name='zhihu_data_0219')

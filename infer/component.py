@@ -6,7 +6,6 @@
 """
 import bisect
 import logging
-from enum import Enum
 from queue import PriorityQueue
 from copy import copy
 from typing import Union
@@ -15,21 +14,12 @@ from functools import reduce
 import networkx
 from zhihu.author import ANONYMOUS
 
-from common import *
-from utils import *
+from icommon import *
+from iutils import *
 from client_pool import get_client
 
 
 logger = logging.getLogger(__name__)
-# class ListNode:
-#     """
-#     记录 propagator, 用 linkedlist 方便使用优先队列
-#     """
-#     def __init__(self, val:UserAction):
-#         self.val = val
-#         self.next = None
-
-# follow question 操作, aid=None
 
 
 class InfoStorage:
@@ -41,10 +31,11 @@ class InfoStorage:
         self.qid = qid
         # 记录各个答案提供的能影响其它用户的用户, 推断qlink
         self.question_followers = []  # [UserAction]
-        self.answer_propagators = {}  # {aid: [UserAction]}
+        # self.answer_propagators = {}  # {aid: [UserAction]}, 暂时没用
         self.followers = {}  # user follower, {uid: []}
         self.followees = {}  # user followee, {uid: []}
         self.propagators = PriorityQueue()
+        self.load_question_followers()
 
     def load_question_followers(self):
         """
@@ -58,15 +49,15 @@ class InfoStorage:
             self.question_followers.append(follow_action)
 
         interpolate(self.question_followers)
-        map(self.propagators.put, self.question_followers)
+        list(map(self.propagators.put, self.question_followers))
 
     def add_answer_propagator(self, aid, propagators):
         """
         记录每个 answer 的 upvoter+answerer. 同时加入 propagators
         :param propagators: List of UserAction
         """
-        self.answer_propagators[aid] = propagators
-        map(self.propagators.put, propagators)
+        # self.answer_propagators[aid] = propagators
+        list(map(self.propagators.put, propagators))
 
     def get_user_follower(self, uid, time=None) -> Union[list, None]:
         """
@@ -227,10 +218,12 @@ class Answer:
     def infer(self):
         cp = copy(self.InfoStorage.propagators)  # 防止修改IS.propagators
         propagators = []
+        times = []  # bisect 不支持 key, 故只能再记录一个时间序列
         while not cp.empty():
             action = cp.get()
             if action.aid != self.aid:
                 propagators.append(action)  # 排除本答案的回答/点赞者
+                times.append(action.time)
 
         upvoters_added = [self.root]  # 记录已经加入图中的点赞者
         # 按时间顺序一起处理
@@ -247,9 +240,9 @@ class Answer:
             pq.put(self.collectors[0])
             i3 += 1
         l1, l2, l3 = len(self.upvoters), len(self.commenters), len(self.collectors)
-        while i1 < l1 or i2 < l2 or i3 < l3:
+        while not pq.empty():
             action = pq.get()
-            relation = self._infer_node(action, propagators, upvoters_added)
+            relation = self._infer_node(action, propagators, times, upvoters_added)
             if action.acttype == UPVOTE_ANSWER and i1 < l1:
                 pq.put(self.upvoters[i1])
                 upvoters_added.append(action)
@@ -265,7 +258,7 @@ class Answer:
 
         # TODO 推断完成, dump graph
 
-    def _infer_node(self, action: UserAction, propagators, upvoters_added):
+    def _infer_node(self, action, propagators, times, upvoters_added):
         # 所有的 user 信息都从 IS 获取
         followees = self.InfoStorage.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
@@ -306,7 +299,7 @@ class Answer:
         # 使用 copy 出来的 propagators
         # 取最靠近 time 的那个propagator，因为在时间线上新的东西会先被看见
         # 为了确定最接近的，使用 bisect_left 找到插入位置，左边的那个就是目标propagator
-        pos = bisect.bisect_left(propagators, action.time)
+        pos = bisect.bisect_left(times, action.time)
         if pos > 0:
             for i in range(pos-1, -1, -1):
                 cand = propagators[i]
@@ -340,7 +333,7 @@ class Answer:
         return Relation(self.root, action, RelationType.recommendation)
 
     def add_node(self, useraction: UserAction):
-        self.graph.add_node(uid,
+        self.graph.add_node(useraction.uid,
                             aid=useraction.aid,
                             acttype=useraction.acttype,
                             time=useraction.time)

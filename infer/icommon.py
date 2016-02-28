@@ -4,6 +4,7 @@ import sys
 import logging
 import logging.config
 from collections import namedtuple
+from enum import Enum
 
 from pymongo import MongoClient
 

@@ -5,7 +5,7 @@ from pprint import pprint
 
 import requests
 
-from common import *
+from icommon import *
 
 
 def is_q_col(collection_name):

@@ -1,5 +1,6 @@
 from component import InfoStorage, Answer, UserAction
 from datetime import datetime, timedelta
+from iutils import *
 
 import pytest
 
@@ -68,14 +69,14 @@ def test_interpolate():
         UserAction(t+timedelta(seconds=1), 'a1', 'u2', ''),
     ]
     ori = useraction_list.copy()
-    Answer.interpolate(useraction_list)
+    interpolate(useraction_list)
     assert ori == useraction_list
 
     useraction_list = [
         UserAction(None, 'a1', 'u1', ''),
         UserAction(t+timedelta(seconds=1), 'a1', 'u2', ''),
     ]
-    Answer.interpolate(useraction_list)
+    interpolate(useraction_list)
     assert useraction_list == [
         UserAction(t+timedelta(seconds=1), 'a1', 'u1', ''),
         UserAction(t+timedelta(seconds=1), 'a1', 'u2', ''),
@@ -85,7 +86,7 @@ def test_interpolate():
         UserAction(t, 'a1', 'u1', ''),
         UserAction(None, 'a1', 'u2', ''),
     ]
-    Answer.interpolate(useraction_list)
+    interpolate(useraction_list)
     assert useraction_list == [
         UserAction(t, 'a1', 'u1', ''),
         UserAction(t, 'a1', 'u2', ''),
@@ -99,7 +100,7 @@ def test_interpolate():
         UserAction(None, 'a1', 'u5', ''),
         UserAction(None, 'a1', 'u6', ''),
     ]
-    Answer.interpolate(useraction_list)
+    interpolate(useraction_list)
     assert useraction_list == [
         UserAction(t, 'a1', 'u1', ''),
         UserAction(t, 'a1', 'u2', ''),
@@ -115,7 +116,7 @@ def test_interpolate():
         UserAction(None, 'a1', 'u3', ''),
         UserAction(t+timedelta(seconds=1.2), 'a1', 'u4', ''),
     ]
-    Answer.interpolate(useraction_list)
+    interpolate(useraction_list)
     assert useraction_list == [
         UserAction(t, 'a1', 'u1', ''),
         UserAction(t+timedelta(seconds=0.4), 'a1', 'u2', ''),
@@ -133,7 +134,7 @@ def test_interpolate():
         UserAction(None, 'a1', 'u5', ''),
         UserAction(None, 'a1', 'u6', ''),
     ]
-    Answer.interpolate(useraction_list)
+    interpolate(useraction_list)
     assert useraction_list == [
         UserAction(t, 'a1', 'u-1', ''),
         UserAction(t, 'a1', 'u0', ''),
