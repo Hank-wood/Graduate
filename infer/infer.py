@@ -1,4 +1,11 @@
-if __name__ == '__main__':
+import sys
+
+import pymongo
+from utils import *
+from component import InfoStorage, Answer
+
+
+def test_dump_json():
     import networkx
     from datetime import datetime
     from networkx.readwrite import json_graph
@@ -20,3 +27,20 @@ if __name__ == '__main__':
 
     with open('dump.json', 'w') as f:
         json.dump(data, f, cls=MyEncoder)
+
+
+def infer_one_question(tid, qid):
+    sys.modules['common'].__dict__['db'] = \
+        MongoClient('127.0.0.1', 27017).zhihu_data_0219
+    info_storage = InfoStorage(tid, qid)
+    db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
+    collection = db.get_collection(a_col(tid))
+
+    answers = []
+    for answer_doc in collection.find({'qid': qid}):
+        answers.append(Answer(tid, answer_doc['aid'], info_storage))
+
+    answers[0].infer()
+
+if __name__ == '__main__':
+    infer_one_question(tid='19551147', qid='40554112')

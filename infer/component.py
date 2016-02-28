@@ -183,7 +183,7 @@ class InfoStorage:
 class Answer:
     USER_PREFIX = 'http://www.zhihu.com/people/'
 
-    def __init__(self, tid, aid, uid, IS):
+    def __init__(self, tid, aid, IS):
         self.tid = tid
         self.aid = aid
         self.InfoStorage = IS  # Question object
