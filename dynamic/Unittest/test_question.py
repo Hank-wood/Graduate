@@ -229,29 +229,38 @@ def test_update_question_info(mock_client):
         Mock(question=mock_question, url='answer/2', author=Mock(id='uid2'),
              creation_time=datetime.now(), id='aid2'))
     mock_question.follower_num = 5  # asker + 2 ans + 2 pure follower
-    mock_question.followers.extendleft([
-        Mock(id='fid1', activities=[
-            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
-                 time=datetime.now())
-        ]),
-        Mock(id='uid2'),
+    mock_question.followers = deque([
         Mock(id='fid2', activities=[
             Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
                  time=datetime.now())
+        ]),
+        Mock(id='uid2'),  # 模仿一个answerer
+        Mock(id='fid1', activities=[
+            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
+                 time=datetime.now())
         ])
-    ])
+    ]) + mock_question.followers
     task.execute()
     assert task.follower_num == 5
     assert QuestionManager.get_question_follower(tid, 'q1') == {'fid1', 'fid2'}
     assert answer_task_queue.popleft().answer.id == 'aid2'
     assert question_task_queue.popleft() is task
 
-    mock_question.follower_num = 6
-    mock_question.followers.appendleft(
+    mock_question.follower_num = 8
+    mock_question.followers = deque([
+        Mock(id='fid5', activities=[
+            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
+                 time=datetime.now())
+        ]),
+        Mock(id='fid4', activities=[
+            Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
+                 time=datetime.now())
+        ]),
         Mock(id='fid3', activities=[
             Mock(type=ActType.FOLLOW_QUESTION, content=Mock(id='q1'),
                  time=datetime.now())
-        ]))
+        ]),
+    ]) + mock_question.followers
     task.execute()
     assert task.follower_num == 5
     assert QuestionManager.get_question_follower(tid, 'q1') == {
@@ -264,15 +273,13 @@ def test_update_question_info(mock_client):
              creation_time=datetime.now(), id='aid3'))
     mock_question.answer_num = 3
     task.execute()
-    assert task.follower_num == 6
-    assert QuestionManager.get_question_follower(tid, 'q1') == {
-        'fid1', 'fid2', 'fid3'
-    }
-
+    assert task.follower_num == 8
+    assert [f['uid'] for f in DB.get_question_follower(tid, 'q1')] == \
+                                    ['fid1', 'fid2', 'fid3', 'fid4', 'fid5']
     # 测试 limit 属性
-    assert QuestionManager.get_question_follower(tid, 'q1', limit=1) == {'fid3'}
+    assert QuestionManager.get_question_follower(tid, 'q1', limit=1) == {'fid5'}
     assert QuestionManager.get_question_follower(tid, 'q1', limit=2) == {
-        'fid3', 'fid2'
+        'fid4', 'fid5'
     }
 
 
