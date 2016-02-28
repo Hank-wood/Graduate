@@ -8,7 +8,6 @@ import bisect
 import logging
 from enum import Enum
 from queue import PriorityQueue
-from collections import namedtuple
 from copy import copy
 from typing import Union
 from functools import reduce
@@ -31,15 +30,6 @@ logger = logging.getLogger(__name__)
 #         self.next = None
 
 # follow question 操作, aid=None
-UserAction = namedtuple('UserAction', ['time', 'aid', 'uid', 'acttype'])
-Relation = namedtuple('Relation', ['head', 'tail', 'reltype'])
-
-
-class RelationType(Enum):
-    follow = 1
-    qlink = 2
-    notification = 3
-    recommendation = 4
 
 
 class InfoStorage:
@@ -65,8 +55,10 @@ class InfoStorage:
         # follower 是从老到新, 顺序遍历可保证 question_followers 从老到新
         for f in question_doc['follower']:
             follow_action = UserAction(f['time'], None, f['uid'], FOLLOW_QUESTION)
-            self.propagators.put(follow_action)
             self.question_followers.append(follow_action)
+
+        interpolate(self.question_followers)
+        map(self.propagators.put, self.question_followers)
 
     def add_answer_propagator(self, aid, propagators):
         """
@@ -225,8 +217,8 @@ class Answer:
             for u in answer_doc['collectors']
         ]
         # 插值. comment 肯定有时间信息, 不处理
-        self.interpolate(self.upvoters)
-        self.interpolate(self.collectors)
+        interpolate(self.upvoters)
+        interpolate(self.collectors)
 
         propagators = self.upvoters.copy()
         propagators.insert(0, UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION))
@@ -346,49 +338,6 @@ class Answer:
 
         # 之前都不是, 只能是 recommendation 了
         return Relation(self.root, action, RelationType.recommendation)
-
-    @staticmethod
-    def interpolate(useraction_list):
-        index = 0
-        LEN = len(useraction_list)
-        while index < LEN:
-            if useraction_list[index].time is None:
-                nonetime_start = index
-                while index < LEN and useraction_list[index].time is None:
-                    index += 1
-                nonetime_end = index  # [nonetime_start, nonetime_end)
-                if 0 < nonetime_start and nonetime_end < LEN:
-                    start_time = useraction_list[nonetime_start-1].time
-                    end_time = useraction_list[nonetime_end].time
-                    period = end_time - start_time
-                    length = nonetime_end - nonetime_start + 1
-                    for i in range(nonetime_start, nonetime_end):
-                        useraction_list[i] = \
-                            UserAction(start_time + period*(i+1-nonetime_start)/length,
-                                       useraction_list[i].aid,
-                                       useraction_list[i].uid,
-                                       useraction_list[i].acttype)
-                elif nonetime_end < LEN:
-                    # start 就是0, 都设成 endtime
-                    for i in range(nonetime_start, nonetime_end):
-                        useraction_list[i] = \
-                            UserAction(useraction_list[nonetime_end].time,
-                                       useraction_list[i].aid,
-                                       useraction_list[i].uid,
-                                       useraction_list[i].acttype)
-                elif nonetime_start > 0:
-                    # end=LEN, 都设成 starttime
-                    for i in range(nonetime_start, nonetime_end):
-                        useraction_list[i] = \
-                            UserAction(useraction_list[nonetime_start-1].time,
-                                       useraction_list[i].aid,
-                                       useraction_list[i].uid,
-                                       useraction_list[i].acttype)
-                else:
-                    # TODO: 如果全部都没有时间,怎么办
-                    raise Exception('no time: ' + str(useraction_list))
-            else:
-                index += 1
 
     def add_node(self, useraction: UserAction):
         self.graph.add_node(uid,

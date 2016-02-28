@@ -3,6 +3,7 @@ import json
 import sys
 import logging
 import logging.config
+from collections import namedtuple
 
 from pymongo import MongoClient
 
@@ -43,6 +44,16 @@ else:
         smtp_config = json.load(f)
         smtp_handler.username, smtp_handler.password = \
             smtp_config['username'], smtp_config['password']
+
+UserAction = namedtuple('UserAction', ['time', 'aid', 'uid', 'acttype'])
+Relation = namedtuple('Relation', ['head', 'tail', 'reltype'])
+
+
+class RelationType(Enum):
+    follow = 1
+    qlink = 2
+    notification = 3
+    recommendation = 4
 
 
 class FetchTypeError(Exception):
