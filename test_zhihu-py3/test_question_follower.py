@@ -2,13 +2,18 @@ from client import client
 from common import *
 from zhihu import ActType
 
-question = client.question('https://www.zhihu.com/question/40138173')
-qid = '40138173'
+question = client.question('https://www.zhihu.com/question/40799298')
 
+for _, follower in zip(range(10), question.followers):
+    if follower is ANONYMOUS:
+        continue
+    print(follower.id)
+
+"""
 answerers = set()
+qid = '40138173'
 for answer in question.answers:
     answerers.add(answer.author.id)
-
 
 for follower in question.followers:
     if follower is ANONYMOUS:
@@ -21,3 +26,4 @@ for follower in question.followers:
             if i > 10:
                 print('no such act: ' + follower.id)
                 break
+"""

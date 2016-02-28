@@ -268,7 +268,8 @@ class Answer:
             elif action.acttype == COLLECT_ANSWER and i3 < l3:
                 pq.put(self.commenters[i3])
                 i3 += 1
-            # TODO: 把返回的relation在 self.graph 里添加点并连线
+            self.add_node(relation.tail)
+            self.add_edge(*relation)
 
         # TODO 推断完成, dump graph
 
@@ -305,7 +306,7 @@ class Answer:
         for follow_action in self.InfoStorage.question_followers:
             if follow_action.time < self.answer_time:
                 if follow_action.uid == uid:
-                    return Relation(follow_action, action, RelationType.follow)
+                    return Relation(self.root, action, RelationType.follow)
             else:
                 break  # 关注早于答案,才能收到notification
 
@@ -322,11 +323,11 @@ class Answer:
                 if followees is not None:
                     if cand.uid in followees:
                         # cand is action.uid's followee
-                        return Relation(cand, action, RelationType.qlink)
+                        return Relation(self.root, action, RelationType.qlink)
                 elif followers is not None:
                     if action.uid in followers:
                         # action.uid is cand's follower
-                        return Relation(cand, action, RelationType.qlink)
+                        return Relation(self.root, action, RelationType.qlink)
                 else:
                     logger.warning("%s lacks follower,%s lacks followee" %
                                    (cand.uid, action.uid))
@@ -336,15 +337,15 @@ class Answer:
                         followees = self.InfoStorage.fetch_user_followee(u1)
                         if cand.uid in followees:
                             # cand is action.uid's followee
-                            return Relation(cand, action, RelationType.qlink)
+                            return Relation(self.root, action, RelationType.qlink)
                     else:
                         followers = self.InfoStorage.fetch_user_follower(u2)
                         if action.uid in followers:
                             # action.uid is cand's follower
-                            return Relation(cand, action, RelationType.qlink)
+                            return Relation(self.root, action, RelationType.qlink)
 
         # 之前都不是, 只能是 recommendation 了
-        return Relation(None, action, RelationType.recommendation)
+        return Relation(self.root, action, RelationType.recommendation)
 
     @staticmethod
     def interpolate(useraction_list):
