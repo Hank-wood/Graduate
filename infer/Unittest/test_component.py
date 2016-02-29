@@ -1,6 +1,7 @@
 from component import InfoStorage, Answer, UserAction
 from datetime import datetime, timedelta
 from iutils import *
+from icommon import action_table
 
 import pytest
 
@@ -62,6 +63,7 @@ def test_get_closet_users():
             ['u1', 'u2', 'u3', 'u4', 'u5', 'u6']
 
 
+@pytest.mark.skipif(skip, reason="")
 def test_interpolate():
     t = datetime(1999, 1, 1, 12, 0, 0)
     useraction_list = [
@@ -146,3 +148,18 @@ def test_interpolate():
         UserAction(t+timedelta(seconds=1.2), 'a1', 'u6', ''),
     ]
 
+
+def test_get_action_type():
+    for key in action_table.keys():
+        assert get_action_type(key) == action_table[key]
+
+    assert get_action_type(0b100001) == 'ASK_QUESTION,COLLECT_ANSWER'
+    assert get_action_type(0b000110) == 'FOLLOW_QUESTION,ANSWER_QUESTION'
+    assert get_action_type(0b011000) == 'UPVOTE_ANSWER,COMMENT_ANSWER'
+
+    assert get_action_type(0b011100) == \
+        'ANSWER_QUESTION,UPVOTE_ANSWER,COMMENT_ANSWER'
+    assert get_action_type(0b101001) == \
+        'ASK_QUESTION,UPVOTE_ANSWER,COLLECT_ANSWER'
+    assert get_action_type(0b111111) == \
+        'ASK_QUESTION,FOLLOW_QUESTION,ANSWER_QUESTION,UPVOTE_ANSWER,COMMENT_ANSWER,COLLECT_ANSWER'

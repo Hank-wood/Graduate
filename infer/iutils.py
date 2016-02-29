@@ -187,9 +187,20 @@ def interpolate(useraction_list):
         else:
             index += 1
 
+
+def get_action_type(number) -> str:
+    assert number != 0
+    actions = []
+    for i in range(6):
+        if (number >> i) % 2 == 1:  # ith bit is one
+            actions.append(action_table[1 << i])
+    return ','.join(actions)
+
+
 __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
-    'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate'
+    'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
+    'get_action_type'
 ]

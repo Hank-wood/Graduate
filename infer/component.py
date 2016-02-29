@@ -17,7 +17,6 @@ from zhihu.author import ANONYMOUS
 
 from icommon import *
 from iutils import *
-from client_pool import get_client
 
 
 logger = logging.getLogger(__name__)
@@ -258,8 +257,10 @@ class Answer:
             self.add_edge(*relation)
 
         # TODO 推断完成, dump graph
+        # 融合 uid 相同的点
 
     def _infer_node(self, action, propagators, times, upvoters_added):
+        from client_pool import get_client
         # 所有的 user 信息都从 IS 获取
         followees = self.InfoStorage.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
