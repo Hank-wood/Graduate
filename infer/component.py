@@ -10,6 +10,7 @@ from queue import PriorityQueue
 from copy import copy
 from typing import Union
 from functools import reduce
+from datetime import datetime
 
 import networkx
 from zhihu.author import ANONYMOUS
@@ -102,8 +103,8 @@ class InfoStorage:
                 }]
             }
         }, upsert=True)
-        self.followers[uid] = [{'time': datetime.now(), 'uids': uids}]
-        return self.followers[uid]
+        self.followers[user.id] = [{'time': datetime.now(), 'uids': uids}]
+        return self.followers[user.uid]
 
     def get_user_followee(self, uid, time=None) -> Union[list, None]:
         """
@@ -139,8 +140,8 @@ class InfoStorage:
                 }]
             }
         }, upsert=True)
-        self.followees[uid] = [{'time': datetime.now(), 'uids': uids}]
-        return self.followees[uid]
+        self.followees[user.id] = [{'time': datetime.now(), 'uids': uids}]
+        return self.followees[user.id]
 
     @staticmethod
     def get_closest_users(flist, time) -> list:
@@ -262,6 +263,7 @@ class Answer:
         # 所有的 user 信息都从 IS 获取
         followees = self.InfoStorage.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
+
 
         # 从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
         for cand in reversed(upvoters_added):

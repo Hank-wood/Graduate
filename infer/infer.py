@@ -40,7 +40,9 @@ def infer_one_question(tid, qid, db_name):
     for answer_doc in collection.find({'qid': qid}, {'aid': 1}):
         answers.append(Answer(tid, answer_doc['aid'], info_storage))
 
-    answers[0].infer()
+    for answer in answers:
+        if answer.aid == '87120100':
+            answer.infer()
 
 if __name__ == '__main__':
     infer_one_question(tid='19551147', qid='40554112', db_name='zhihu_data_0219')
