@@ -242,7 +242,15 @@ class Answer:
         l1, l2, l3 = len(self.upvoters), len(self.commenters), len(self.collectors)
         while not pq.empty():
             action = pq.get()
-            relation = self._infer_node(action, propagators, times, upvoters_added)
+            if self.graph.has_node(action.uid):
+                # 融合 uid 相同的点
+                self.graph.node[action.uid]['acttype'] = \
+                    action.acttype | self.graph.node[action.uid]['acttype']
+            else:
+                relation = self._infer_node(action, propagators, times, upvoters_added)
+                self.add_node(relation.tail)
+                self.add_edge(*relation)
+
             if action.acttype == UPVOTE_ANSWER and i1 < l1:
                 pq.put(self.upvoters[i1])
                 upvoters_added.append(action)
@@ -253,18 +261,14 @@ class Answer:
             elif action.acttype == COLLECT_ANSWER and i3 < l3:
                 pq.put(self.commenters[i3])
                 i3 += 1
-            self.add_node(relation.tail)
-            self.add_edge(*relation)
 
         # TODO 推断完成, dump graph
-        # 融合 uid 相同的点
 
     def _infer_node(self, action, propagators, times, upvoters_added):
         from client_pool import get_client
         # 所有的 user 信息都从 IS 获取
         followees = self.InfoStorage.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
-
 
         # 从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
         for cand in reversed(upvoters_added):
