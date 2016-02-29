@@ -6,6 +6,7 @@
 """
 import bisect
 import logging
+import json
 from queue import PriorityQueue
 from copy import copy
 from typing import Union
@@ -14,6 +15,7 @@ from datetime import datetime
 
 import networkx
 from zhihu.author import ANONYMOUS
+from networkx.readwrite import json_graph
 
 from icommon import *
 from iutils import *
@@ -262,7 +264,12 @@ class Answer:
                 pq.put(self.commenters[i3])
                 i3 += 1
 
-        # TODO 推断完成, dump graph
+        for node in self.graph.nodes():
+            self.graph.node[node]['acttype'] = get_action_type(self.graph.node[node]['acttype'])
+
+        data = json_graph.node_link_data(self.graph)
+        with open('dump.json', 'w') as f:
+            json.dump(data, f, cls=MyEncoder, indent='\t')
 
     def _infer_node(self, action, propagators, times, upvoters_added):
         from client_pool import get_client

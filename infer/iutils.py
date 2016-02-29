@@ -197,10 +197,20 @@ def get_action_type(number) -> str:
     return ','.join(actions)
 
 
+class MyEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, Enum):
+            return str(obj)
+
+        return json.JSONEncoder.default(self, obj)
+
 __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
     'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
-    'get_action_type'
+    'get_action_type', 'MyEncoder'
 ]

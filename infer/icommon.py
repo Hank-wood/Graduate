@@ -65,6 +65,16 @@ class RelationType(Enum):
     notification = 3
     recommendation = 4
 
+    def __str__(self):
+        if self.value == 1:
+            return 'follow'
+        elif self.value == 2:
+            return 'qlink'
+        elif self.value == 3:
+            return 'notification'
+        else:
+            return 'recommendation'
+
 
 class FetchTypeError(Exception):
     pass
