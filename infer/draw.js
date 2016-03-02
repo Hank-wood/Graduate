@@ -13,9 +13,14 @@ var svg = d3.select("body").append("svg")
     .attr("transform", "translate(" + radius + "," + radius + ")");
 
 d3.json("data/dump.json", function(error, root) {
+    var edgeNames = {};
+    root["links"].forEach(function(link){
+        edgeNames[link["source"] + ':' + link["target"]] = link["reltype"];
+    });
   if (error) throw error;
 
   var nodes = cluster.nodes(root);
+
 
 
   var linkg = svg.selectAll(".link")
@@ -37,7 +42,7 @@ linkg.append("text")
     //})
     .attr("text-anchor", "middle")
     .text(function(d) {
-        return "edgeLabel";
+        return edgeNames[d.source['id'] + ':' + d.target['id']];
     })
     .attr("transform", function(d) {
         return "rotate(" + (d.target.x - 90) + ")translate(" + d.target.y*5/6 + ")"; })

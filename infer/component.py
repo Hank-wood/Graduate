@@ -267,10 +267,19 @@ class Answer:
         for node in self.graph.nodes():
             self.graph.node[node]['acttype'] = get_action_type(self.graph.node[node]['acttype'])
 
-        data = json_graph.tree_data(self.graph, root=self.root.uid)
-        data['links'] = json_graph.node_link_data(self.graph)['links']
-        with open('dump.json', 'w') as f:
-            json.dump(data, f, cls=MyEncoder, indent='\t')
+        tree_data = json_graph.tree_data(self.graph, root=self.root.uid)
+        node_links = json_graph.node_link_data(self.graph)
+        links = [
+            {
+                'source': node_links['nodes'][link['source']]['id'],
+                'target': node_links['nodes'][link['target']]['id'],
+                'reltype': link['reltype']
+            }
+            for link in node_links['links']
+        ]
+        tree_data['links'] = links
+        with open('data/dump.json', 'w') as f:
+            json.dump(tree_data, f, cls=MyEncoder, indent='\t')
 
     def _infer_node(self, action, propagators, times, upvoters_added):
         from client_pool import get_client
