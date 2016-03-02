@@ -267,7 +267,8 @@ class Answer:
         for node in self.graph.nodes():
             self.graph.node[node]['acttype'] = get_action_type(self.graph.node[node]['acttype'])
 
-        data = json_graph.node_link_data(self.graph)
+        data = json_graph.tree_data(self.graph, root=self.root.uid)
+        data['links'] = json_graph.node_link_data(self.graph)['links']
         with open('dump.json', 'w') as f:
             json.dump(data, f, cls=MyEncoder, indent='\t')
 
