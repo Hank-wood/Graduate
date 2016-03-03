@@ -1,32 +1,9 @@
 import sys
+import multiprocessing
 
 import pymongo
 from iutils import *
 from component import InfoStorage, Answer
-
-
-def test_dump_json():
-    import networkx
-    from datetime import datetime
-    from networkx.readwrite import json_graph
-
-    G = networkx.DiGraph()
-    G.add_node(1, type='answer', time=datetime.now())
-    G.add_node(2, type='upvote', time=datetime.now())
-    G.add_edge(1, 2)
-    data = json_graph.tree_data(G, root=1)
-    import json
-
-    class MyEncoder(json.JSONEncoder):
-
-        def default(self, obj):
-            if isinstance(obj, datetime):
-                return obj.isoformat()
-
-            return json.JSONEncoder.default(self, obj)
-
-    with open('dump.json', 'w') as f:
-        json.dump(data, f, cls=MyEncoder)
 
 
 def infer_one_question(tid, qid, db_name):
@@ -42,7 +19,23 @@ def infer_one_question(tid, qid, db_name):
 
     for answer in answers:
         if answer.aid == '87120100':
-            answer.infer()
+            answer.infer(save_to_db=False)
+
+
+def infer_all(db_name):
+    sys.modules['component'].__dict__['db'] = \
+        pymongo.MongoClient('127.0.0.1', 27017).get_database(db_name)
+    db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
+    for collection_name in db.collection_names():
+        if not is_q_col(collection_name):
+            continue
+        q_collection = db[collection_name]
+        a_collection = q_to_a(db[collection_name])
+        for q_doc in q_collection.find({}, {'qid':1, 'topic':1}):
+            info_storage = InfoStorage(q_doc['topic'], q_doc['qid'])
+            for a_doc in a_collection.find({'qid': q_doc['qid']}, {'aid': 1}):
+                Answer(q_doc['topic'], a_doc['aid'], info_storage).infer(True)
+
 
 if __name__ == '__main__':
     infer_one_question(tid='19551147', qid='40554112', db_name='zhihu_data_0219')

@@ -1,11 +1,19 @@
+from copy import deepcopy
+import pytest
+
 from component import InfoStorage, Answer, UserAction
 from datetime import datetime, timedelta
 from iutils import *
-from icommon import action_table
+from icommon import action_table, db2, RelationType
 
-import pytest
 
 skip = True
+
+
+def teardown_function(function):
+    for collection_name in db2.collection_names():
+        if 'system' not in collection_name:
+            db2[collection_name].drop()
 
 
 @pytest.mark.skipif(skip, reason="")
@@ -149,6 +157,7 @@ def test_interpolate():
     ]
 
 
+@pytest.mark.skipif(skip, reason="")
 def test_get_action_type():
     for key in action_table.keys():
         assert get_action_type(key) == action_table[key]
@@ -163,3 +172,20 @@ def test_get_action_type():
         'ASK_QUESTION,UPVOTE_ANSWER,COLLECT_ANSWER'
     assert get_action_type(0b111111) == \
         'ASK_QUESTION,FOLLOW_QUESTION,ANSWER_QUESTION,UPVOTE_ANSWER,COMMENT_ANSWER,COLLECT_ANSWER'
+
+
+def test_transform():
+    """
+    测试 RelationType 存储进 mongodb 和读取
+    """
+    data = {'some': 1, 'links': [{'reltype': RelationType.follow, 'v': 1}]}
+    db2.dynamic.insert(deepcopy(data))
+    assert db2.dynamic.find_one({'some': 1}, {'_id': 0}) == data
+    data = {'some': 2, 'links': [
+        {'reltype': RelationType.follow, 'v': 1},
+        {'reltype': RelationType.qlink, 'v': 1},
+        {'reltype': RelationType.notification, 'v': 1},
+        {'reltype': RelationType.recommendation, 'v': 1}
+    ]}
+    db2.dynamic.insert(deepcopy(data))
+    assert db2.dynamic.find_one({'some': 2}, {'_id': 0}) == data

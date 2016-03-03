@@ -217,7 +217,7 @@ class Answer:
         propagators.insert(0, UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION))
         self.InfoStorage.add_answer_propagator(self.aid, propagators)
 
-    def infer(self):
+    def infer(self, save_to_db):
         cp = copy(self.InfoStorage.propagators)  # 防止修改IS.propagators
         propagators = []
         times = []  # bisect 不支持 key, 故只能再记录一个时间序列
@@ -278,8 +278,12 @@ class Answer:
             for link in node_links['links']
         ]
         tree_data['links'] = links
-        with open('data/dump.json', 'w') as f:
-            json.dump(tree_data, f, cls=MyEncoder, indent='\t')
+
+        if save_to_db:
+            db2.dynamic.insert(tree_data)
+        else:
+            with open('data/dump.json', 'w') as f:
+                json.dump(tree_data, f, cls=MyEncoder, indent='\t')
 
     def _infer_node(self, action, propagators, times, upvoters_added):
         from client_pool import get_client

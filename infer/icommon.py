@@ -26,7 +26,10 @@ action_table = {
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 
-db = MongoClient('127.0.0.1', 27017).zhihu_data
+if hasattr(os, '_called_from_test'):
+    db2 = MongoClient('127.0.0.1', 27017).test
+else:
+    db2 = MongoClient('127.0.0.1', 27017).analysis
 logging_config_file = os.path.join(ROOT, 'infer/config/logging_config.json')
 smtp_config_file = os.path.join(ROOT, 'dynamic/config/smtp_config.json')
 
@@ -74,6 +77,13 @@ class RelationType(Enum):
             return 'notification'
         else:
             return 'recommendation'
+
+match = {
+    'follow': RelationType.follow,
+    'qlink': RelationType.qlink,
+    'notification': RelationType.notification,
+    'recommendation': RelationType.recommendation
+}
 
 
 class FetchTypeError(Exception):

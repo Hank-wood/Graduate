@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from pprint import pprint
 
 import requests
+from pymongo.son_manipulator import SONManipulator
 
 from icommon import *
 
@@ -24,6 +25,16 @@ def q_col(tid):
 def a_col(tid):
     # get answer collection name
     return tid + '_a'
+
+
+def a_to_q(collection_name):
+    assert collection_name.endswith('_a')
+    return collection_name[:-1] + 'q'
+
+
+def q_to_a(collection_name):
+    assert collection_name.endswith('_q')
+    return collection_name[:-1] + 'a'
 
 
 def get_time_string(t):
@@ -207,10 +218,39 @@ class MyEncoder(json.JSONEncoder):
 
         return json.JSONEncoder.default(self, obj)
 
+
+# http://api.mongodb.org/python/current/examples/custom_type.html#automatic-encoding-and-decoding
+class Transform(SONManipulator):
+    def transform_incoming(self, son, collection):
+        if isinstance(son, list):
+            for i, item in enumerate(son):
+                son[i] = self.transform_incoming(item, collection)
+        else:
+            for (key, value) in son.items():
+                if isinstance(value, RelationType):
+                    son[key] = str(value)
+                elif isinstance(value, dict) or isinstance(value, list):
+                    son[key] = self.transform_incoming(value, collection)
+        return son
+
+    def transform_outgoing(self, son, collection):
+        if isinstance(son, list):
+            for i, item in enumerate(son):
+                son[i] = self.transform_outgoing(item, collection)
+        else:
+            for (key, value) in son.items():
+                if key == 'reltype':
+                    son[key] = match[value]
+                elif isinstance(value, dict) or isinstance(value, list):
+                    son[key] = self.transform_outgoing(value, collection)
+        return son
+
+db2.add_son_manipulator(Transform())
+
 __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
     'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
-    'get_action_type', 'MyEncoder'
+    'get_action_type', 'MyEncoder', 'a_to_q', 'q_to_a'
 ]
