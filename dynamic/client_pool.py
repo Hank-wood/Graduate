@@ -50,7 +50,7 @@ for cookie in os.listdir(os.path.join(ROOT, 'cookies')):
     client1 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
     pool1.add_client(client1, 'us-ca')
     client2 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
-    pool2.add_client(client2)
+    pool2.add_client(client2, 'us-ca')
 
 
 def get_client():
