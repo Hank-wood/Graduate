@@ -14,7 +14,7 @@ from db import DB
 from utils import *
 from common import *
 from monitor import TopicMonitor
-from task import FetchQuestionInfo, FetchAnswerInfo
+from task import FetchQuestionInfo
 
 
 def setup_module(module):

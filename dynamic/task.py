@@ -55,7 +55,7 @@ class FetchQuestionInfo():
             for url, ctime in AnswerManager.get_question_answer_attrs(
                             self.tid, self.qid, 'url', 'time'):
                 self.answer_num += 1
-                answer_task_queue.append(FetchAnswerInfo(self.tid, url=url))
+                answer_task_queue.append(FetchAnswerInfo(self.tid, self.qid, url=url))
                 if ctime > self.last_update_time:
                     self.last_update_time = ctime
 
@@ -97,7 +97,7 @@ class FetchQuestionInfo():
                         # remove trailing slash so ?sort can use this pool
                         # 答案的url 是 question/qid/answer/aid
                         self._mount_pool()
-                    answer_task_queue.append(FetchAnswerInfo(self.tid, answer))
+                    answer_task_queue.append(FetchAnswerInfo(self.tid, self.qid, answer))
                     self.answer_num += 1
                 else:
                     break
@@ -126,6 +126,7 @@ class FetchQuestionInfo():
             # 已有答案的问题不从数据库删除, 仅移除 task
             self.continue_task = False
             QuestionManager.set_question_inactive(self.tid, self.qid)
+            cancelled_questions.add(self.qid)
             logger.info("Cancel inactive question task: " + self.qid)
             return False
         else:
@@ -147,8 +148,9 @@ class FetchQuestionInfo():
 
 
 class FetchAnswerInfo():
-    def __init__(self, tid, answer=None, url=None):
+    def __init__(self, tid, qid, answer=None, url=None):
         self.tid = tid
+        self.qid = qid
         self.continue_task = True  # 是否继续执行 task
         if answer:
             self.answer = answer

@@ -95,7 +95,7 @@ def test_fetch_answers_without_previous_data(mock_upvote_time,
     mock_answer.configure_mock(refresh=refresh, question=mock_question,
                                author=mock_author)
 
-    task = FetchAnswerInfo(tid=tid, answer=mock_answer)
+    task = FetchAnswerInfo(tid=tid, qid='', answer=mock_answer)
     answer_info = {
         'topic': tid, 'aid': aid, 'qid': qid, 'answerer': author_id,
         'upvoters': [], 'commenters': [], 'collectors': []
@@ -215,7 +215,7 @@ def test_fetch_answers_with_previous_data(mock_client, mock_collect_time,
     mock_answer.configure_mock(refresh=refresh, question=mock_question,
                                author=mock_author)
 
-    task = FetchAnswerInfo(tid=tid, url=mock_answer.url)
+    task = FetchAnswerInfo(tid=tid, qid='', url=mock_answer.url)
     assert dict_equal(DB.get_one_answer(tid, aid), answer_info)
 
     task.execute()
@@ -242,7 +242,7 @@ def test_with_real_answer():
     url = 'https://www.zhihu.com/question/37836315/answer/73732367'
     tid = '1234'
     client = zhihu.ZhihuClient('../cookies/zhuoyi.json')
-    t = FetchAnswerInfo(tid, client.answer(url))
+    t = FetchAnswerInfo(tid, '', client.answer(url))
     t.execute()
     pprint(DB.db[a_col(tid)].find_one({'aid': '73732367'}))
 

@@ -49,6 +49,7 @@ class AnswerTaskLoop(threading.Thread):
         super().__init__(*args, **kwargs)
 
     def run(self):
+        global cancelled_questions
         while True:
             start = time.time()
 
@@ -57,10 +58,16 @@ class AnswerTaskLoop(threading.Thread):
 
             futures = []
             count = len(answer_task_queue)
+            lst = set()
             for _ in range(count):
                 task = answer_task_queue.popleft()
-                futures.append(self.executor.submit(task.execute))
+                if task.qid in cancelled_questions:
+                    logger.info(task.answer.url + " cancelled with inactive q")
+                    lst.add(task.qid)
+                else:
+                    futures.append(self.executor.submit(task.execute))
 
+            cancelled_questions -= lst
             # wait for all tasks to complet
             # 即使用时超过MAX_TASK_EXECUTION_TIME, 也尽可能让它执行完
             cf.wait(futures, timeout=ANSWER_TASKLOOP_INTERVAL,

@@ -16,6 +16,7 @@ ANSWER_QUESTION = ActType.ANSWER_QUESTION
 
 answer_task_queue = deque()
 question_task_queue = deque()
+cancelled_questions = set()
 
 # zhihu-analysis folder
 ROOT = os.path.dirname(os.path.dirname(__file__))
