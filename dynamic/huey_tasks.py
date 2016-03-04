@@ -18,7 +18,10 @@ from requests.adapters import HTTPAdapter
 from zhihu import ANONYMOUS
 
 from common import *
-from client_pool import get_client2 as get_client  # use open proxy
+if hasattr(os, '_called_from_test'):
+    from client_pool import get_client2 as get_client  # don't use proxy
+else:
+    from client_pool import get_client
 from utils import config_smtp_handler
 
 
