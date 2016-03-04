@@ -47,11 +47,11 @@ class InfoStorage:
         q_doc = db[q_col(self.tid)].find_one({'qid': self.qid})
         assert q_doc is not None
         self.question_followers.append(
-             UserAction(q_doc['time'], None, q_doc['asker'], ASK_QUESTION)
+             UserAction(q_doc['time'], '', q_doc['asker'], ASK_QUESTION)
         )
         # follower 是从老到新, 顺序遍历可保证 question_followers 从老到新
         for f in q_doc['follower']:
-            follow_action = UserAction(f['time'], None, f['uid'], FOLLOW_QUESTION)
+            follow_action = UserAction(f['time'], '', f['uid'], FOLLOW_QUESTION)
             self.question_followers.append(follow_action)
 
         interpolate(self.question_followers)
