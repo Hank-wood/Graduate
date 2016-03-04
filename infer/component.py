@@ -36,6 +36,7 @@ class InfoStorage:
         # self.answer_propagators = {}  # {aid: [UserAction]}, 暂时没用
         self.followers = {}  # user follower, {uid: []}
         self.followees = {}  # user followee, {uid: []}
+        self.answers = {}  # {uid: UserAction(acttype=ANSWER_QUESTION)}
         self.propagators = PriorityQueue()
         self.load_question_followers()
 
@@ -43,10 +44,13 @@ class InfoStorage:
         """
         load question followers from database. 同时加入 propagators
         """
-        question_doc = db[q_col(self.tid)].find_one({'qid': self.qid})
-        assert question_doc is not None
+        q_doc = db[q_col(self.tid)].find_one({'qid': self.qid})
+        assert q_doc is not None
+        self.question_followers.append(
+             UserAction(q_doc['time'], None, q_doc['asker'], ASK_QUESTION)
+        )
         # follower 是从老到新, 顺序遍历可保证 question_followers 从老到新
-        for f in question_doc['follower']:
+        for f in q_doc['follower']:
             follow_action = UserAction(f['time'], None, f['uid'], FOLLOW_QUESTION)
             self.question_followers.append(follow_action)
 
@@ -58,7 +62,8 @@ class InfoStorage:
         记录每个 answer 的 upvoter+answerer. 同时加入 propagators
         :param propagators: List of UserAction
         """
-        # self.answer_propagators[aid] = propagators
+        answer_act = propagators[0]
+        self.answers[answer_act.uid] = answer_act
         list(map(self.propagators.put, propagators))
 
     def get_user_follower(self, uid, time=None) -> Union[list, None]:
@@ -318,10 +323,15 @@ class Answer:
         # 推断 notification
         for follow_action in self.InfoStorage.question_followers:
             if follow_action.time < self.answer_time:
-                if follow_action.uid == uid:
-                    return Relation(self.root, action, RelationType.follow)
+                if follow_action.uid == action.uid:
+                    return Relation(self.root, action, RelationType.notification)
             else:
                 break  # 关注早于答案,才能收到notification
+
+        # 作为回答者接收到新回答提醒
+        if action.uid in self.InfoStorage.answers:
+            if self.InfoStorage.answers[action.uid].time < action.time:
+                return Relation(self.root, action, RelationType.notification)
 
         # 推断 qlink
         # 使用 copy 出来的 propagators
