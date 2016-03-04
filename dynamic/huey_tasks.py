@@ -267,8 +267,9 @@ def _fetch_question_follower(tid, qid, asker, db_name=None):
 
     # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
     r = range(100)  # 抓取follower的时间间隔增加了, 增加至100
+    new_follower_uids = set()  # 可能获取到重复的 follower
     for follower in question.followers:
-        if follower is ANONYMOUS:
+        if follower is ANONYMOUS or follower.id in new_follower_uids:
             continue
         if follower.id in old_followers:
             break
@@ -279,6 +280,7 @@ def _fetch_question_follower(tid, qid, asker, db_name=None):
                         'uid': follower.id,
                         'time': act.time
                     })
+                    new_follower_uids.add(follower.id)
                     fetch_followers_followees(follower.id, now)
                     break
                 elif act.type == ANSWER_QUESTION and str(act.content.question.id) == qid:
@@ -292,6 +294,7 @@ def _fetch_question_follower(tid, qid, asker, db_name=None):
                     'uid': follower.id,
                     'time': None
                 })
+                new_follower_uids.add(follower.id)
 
     QuestionManager.add_question_follower(tid, qid, new_followers)
 
