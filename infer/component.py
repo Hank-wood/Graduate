@@ -110,7 +110,7 @@ class InfoStorage:
             }
         }, upsert=True)
         self.followers[user.id] = [{'time': datetime.now(), 'uids': uids}]
-        return self.followers[user.uid]
+        return self.followers[user.id]
 
     def get_user_followee(self, uid, time=None) -> Union[list, None]:
         """
