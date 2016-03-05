@@ -102,6 +102,45 @@ d3.json("data/dump.json", function(error, root) {
     //        return d.x < 180 ? "start" : "end"; })
     //    .attr("transform", function(d) { return d.x < 180 ? "translate(8)" : "rotate(180)translate(-8)"; })
     //    .text(function(d) { return d.id; });
+
+
+    var color_hash = [
+        ["follow", "red"],
+        ["qlink", "blue"],
+        ["notification", "yellow"],
+        ["recommendation", "green"]
+    ];
+
+    // add legend
+    var legend = svg.append("g")
+	  .attr("class", "legend")
+	  .attr("height", 100)
+	  .attr("width", 100)
+    .attr('transform', 'translate(-20,50)');
+
+    legend.selectAll('rect')
+      .data([1,2,3,4])
+      .enter()
+      .append("rect")
+	  .attr("x", -300)
+      .attr("y", function(d, i){ return - 400 + i * 20;})
+	  .attr("width", 10)
+	  .attr("height", 10)
+	  .style("fill", function(d, i) {
+          return color_hash[i][1];
+      });
+    legend.selectAll('text')
+      .data([1,2,3,4])
+      .enter()
+      .append("text")
+        .attr("font-family", "monaco")
+	  .attr("x", -280)
+      .attr("y", function(d, i){
+          return i * 20 - 391;
+      })
+	  .text(function(d, i) {
+          return color_hash[i][0];
+      });
 });
 
 d3.select(self.frameElement).style("height", radius * 2 + "px");
