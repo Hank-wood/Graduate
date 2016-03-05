@@ -27,7 +27,12 @@ d3.json("data/dump.json", function(error, root) {
 
     var nodes = cluster.nodes(root);
 
-
+    var colors = {
+        "follow": "red",
+        "qlink": "blue",
+        "notification": "yellow",
+        "recommendation": "green"
+    };
 
     var linkg = svg.selectAll(".link")
         .data(cluster.links(nodes))
@@ -35,26 +40,34 @@ d3.json("data/dump.json", function(error, root) {
         .attr("class", "link");
 
     linkg.append("path")
-        .attr("class", "link")
+        .attr("id", function(d){
+            return d.target.id;
+        })
+        .attr("stroke", function(d){
+            return colors[edgeNames[d.source.id + ':' + d.target.id]];
+        })
         .attr("d", diagonal);
 
+    /*
+
     linkg.append("text")
-        //.attr("x", function(d) {
-        //  return (d.source.y + d.target.y) / 2;
-        //})
-        //.attr("y", function(d) {
-        //  return (d.source.x + d.target.x) / 2;
-        //return d.target.x / 180 * Math.PI
-        //})
+        .append("textPath") //append a textPath to the text element
+	    .attr("xlink:href", function(d){
+            return '#' + d.target.id;
+        })
         .attr("text-anchor", "middle")
-        .attr("font-family", "sans-serif")
+        .attr("font-family", "monaco")
+        .attr("font-size", "10px")
         .attr("fill", "red")
+        .attr("startOffset", "80%")
         .text(function(d) {
             return edgeNames[d.source.id + ':' + d.target.id];
-        })
-        .attr("transform", function(d) {
-            return "rotate(" + (d.target.x - 90) + ")translate(" + d.target.y * 5 / 6 + ")";
         });
+        //.attr("transform", function(d) {
+        //    return "rotate(" + (d.target.x - 90) + ")translate(" + d.target.y * 5 / 6 + ")";
+        //});
+
+        */
 
     var node = svg.selectAll("g.node")
         .data(nodes)
@@ -67,7 +80,9 @@ d3.json("data/dump.json", function(error, root) {
             div.transition()
                 .duration(200)
                 .style("opacity", .9);
-            div.html("<p>" + d.id + "</p><br/><br/>")
+            var acttype = d.acttype.toLowerCase().replace(/_answer/g, '');
+            var text = "uid: " + d.id + "<br>time: " + d.time + "<br>action: "+ acttype;
+            div.html("<p>" + text + "</p><br/><br/>")
                 .style("left", (d3.event.pageX) + "px")
                 .style("top", (d3.event.pageY - 28) + "px");
         })
