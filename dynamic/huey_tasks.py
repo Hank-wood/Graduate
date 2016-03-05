@@ -19,9 +19,9 @@ from zhihu import ANONYMOUS
 
 from common import *
 if hasattr(os, '_called_from_test'):
-    from client_pool import get_client2 as get_client  # don't use proxy
+    from client_pool import get_client_test as get_client  # don't use proxy
 else:
-    from client_pool import get_client
+    from client_pool import get_client2 as get_client  # use sg proxy
 from utils import config_smtp_handler
 
 

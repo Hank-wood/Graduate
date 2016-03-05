@@ -15,7 +15,7 @@ class _ClientPool:
     auth = HTTPProxyAuth('laike9m', '123')
     proxies = {
         'us-ca': {'http': '162.213.39.201:31280'},
-        'open': {'http': '173.230.133.30:31280'}
+        'sg': {'http': '188.166.232.186:31280'}
     }
 
     def __init__(self):
@@ -50,7 +50,7 @@ for cookie in os.listdir(os.path.join(ROOT, 'cookies')):
     client1 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
     pool1.add_client(client1, 'us-ca')
     client2 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
-    pool2.add_client(client2)
+    pool2.add_client(client2, 'sg')
 
 
 def get_client():
@@ -59,3 +59,8 @@ def get_client():
 
 def get_client2():
     return pool2.get_next_client()
+
+
+test_client = ZhihuClient(test_cookie)
+def get_client_test():
+    return test_client
