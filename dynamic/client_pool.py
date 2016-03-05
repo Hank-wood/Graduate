@@ -42,10 +42,10 @@ pool2 = _ClientPool()
 for cookie in os.listdir(os.path.join(ROOT, 'cookies')):
     if validate_cookie(os.path.join(ROOT, 'cookies', cookie)):
         logger.info('cookie %s is valid' % cookie)
-        # print('cookie %s is valid' % cookie)
+        print('cookie %s is valid' % cookie)
     else:
         logger.error('cookie %s is invalid' % cookie)
-        # print('cookie %s is invalid' % cookie)
+        print('cookie %s is invalid' % cookie)
 
     client1 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
     pool1.add_client(client1, 'us-ca')
