@@ -13,6 +13,7 @@ for q_coll in q_colls:
     for qdoc in coll.find():
         followers = qdoc['follower']
         last_datetime = datetime(1970,1,1)
+        sort = True
         for f in followers:
             if f['time'] is None:
                 continue
@@ -20,7 +21,8 @@ for q_coll in q_colls:
             if curr_datetime >= last_datetime:
                 last_datetime = curr_datetime
             else:
-                print(q_coll + "'s question" + qdoc['qid'])
-                print(qdoc['follower'])
-
-        print(qdoc['qid'] + " is OK")
+                sort = False
+                print(last_datetime, curr_datetime)
+                last_datetime = curr_datetime
+        if not sort:
+             print(q_coll + "'s question" + qdoc['qid'])
