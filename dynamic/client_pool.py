@@ -12,11 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class _ClientPool:
-    auth = HTTPProxyAuth('laike9m', '123')
-    proxies = {
-        'jp': {'http': '45.32.11.96:31280'},
-        'sg': {'http': '188.166.232.186:31280'}
-    }
+    proxies = ['114.215.174.98:16816']
 
     def __init__(self):
         self.index = 0
@@ -24,12 +20,10 @@ class _ClientPool:
         self.POOL_SIZE = 0
 
     def add_client(self, client, location=None):
-        client._session.mount('https://www.zhihu.com',
-                              HTTPAdapter(pool_connections=1,
-                                          pool_maxsize=1000))
-        if location:
-            client._session.auth = self.auth
-            client._session.proxies = self.proxies[location]
+        # client._session.mount('https://www.zhihu.com',
+        #                       HTTPAdapter(pool_connections=1,
+        #                                   pool_maxsize=1000))
+        client.set_proxy_pool(self.proxies)
         self.clients.append(client)
         self.POOL_SIZE += 1
 
@@ -48,9 +42,9 @@ for cookie in os.listdir(os.path.join(ROOT, 'cookies')):
         print('cookie %s is invalid' % cookie)
 
     client1 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
-    pool1.add_client(client1, 'jp')
+    pool1.add_client(client1)
     client2 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
-    pool2.add_client(client2, 'sg')
+    pool2.add_client(client2)
 
 
 def get_client():
