@@ -6,7 +6,7 @@ from iutils import *
 from component import InfoStorage, Answer
 
 
-def infer_one_question(tid, qid, db_name):
+def infer_one_question(tid, qid, aid, db_name):
     sys.modules['component'].__dict__['db'] = \
         pymongo.MongoClient('127.0.0.1', 27017).get_database(db_name)
     info_storage = InfoStorage(tid, qid)
@@ -18,7 +18,7 @@ def infer_one_question(tid, qid, db_name):
         answers.append(Answer(tid, answer_doc['aid'], info_storage))
 
     for answer in answers:
-        if answer.aid == '87120100':
+        if answer.aid == aid:
             answer.infer(save_to_db=False)
 
 
@@ -38,4 +38,6 @@ def infer_all(db_name):
 
 
 if __name__ == '__main__':
-    infer_one_question(tid='19551147', qid='40554112', db_name='zhihu_data_0219')
+    # infer_one_question(tid='19551147', qid='40554112', aid='87120100',db_name='zhihu_data_0219')
+    # infer_one_question(tid='19551147', qid="40611516", aid="87420652",db_name='sg1')
+    infer_one_question(tid='19553298', qid="40617404", aid="87423946",db_name='sg1')
