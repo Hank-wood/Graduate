@@ -19,10 +19,9 @@ from zhihu import ANONYMOUS
 
 from common import *
 if hasattr(os, '_called_from_test'):
-    # from client_pool import get_client_test as get_client  # don't use proxy
-    from client_pool import get_client2 as get_client  # use sg proxy
+    from client_pool import get_client_test as get_client  # don't use proxy
 else:
-    from client_pool import get_client2 as get_client  # use sg proxy
+    from client_pool import get_client2 as get_client  # use kunpeng proxy
 from utils import config_smtp_handler
 
 
@@ -77,7 +76,7 @@ def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
         task_info[uid] = {'retries': 3, 'running': True}
 
     logger.info("fetch: " + uid)
-    url = 'http://www.zhihu.com/people/' + uid
+    url = 'https://www.zhihu.com/people/' + uid
     user = get_client().author(url)
     user._session.mount(url, HTTPAdapter(pool_connections=1, max_retries=3))
     # 如果有需要, 把/node/ProfileFollowersListV2和/node/ProfileFolloweesListV2也mount
@@ -264,7 +263,7 @@ def _fetch_question_follower(tid, qid, asker, db_name=None):
     old_followers = QuestionManager.get_question_follower(tid, qid, limit=5)
     new_followers = deque()
     now = datetime.now()
-    question = get_client().question(QUESTION_PREFIX + qid)
+    question = get_client().question(QUESTION_PREFIX_S + qid)
 
     # 这里直接采取最简单的逻辑,因为不太会有人取关又关注
     r = range(100)  # 抓取follower的时间间隔增加了, 增加至100
