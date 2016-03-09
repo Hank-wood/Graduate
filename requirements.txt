@@ -1,4 +1,5 @@
--e git://github.com/7sDream/zhihu-py3.git@dev#egg=zhihu-py3
+# -e git://github.com/7sDream/zhihu-py3.git@dev#egg=zhihu-py3
+-e git+https://github.com/laike9m/zhihu-py3.git@http#egg=zhihu-py3
 ezcf
 pymongo
 huey

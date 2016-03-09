@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class _ClientPool:
     auth_mesh = HTTPProxyAuth('laike9m', '123')
     proxies_mesh = [
-        'http://45.32.11.96:31280',
+        # 'http://45.32.11.96:31280',
         'http://188.166.232.186:31280'
     ]
     proxies_kunpeng = [
@@ -40,7 +40,8 @@ class _ClientPool:
                               HTTPAdapter(pool_connections=1,
                                           pool_maxsize=1000))
         if type == 'mesh':
-            client.set_proxy_pool(self.proxies_mesh, auth=self.auth_mesh)
+            client.set_proxy_pool(self.proxies_mesh, auth=self.auth_mesh,
+                                  https=False)
         elif type == 'kunpeng':
             client.set_proxy_pool(self.proxies_kunpeng)
         else:
