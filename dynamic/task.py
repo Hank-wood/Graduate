@@ -14,7 +14,10 @@ from requests.adapters import HTTPAdapter
 from utils import *
 from common import *
 from manager import QuestionManager, AnswerManager
-from client_pool import get_client
+if hasattr(os, '_called_from_test'):
+    from client_pool import get_client_test as get_client  # don't use proxy
+else:
+    from client_pool import get_client
 import huey_tasks
 
 logger = logging.getLogger(__name__)

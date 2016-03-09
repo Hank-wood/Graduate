@@ -15,7 +15,10 @@ from task import *
 from manager import QuestionManager
 from utils import answer_task_queue
 from common import *
-from client_pool import get_client
+if hasattr(os, '_called_from_test'):
+    from client_pool import get_client_test as get_client  # don't use proxy
+else:
+    from client_pool import get_client
 
 logger = logging.getLogger(__name__)
 
