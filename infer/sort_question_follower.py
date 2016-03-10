@@ -19,7 +19,7 @@ def sort_followers(db_name):
                     if follow['time'] is None:  # 暂时不管那些有None的
                         break
                 else:
-                    f.write('%s,%s:%d\n' % (qdoc['topic'], qdoc['qid'], len(follows)))
+                    f.write('%s,%s,%d\n' % (qdoc['topic'], qdoc['qid'], len(follows)))
                     follows.sort(key=lambda x: x['time'])
                     collection.update(
                         {'qid': qdoc['qid']},
