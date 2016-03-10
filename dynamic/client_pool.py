@@ -27,7 +27,7 @@ class _ClientPool:
         'http://laike9m:123@119.61.19.39:8088',
         'http://laike9m:123@106.0.4.196:8088',
         'http://laike9m:123@113.59.227.65:8088',
-        'http://laike9m:123@114.113.109.20:8088',
+        'http://laike9m:123@115.47.37.90:8088',
     ]
 
     def __init__(self):
