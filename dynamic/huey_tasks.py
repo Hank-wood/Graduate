@@ -175,7 +175,6 @@ def _fetch_followers(user, datetime, db_name=None):
                     }
                 })
         except Exception as e:
-            logger.critical("suspicious doc: " + str(doc))
             raise e
 
 
@@ -232,7 +231,6 @@ def _fetch_followees(user, datetime, db_name=None):
                     }
                 })
         except Exception as e:
-            logger.critical("suspicious doc: " + str(doc))
             raise e
 
 
