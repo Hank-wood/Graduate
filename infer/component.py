@@ -291,7 +291,7 @@ class Answer:
                 json.dump(tree_data, f, cls=MyEncoder, indent='\t')
 
     def _infer_node(self, action, propagators, times, upvoters_added):
-        from client_pool import get_client
+        from client_pool2 import get_client
         # 所有的 user 信息都从 IS 获取
         followees = self.InfoStorage.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None

@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 class _ClientPool:
     auth = HTTPProxyAuth('laike9m', '123')
     proxies = {
-        'us-ca': {'http': '162.213.39.201:31280'},
-        'open': {'http': '173.230.133.30:31280'}
+        'sg': {'http': '188.166.232.186:31280'},
+        'jp': {'http': '45.32.11.96:31280'}
     }
 
     def __init__(self):
@@ -40,7 +40,7 @@ pool1 = _ClientPool()
 pool2 = _ClientPool()
 for cookie in os.listdir(os.path.join(ROOT, 'cookies')):
     client1 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
-    pool1.add_client(client1, 'us-ca')
+    pool1.add_client(client1, 'sg')
     client2 = ZhihuClient(os.path.join(ROOT, 'cookies', cookie))
     pool2.add_client(client2)
 
