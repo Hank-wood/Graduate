@@ -247,10 +247,18 @@ class Transform(SONManipulator):
 
 db2.add_son_manipulator(Transform())
 
+
+def trans_before_save(tree_data):
+    if 'links' in tree_data:
+        for link in tree_data['links']:
+            link['reltype'] = str(link['reltype'])
+    return tree_data
+
 __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
     'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
-    'get_action_type', 'MyEncoder', 'a_to_q', 'q_to_a'
+    'get_action_type', 'MyEncoder', 'a_to_q', 'q_to_a', 'Transform',
+    'trans_before_save'
 ]

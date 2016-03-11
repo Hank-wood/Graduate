@@ -164,7 +164,10 @@ class InfoStorage:
         else:
             times = [fdict['time'] for fdict in flist]
             # if time is None, return all
-            pos = bisect.bisect(times, time) if time else len(times)
+            if None in times:
+                pos = len(times)
+            else:
+                pos = bisect.bisect(times, time) if time else len(times)
             merge = lambda x, y: x + y
             if pos == 0:
                 return flist[0]['uids']
@@ -266,7 +269,7 @@ class Answer:
                 pq.put(self.commenters[i2])
                 i2 += 1
             elif action.acttype == COLLECT_ANSWER and i3 < l3:
-                pq.put(self.commenters[i3])
+                pq.put(self.collectors[i3])
                 i3 += 1
 
         for node in self.graph.nodes():
@@ -285,19 +288,23 @@ class Answer:
         tree_data['links'] = links
 
         if save_to_db:
-            db2.dynamic.insert(tree_data)
+            db2.dynamic.replace_one({'aid': self.aid},
+                                    trans_before_save(tree_data),
+                                    upsert=True)
         else:
             with open('data/dump.json', 'w') as f:
                 json.dump(tree_data, f, cls=MyEncoder, indent='\t')
 
     def _infer_node(self, action, propagators, times, upvoters_added):
-        from client_pool2 import get_client
+        from client_pool2 import get_client2 as get_client
         # 所有的 user 信息都从 IS 获取
         followees = self.InfoStorage.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
 
-        # 从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
+        #  从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
         for cand in reversed(upvoters_added):
+            if cand.uid == '':  # 匿名回答者
+                continue
             followers = self.InfoStorage.get_user_follower(cand.uid, action.time)
             if followees is not None:
                 if cand.uid in followees:
@@ -308,8 +315,8 @@ class Answer:
             else:
                 logger.warning("%s lacks follower,%s lacks followee" %
                                (cand.uid, action.uid))
-                u1 = get_client().author(self.USER_PREFIX + action.uid)
                 u2 = get_client().author(self.USER_PREFIX + cand.uid)
+                u1 = get_client().author(self.USER_PREFIX + action.uid)
                 if u1.followee_num < u2.follower_num:
                     followees = self.InfoStorage.fetch_user_followee(u1)
                     if cand.uid in followees:
@@ -341,6 +348,8 @@ class Answer:
         if pos > 0:
             for i in range(pos-1, -1, -1):
                 cand = propagators[i]
+                if cand.uid == '':  # 匿名回答者
+                    continue
                 # 逻辑和推断follow完全一样,为了不重复生成followees,不单独写成函数
                 followers = self.InfoStorage.get_user_follower(cand.uid, action.time)
                 if followees is not None:

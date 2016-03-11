@@ -1,8 +1,10 @@
+import os
 import sys
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import pymongo
 from iutils import *
+from icommon import db2
 from component import InfoStorage, Answer
 
 
@@ -23,10 +25,11 @@ def infer_one_question(tid, qid, aid, db_name):
 
 
 def infer_all(db_name):
+    # TODO: 多进程应用, 调用 infer_question_task
     sys.modules['component'].__dict__['db'] = \
         pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
     db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
-    executor = ThreadPoolExecutor(max_workers=5)
+    executor = ProcessPoolExecutor(max_workers=5)
     for collection_name in db.collection_names():
         if not is_q_col(collection_name):
             continue
@@ -49,21 +52,30 @@ def infer_many(db_name, filename):
     sys.modules['component'].__dict__['db'] = \
         pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
     db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
-    executor = ThreadPoolExecutor(max_workers=5)
+    executor = ProcessPoolExecutor(max_workers=5)
 
     count = 0
+    futures = []
     with open(filename) as f:
         for line in f:
             tid, qid, _ = line.split(',', maxsplit=2)
             a_collection = db[a_col(tid)]
-            info_storage = InfoStorage(tid, qid)
-            for a_doc in a_collection.find({'qid': qid}, {'aid': 1}):
-                count += 1
-                # a = Answer(tid, a_doc['aid'], info_storage)
-                # executor.submit(a.infer, True)
+            aids = [a_doc['aid'] for a_doc in
+                    a_collection.find({'qid': qid}, {'aid': 1})]
+            futures.append(executor.submit(infer_question_task, tid, qid, aids))
+            count += len(aids)
 
     print(count)
     executor.shutdown()
+
+
+def infer_question_task(tid, qid, aids):
+    info_storage = InfoStorage(tid, qid)
+    for aid in aids:
+        # print("infer " + aid)
+        Answer(tid, aid, info_storage).infer(save_to_db=True)
+
+    return len(aids)
 
 
 if __name__ == '__main__':

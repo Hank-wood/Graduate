@@ -27,9 +27,9 @@ action_table = {
 ROOT = os.path.dirname(os.path.dirname(__file__))
 
 if hasattr(os, '_called_from_test'):
-    db2 = MongoClient('127.0.0.1', 27017).test
+    db2 = MongoClient('127.0.0.1', 27017, connect=False).test
 else:
-    db2 = MongoClient('127.0.0.1', 27017).analysis
+    db2 = MongoClient('127.0.0.1', 27017, connect=False).analysis
 logging_config_file = os.path.join(ROOT, 'infer/config/logging_config.json')
 smtp_config_file = os.path.join(ROOT, 'dynamic/config/smtp_config.json')
 
