@@ -62,7 +62,8 @@ def replace_database(db_name=None):
         user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
 
 
-def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
+def _fetch_followers_followees(uid, time, db_name=None, limit_to=None):
+    time = time or datetime.now()  # in case time is None
     if uid == '':
         return  # 匿名用户
 
@@ -84,20 +85,20 @@ def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
     try:
         if limit_to is None:
             if user.followee_num < 500:
-                _fetch_followees(user, datetime, db_name)
+                _fetch_followees(user, time, db_name)
 
             if user.follower_num < 500:
-                _fetch_followers(user, datetime, db_name)
+                _fetch_followers(user, time, db_name)
 
             if user.followee_num >= 500 and user.follower_num >= 500:
                 if user.followee_num < user.follower_num:
-                    _fetch_followees(user, datetime, db_name)
+                    _fetch_followees(user, time, db_name)
                 else:
-                    _fetch_followers(user, datetime, db_name)
+                    _fetch_followers(user, time, db_name)
         elif limit_to == FETCH_FOLLOWER:
-            _fetch_followers(user, datetime, db_name)
+            _fetch_followers(user, time, db_name)
         elif limit_to == FETCH_FOLLOWEE:
-            _fetch_followees(user, datetime, db_name)
+            _fetch_followees(user, time, db_name)
         else:
             raise FetchTypeError("No such type: " + str(limit_to))
     except AttributeError as e:
@@ -122,7 +123,7 @@ def _fetch_followers_followees(uid, datetime, db_name=None, limit_to=None):
         pass
 
 
-def _fetch_followers(user, datetime, db_name=None):
+def _fetch_followers(user, time, db_name=None):
     replace_database(db_name)
     follower_num = user.follower_num
     if follower_num > 2000:
@@ -134,7 +135,7 @@ def _fetch_followers(user, datetime, db_name=None):
         user_coll.insert({
             'uid': user.id,
             "follower": [{
-                'time': datetime,
+                'time': time,
                 'uids': uids
             }]
         })
@@ -169,7 +170,7 @@ def _fetch_followers(user, datetime, db_name=None):
                 user_coll.update({'uid': user.id}, {
                     '$push': {
                         'follower': {
-                            'time': datetime,
+                            'time': time,
                             'uids': new_followers
                         }
                     }
@@ -178,7 +179,7 @@ def _fetch_followers(user, datetime, db_name=None):
             raise e
 
 
-def _fetch_followees(user, datetime, db_name=None):
+def _fetch_followees(user, time, db_name=None):
     replace_database(db_name)
     followee_num = user.followee_num
     if followee_num > 2000:
@@ -190,7 +191,7 @@ def _fetch_followees(user, datetime, db_name=None):
         user_coll.insert({
             'uid': user.id,
             "followee": [{
-                'time': datetime,
+                'time': time,
                 'uids': uids
             }]
         })
@@ -225,7 +226,7 @@ def _fetch_followees(user, datetime, db_name=None):
                 user_coll.update({'uid': user.id}, {
                     '$push': {
                         'followee': {
-                            'time': datetime,
+                            'time': time,
                             'uids': new_followees
                         }
                     }
