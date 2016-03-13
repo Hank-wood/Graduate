@@ -46,6 +46,7 @@ class AnswerTaskLoop(threading.Thread):
         self.routine = routine
         self.executor = ThreadPoolExecutor(max_workers=20)
         self.event = event
+        self.multiple = 0   # ANSWER_TASKLOOP_INTERVAL 翻倍次数
         super().__init__(*args, **kwargs)
 
     def run(self):
@@ -69,21 +70,36 @@ class AnswerTaskLoop(threading.Thread):
 
             cancelled_questions -= lst
             # wait for all tasks to complet
-            # 即使用时超过MAX_TASK_EXECUTION_TIME, 也尽可能让它执行完
+            # 即使用时超过也尽可能让它执行完
             cf.wait(futures, timeout=ANSWER_TASKLOOP_INTERVAL,
                     return_when=cf.ALL_COMPLETED)
             task_execution_time = time.time() - start
             logger.info("Answer tasks execution time is %d" % task_execution_time)
 
             if task_execution_time > MAX_ANSWER_TASK_EXECUTION_TIME:
+                self.increase_interval()
                 if not self.event.is_set():
                     self.event.set()  # set stop_fetch_questions_event
                     logger.warning("Stop fetching new questions")
             else:
+                if self.multiple > 0:
+                    self.decrease_interval()
                 time.sleep(ANSWER_TASKLOOP_INTERVAL - task_execution_time)
                 if fetch_new and self.event.is_set():
                     self.event.clear()  # unset stop_fetch_questions_event
                     logger.info("Start fetching new questions")
+
+    @staticmethod
+    def increase_interval():
+        global ANSWER_TASKLOOP_INTERVAL
+        ANSWER_TASKLOOP_INTERVAL *= 2
+        self.multiple += 1
+
+    @staticmethod
+    def decrease_interval():
+        global ANSWER_TASKLOOP_INTERVAL
+        ANSWER_TASKLOOP_INTERVAL /= 2
+        self.multiple -= 1
 
 
 class QuestionTaskLoop(threading.Thread):
