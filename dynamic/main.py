@@ -89,14 +89,12 @@ class AnswerTaskLoop(threading.Thread):
                     self.event.clear()  # unset stop_fetch_questions_event
                     logger.info("Start fetching new questions")
 
-    @staticmethod
-    def increase_interval():
+    def increase_interval(self):
         global ANSWER_TASKLOOP_INTERVAL
         ANSWER_TASKLOOP_INTERVAL *= 2
         self.multiple += 1
 
-    @staticmethod
-    def decrease_interval():
+    def decrease_interval(self):
         global ANSWER_TASKLOOP_INTERVAL
         ANSWER_TASKLOOP_INTERVAL /= 2
         self.multiple -= 1
