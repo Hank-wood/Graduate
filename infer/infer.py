@@ -1,6 +1,6 @@
 import os
 import sys
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import pymongo
 from iutils import *
@@ -25,21 +25,27 @@ def infer_one_question(tid, qid, aid, db_name):
 
 
 def infer_all(db_name):
-    # TODO: 多进程应用, 调用 infer_question_task
     sys.modules['component'].__dict__['db'] = \
         pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
     db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
     executor = ProcessPoolExecutor(max_workers=5)
+
+    futures = []
     for collection_name in db.collection_names():
         if not is_q_col(collection_name):
             continue
+        tid = collection_name[:-2]
         q_collection = db[collection_name]
         a_collection = q_to_a(db[collection_name])
         for q_doc in q_collection.find({}, {'qid':1, 'topic':1}):
-            info_storage = InfoStorage(q_doc['topic'], q_doc['qid'])
-            for a_doc in a_collection.find({'qid': q_doc['qid']}, {'aid': 1}):
-                a = Answer(q_doc['topic'], a_doc['aid'], info_storage)
-                executor.submit(a.infer, True)
+            qid = q_doc['qid']
+            aids = [a_doc['aid'] for a_doc in
+                    a_collection.find({'qid': qid}, {'aid': 1})]
+            futures.append(executor.submit(infer_question_task, tid, qid, aids))
+
+    inferred_answer_count = 0
+    for f in as_completed(futures):
+        inferred_answer_count += f.result()
 
     executor.shutdown()
 
