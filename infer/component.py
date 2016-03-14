@@ -7,11 +7,15 @@
 import bisect
 import logging
 import json
+import shutil
 from queue import PriorityQueue
 from copy import copy
 from typing import Union
 from functools import reduce
 from datetime import datetime
+from os import path
+from threading import Thread
+from time import sleep
 
 import networkx
 from zhihu.author import ANONYMOUS
@@ -388,9 +392,34 @@ class Answer:
     def add_edge(self, useraction1, useraction2, reltype):
         self.graph.add_edge(useraction1.uid, useraction2.uid, reltype=reltype)
 
-    def load_graph(self):
+    @staticmethod
+    def load_graph(aid):
         """
-        加载之前生成的graph
-        :return:
+        加载之前生成的graph, dump to json, 在浏览器中显示
         """
-        pass
+        tree_data = db2.dynamic.find_one({'aid': aid}, {'_id': 0})
+        filename = path.join('data', aid + '.json')
+        with open(filename, 'w') as f:
+            json.dump(tree_data, f, cls=MyEncoder, indent='\t')
+        shutil.copy(filename, 'data/dump.json')
+
+        def start_server():
+            import http.server
+            import socketserver
+
+            PORT = 8000
+            Handler = http.server.SimpleHTTPRequestHandler
+            httpd = socketserver.TCPServer(("", PORT), Handler)
+            print("serving at port", PORT)
+            httpd.serve_forever()
+
+        t = Thread(target=start_server, daemon=True)
+        t.start()
+        sleep(1)
+        import webbrowser
+        webbrowser.open_new_tab('http://127.0.0.1:8000/diffussion_tree.html')
+        t.join()
+
+
+if __name__ == '__main__':
+    Answer.load_graph('87423946')
