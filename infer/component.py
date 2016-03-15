@@ -392,21 +392,52 @@ class Answer:
     def add_edge(self, useraction1, useraction2, reltype):
         self.graph.add_edge(useraction1.uid, useraction2.uid, reltype=reltype)
 
-    @staticmethod
-    def load_graph(aid):
+    @classmethod
+    def load_and_display_graph(cls, aid):
         """
         加载之前生成的graph, dump to json, 在浏览器中显示
         """
-        tree_data = db2.dynamic.find_one({'aid': aid}, {'_id': 0})
-        filename = path.join('data', aid + '.json')
-        with open(filename, 'w') as f:
-            json.dump(tree_data, f, cls=MyEncoder, indent='\t')
-        shutil.copy(filename, 'data/dump.json')
+        def load_one():
+            tree_data = db2.dynamic.find_one({'aid': aid}, {'_id': 0})
+            filename = path.join('data', aid + '.json')
+            with open(filename, 'w') as f:
+                json.dump(tree_data, f, cls=MyEncoder, indent='\t')
+            shutil.copy(filename, 'data/dump.json')
 
+            import webbrowser
+            webbrowser.open_new_tab('http://127.0.0.1:8000/diffussion_tree.html')
+
+        cls.display(operation=load_one)
+
+    @classmethod
+    def load_and_display_random_graphs(cls, n=5):
+        """
+        随机选择n个图显示.
+        """
+        def load_n():
+            from random import sample
+            aids = [d['aid'] for d in db2.dynamic.find({}, {'_id': 0, 'aid': 1})]
+            choosen = sample(aids, k=n)
+            for aid in choosen:
+                tree_data = db2.dynamic.find_one({'aid': aid}, {'_id': 0})
+                filename = path.join('data', aid + '.json')
+                with open(filename, 'w') as f:
+                    json.dump(tree_data, f, cls=MyEncoder, indent='\t')
+
+                os.remove('data/dump.json')
+                shutil.copy(filename, 'data/dump.json')
+
+                import webbrowser
+                webbrowser.open_new_tab('http://127.0.0.1:8000/diffussion_tree.html')
+                sleep(2)
+
+        cls.display(operation=load_n)
+
+    @staticmethod
+    def display(operation):
         def start_server():
             import http.server
             import socketserver
-
             PORT = 8000
             Handler = http.server.SimpleHTTPRequestHandler
             httpd = socketserver.TCPServer(("", PORT), Handler)
@@ -416,10 +447,9 @@ class Answer:
         t = Thread(target=start_server, daemon=True)
         t.start()
         sleep(1)
-        import webbrowser
-        webbrowser.open_new_tab('http://127.0.0.1:8000/diffussion_tree.html')
+        operation()
         t.join()
 
-
 if __name__ == '__main__':
-    Answer.load_graph('87423946')
+    # Answer.load_and_display_graph('87423946')
+    Answer.load_and_display_random_graphs()
