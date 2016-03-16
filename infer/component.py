@@ -448,7 +448,6 @@ class DynamicAnswer:
         t.start()
         sleep(1)
         operation()
-        t.join()
 
 if __name__ == '__main__':
     # Answer.load_and_display_graph('87423946')
