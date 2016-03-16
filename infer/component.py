@@ -28,7 +28,7 @@ from iutils import *
 logger = logging.getLogger(__name__)
 
 
-class InfoStorage:
+class DynamicQuestionWithAnswer:
     """
     用来存储动态传播图推断所需的信息,包括答案affecters, 用户关注关系
     """
@@ -185,13 +185,13 @@ class InfoStorage:
                     return reduce(merge, [fdict['uids'] for fdict in flist[:pos+1]])
 
 
-class Answer:
+class DynamicAnswer:
     USER_PREFIX = 'http://www.zhihu.com/people/'
 
-    def __init__(self, tid, aid, IS):
+    def __init__(self, tid, aid, dqa):
         self.tid = tid
         self.aid = aid
-        self.InfoStorage = IS  # Question object
+        self.dqa = dqa  # dynamic question with answer
         self.graph = networkx.DiGraph()
         self.root = None  # 回答节点
         self.upvoters = []
@@ -227,10 +227,10 @@ class Answer:
 
         propagators = self.upvoters.copy()
         propagators.insert(0, UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION))
-        self.InfoStorage.add_answer_propagator(self.aid, propagators)
+        self.dqa.add_answer_propagator(self.aid, propagators)
 
     def infer(self, save_to_db):
-        cp = copy(self.InfoStorage.propagators)  # 防止修改IS.propagators
+        cp = copy(self.dqa.propagators)  # 防止修改IS.propagators
         propagators = []
         times = []  # bisect 不支持 key, 故只能再记录一个时间序列
         while not cp.empty():
@@ -302,14 +302,14 @@ class Answer:
     def _infer_node(self, action, propagators, times, upvoters_added):
         from client_pool2 import get_client2 as get_client
         # 所有的 user 信息都从 IS 获取
-        followees = self.InfoStorage.get_user_followee(action.uid, action.time)
+        followees = self.dqa.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
 
         #  从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
         for cand in reversed(upvoters_added):
             if cand.uid == '':  # 匿名回答者
                 continue
-            followers = self.InfoStorage.get_user_follower(cand.uid, action.time)
+            followers = self.dqa.get_user_follower(cand.uid, action.time)
             if followees is not None:
                 if cand.uid in followees:
                     return Relation(cand, action, RelationType.follow)
@@ -322,17 +322,17 @@ class Answer:
                 u2 = get_client().author(self.USER_PREFIX + cand.uid)
                 u1 = get_client().author(self.USER_PREFIX + action.uid)
                 if u1.followee_num < u2.follower_num:
-                    followees = self.InfoStorage.fetch_user_followee(u1)
+                    followees = self.dqa.fetch_user_followee(u1)
                     if cand.uid in followees:
                         return Relation(cand, action, RelationType.follow)
                 else:
-                    followers = self.InfoStorage.fetch_user_follower(u2)
+                    followers = self.dqa.fetch_user_follower(u2)
                     if action.uid in followers:
                         return Relation(cand, action, RelationType.follow)
 
         # 如果不是follow 关系, 推断 qlink+notification, 优先级 noti > qlink
         # 推断 notification
-        for follow_action in self.InfoStorage.question_followers:
+        for follow_action in self.dqa.question_followers:
             if follow_action.time < self.answer_time:
                 if follow_action.uid == action.uid:
                     return Relation(self.root, action, RelationType.notification)
@@ -340,8 +340,8 @@ class Answer:
                 break  # 关注早于答案,才能收到notification
 
         # 作为回答者接收到新回答提醒
-        if action.uid in self.InfoStorage.answers:
-            if self.InfoStorage.answers[action.uid].time < action.time:
+        if action.uid in self.dqa.answers:
+            if self.dqa.answers[action.uid].time < action.time:
                 return Relation(self.root, action, RelationType.notification)
 
         # 推断 qlink
@@ -355,7 +355,7 @@ class Answer:
                 if cand.uid == '':  # 匿名回答者
                     continue
                 # 逻辑和推断follow完全一样,为了不重复生成followees,不单独写成函数
-                followers = self.InfoStorage.get_user_follower(cand.uid, action.time)
+                followers = self.dqa.get_user_follower(cand.uid, action.time)
                 if followees is not None:
                     if cand.uid in followees:
                         # cand is action.uid's followee
@@ -370,12 +370,12 @@ class Answer:
                     u1 = get_client().author(self.USER_PREFIX + action.uid)
                     u2 = get_client().author(self.USER_PREFIX + cand.uid)
                     if u1.followee_num < u2.follower_num:
-                        followees = self.InfoStorage.fetch_user_followee(u1)
+                        followees = self.dqa.fetch_user_followee(u1)
                         if cand.uid in followees:
                             # cand is action.uid's followee
                             return Relation(self.root, action, RelationType.qlink)
                     else:
-                        followers = self.InfoStorage.fetch_user_follower(u2)
+                        followers = self.dqa.fetch_user_follower(u2)
                         if action.uid in followers:
                             # action.uid is cand's follower
                             return Relation(self.root, action, RelationType.qlink)
@@ -452,4 +452,4 @@ class Answer:
 
 if __name__ == '__main__':
     # Answer.load_and_display_graph('87423946')
-    Answer.load_and_display_random_graphs()
+    DynamicAnswer.load_and_display_random_graphs()

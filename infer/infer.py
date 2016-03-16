@@ -5,19 +5,19 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import pymongo
 from iutils import *
 from icommon import db2
-from component import InfoStorage, Answer
+from component import DynamicQuestionWithAnswer, DynamicAnswer
 
 
 def infer_one_question(tid, qid, aid, db_name):
     sys.modules['component'].__dict__['db'] = \
         pymongo.MongoClient('127.0.0.1', 27017).get_database(db_name)
-    info_storage = InfoStorage(tid, qid)
+    info_storage = DynamicQuestionWithAnswer(tid, qid)
     db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
     collection = db.get_collection(a_col(tid))
 
     answers = []
     for answer_doc in collection.find({'qid': qid}, {'aid': 1}):
-        answers.append(Answer(tid, answer_doc['aid'], info_storage))
+        answers.append(DynamicAnswer(tid, answer_doc['aid'], info_storage))
 
     for answer in answers:
         if answer.aid == aid:
@@ -76,10 +76,10 @@ def infer_many(db_name, filename):
 
 
 def infer_question_task(tid, qid, aids):
-    info_storage = InfoStorage(tid, qid)
+    info_storage = DynamicQuestionWithAnswer(tid, qid)
     for aid in aids:
         # print("infer " + aid)
-        Answer(tid, aid, info_storage).infer(save_to_db=True)
+        DynamicAnswer(tid, aid, info_storage).infer(save_to_db=True)
 
     return len(aids)
 

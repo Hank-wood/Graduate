@@ -1,7 +1,7 @@
 from copy import deepcopy
 import pytest
 
-from component import InfoStorage, Answer, UserAction
+from component import DynamicQuestionWithAnswer, DynamicAnswer, UserAction
 from datetime import datetime, timedelta
 from iutils import *
 from icommon import action_table, db2, RelationType
@@ -20,45 +20,45 @@ def teardown_function(function):
 def test_get_closet_users():
     t = datetime(1999, 1, 1, 12, 0, 0)
     flist = []
-    assert InfoStorage.get_closest_users(flist, t) == []
+    assert DynamicQuestionWithAnswer.get_closest_users(flist, t) == []
 
     flist = [
         {'time': 0, 'uids': ['u1', 'u2']}
     ]
-    assert InfoStorage.get_closest_users(flist, t) == ['u1', 'u2']
+    assert DynamicQuestionWithAnswer.get_closest_users(flist, t) == ['u1', 'u2']
 
     flist = [
         {'time': t, 'uids': ['u1', 'u2']},
         {'time': t+timedelta(seconds=1), 'uids': ['u3', 'u4']}
     ]
-    assert InfoStorage.get_closest_users(flist, t) == ['u1', 'u2']
+    assert DynamicQuestionWithAnswer.get_closest_users(flist, t) == ['u1', 'u2']
 
     flist = [
         {'time': t-timedelta(seconds=1), 'uids': ['u1', 'u2']},
         {'time': t, 'uids': ['u3', 'u4']}
     ]
-    assert InfoStorage.get_closest_users(flist, t) == ['u1', 'u2', 'u3', 'u4']
+    assert DynamicQuestionWithAnswer.get_closest_users(flist, t) == ['u1', 'u2', 'u3', 'u4']
 
     flist = [
         {'time': t-timedelta(seconds=1), 'uids': ['u1', 'u2']},
         {'time': t, 'uids': ['u3', 'u4']},
         {'time': t+timedelta(seconds=1), 'uids': ['u5', 'u6']}
     ]
-    assert InfoStorage.get_closest_users(flist, t) == ['u1', 'u2', 'u3', 'u4']
+    assert DynamicQuestionWithAnswer.get_closest_users(flist, t) == ['u1', 'u2', 'u3', 'u4']
 
     flist = [
         {'time': t-timedelta(seconds=2), 'uids': ['u1', 'u2']},
         {'time': t-timedelta(seconds=1), 'uids': ['u3', 'u4']},
         {'time': t+timedelta(seconds=2), 'uids': ['u5', 'u6']}
     ]
-    assert InfoStorage.get_closest_users(flist, t) == ['u1', 'u2', 'u3', 'u4']
+    assert DynamicQuestionWithAnswer.get_closest_users(flist, t) == ['u1', 'u2', 'u3', 'u4']
 
     flist = [
         {'time': t-timedelta(seconds=3), 'uids': ['u1', 'u2']},
         {'time': t-timedelta(seconds=2), 'uids': ['u3', 'u4']},
         {'time': t+timedelta(seconds=1), 'uids': ['u5', 'u6']}
     ]
-    assert InfoStorage.get_closest_users(flist, t) == \
+    assert DynamicQuestionWithAnswer.get_closest_users(flist, t) == \
            ['u1', 'u2', 'u3', 'u4', 'u5', 'u6']
 
     flist = [
@@ -67,8 +67,8 @@ def test_get_closet_users():
         {'time': t+timedelta(seconds=0.5), 'uids': ['u5', 'u6']},
         {'time': t+timedelta(seconds=3), 'uids': ['u7', 'u8']}
     ]
-    assert InfoStorage.get_closest_users(flist, t) == \
-            ['u1', 'u2', 'u3', 'u4', 'u5', 'u6']
+    assert DynamicQuestionWithAnswer.get_closest_users(flist, t) == \
+           ['u1', 'u2', 'u3', 'u4', 'u5', 'u6']
 
 
 @pytest.mark.skipif(skip, reason="")
