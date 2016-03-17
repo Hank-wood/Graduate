@@ -60,7 +60,7 @@ else:
 
 UserAction = namedtuple('UserAction', ['time', 'aid', 'uid', 'acttype'])
 Relation = namedtuple('Relation', ['head', 'tail', 'reltype'])
-Edge = namedtuple('Edge', ['head', 'tail'])
+FollowEdge = namedtuple('FollowEdge', ['head', 'tail'])  # head/tail is UserAction
 
 class RelationType(Enum):
     follow = 1
