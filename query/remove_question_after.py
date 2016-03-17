@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pymongo
 
-t = datetime(2016,3,6,6,0,0)
+t = datetime(2016,3,11,18,0,0)
 
 db = pymongo.MongoClient('127.0.0.1', 27017).zhihu_data
 q_colls = ["19550517_q", "19551147_q", "19561087_q", "19553298_q"]
