@@ -104,5 +104,6 @@ docs/_build/
 cookies/laike9m.json
 cookies/zhangyang.json
 dynamic/config/smtp_config.json
+infer/config/smtp_config.json
 dynamic/logs/*
 infer/data/
