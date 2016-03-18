@@ -6,13 +6,14 @@ import pymongo
 from iutils import *
 from icommon import db2
 from component import DynamicQuestionWithAnswer, DynamicAnswer
+from user import UserManager
 
 
 def infer_one_question(tid, qid, aid, db_name):
-    sys.modules['component'].__dict__['db'] = \
-        pymongo.MongoClient('127.0.0.1', 27017).get_database(db_name)
+    db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
+    sys.modules['component'].__dict__['db'] = db
+    sys.modules['component'].__dict__['user_manager'] = UserManager(db.user)
     info_storage = DynamicQuestionWithAnswer(tid, qid)
-    db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
     collection = db.get_collection(a_col(tid))
 
     answers = []
@@ -25,9 +26,9 @@ def infer_one_question(tid, qid, aid, db_name):
 
 
 def infer_all(db_name):
-    sys.modules['component'].__dict__['db'] = \
-        pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
-    db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
+    db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
+    sys.modules['component'].__dict__['db'] = db
+    sys.modules['component'].__dict__['user_manager'] = UserManager(db.user)
     executor = ProcessPoolExecutor(max_workers=5)
 
     futures = []
@@ -55,9 +56,9 @@ def infer_many(db_name, filename):
     推断一些问题的回答, 读取文件, 每一行格式为
     topic,qid,...(后面是什么无所谓)
     """
-    sys.modules['component'].__dict__['db'] = \
-        pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
-    db = pymongo.MongoClient('127.0.0.1:27017').get_database(db_name)
+    db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
+    sys.modules['component'].__dict__['db'] = db
+    sys.modules['component'].__dict__['user_manager'] = UserManager(db.user)
     executor = ProcessPoolExecutor(max_workers=5)
 
     count = 0
@@ -87,5 +88,5 @@ def infer_question_task(tid, qid, aids):
 if __name__ == '__main__':
     # infer_one_question(tid='19551147', qid='40554112', aid='87120100',db_name='zhihu_data_0219')
     # infer_one_question(tid='19551147', qid="40611516", aid="87420652",db_name='sg1')
-    # infer_one_question(tid='19553298', qid="40617404", aid="87423946",db_name='sg1')
-    infer_many(db_name='sg1', filename='data/alltime.txt')
+    infer_one_question(tid='19553298', qid="40617404", aid="87423946",db_name='sg1')
+    # infer_many(db_name='sg1', filename='data/alltime.txt')

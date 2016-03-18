@@ -1,3 +1,8 @@
+import bisect
+from functools import reduce
+from typing import Union
+
+
 class UserManager:
     """
     管理 user

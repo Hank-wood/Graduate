@@ -10,8 +10,6 @@ import json
 import shutil
 from queue import PriorityQueue
 from copy import copy
-from typing import Union
-from functools import reduce
 from datetime import datetime
 from os import path
 from threading import Thread
@@ -37,9 +35,6 @@ class DynamicQuestionWithAnswer:
         self.qid = qid
         # 记录各个答案提供的能影响其它用户的用户, 推断qlink
         self.question_followers = []  # [UserAction]
-        # self.answer_propagators = {}  # {aid: [UserAction]}, 暂时没用
-        self.followers = {}  # user follower, {uid: []}
-        self.followees = {}  # user followee, {uid: []}
         self.answers = {}  # {uid: UserAction(acttype=ANSWER_QUESTION)}
         self.propagators = PriorityQueue()
         self.load_question_followers()
@@ -69,120 +64,6 @@ class DynamicQuestionWithAnswer:
         answer_act = propagators[0]
         self.answers[answer_act.uid] = answer_act
         list(map(self.propagators.put, propagators))
-
-    def get_user_follower(self, uid, time=None) -> Union[list, None]:
-        """
-        逻辑非常复杂
-        if uid in self.followers, 返回 self.followers[uid]
-        else
-            if 数据库中有doc且有follower, 更新self.followers, 返回follower, 可为[]
-            if 数据库中有doc但不包含follower, 返回None, self.followers[uid]=None
-            if 数据库中没有doc, 返回None, self.followers[uid]=None
-        time 指取到哪个时刻的follower
-        """
-        if uid in self.followers:
-            if self.followers[uid] is None:
-                return None
-            else:
-                return self.get_closest_users(self.followers[uid], time)
-
-        user_doc = db['user'].find_one({'uid': uid}, {'follower': 1, '_id': 0})
-        if user_doc is None:
-            self.followers[uid] = None
-            return None
-        else:
-            if 'follower' in user_doc:
-                self.followers[uid] = user_doc['follower']
-                return self.get_closest_users(user_doc['follower'], time)
-            else:
-                self.followers[uid] = None
-                return None
-
-    def fetch_user_follower(self, user) -> list:
-        """
-        之前没有follower, 要重新抓取, 返回抓到的, 并更新 self.followers
-        """
-        uids = [er.id for er in user.followers if er is not ANONYMOUS]
-        db.user.update_one({
-            'uid': user.id,
-        }, {
-            "$set": {
-                "follower": [{
-                    'time': datetime.now(),
-                    'uids': uids
-                }]
-            }
-        }, upsert=True)
-        self.followers[user.id] = [{'time': datetime.now(), 'uids': uids}]
-        return self.followers[user.id]
-
-    def get_user_followee(self, uid, time=None) -> Union[list, None]:
-        """
-        逻辑同 get_user_followee
-        """
-        if uid in self.followees:
-            if self.followees[uid] is None:
-                return None
-            else:
-                return self.get_closest_users(self.followees[uid], time)
-
-        user_doc = db['user'].find_one({'uid': uid}, {'followee': 1, '_id': 0})
-        if user_doc is None:
-            self.followees[uid] = None
-            return None
-        else:
-            if 'followee' in user_doc:
-                self.followees[uid] = user_doc['followee']
-                return self.get_closest_users(user_doc['followee'], time)
-            else:
-                self.followees[uid] = None
-                return None
-
-    def fetch_user_followee(self, user) -> list:
-        uids = [ee.id for ee in user.followees if ee is not ANONYMOUS]
-        db.user.update_one({
-            'uid': user.id,
-        }, {
-            "$set": {
-                "followee": [{
-                    'time': datetime.now(),
-                    'uids': uids
-                }]
-            }
-        }, upsert=True)
-        self.followees[user.id] = [{'time': datetime.now(), 'uids': uids}]
-        return self.followees[user.id]
-
-    @staticmethod
-    def get_closest_users(flist, time) -> list:
-        """
-        调用此方法时, 数据库中已经确保有相应数据
-        :param flist: user doc的 follower 或 followee list
-        :param time: 目标时刻
-        :return: accumulated users
-        """
-        if len(flist) == 0:
-            return []
-        elif len(flist) == 1:
-            return flist[0]['uids']
-        else:
-            times = [fdict['time'] for fdict in flist]
-            # if time is None, return all
-            if None in times:
-                pos = len(times)
-            else:
-                pos = bisect.bisect(times, time) if time else len(times)
-            merge = lambda x, y: x + y
-            if pos == 0:
-                return flist[0]['uids']
-            elif pos == len(times):
-                return reduce(merge, [fdict['uids'] for fdict in flist])
-            else:
-                # 找到最接近time的那个时刻
-                if time - times[pos-1] < times[pos] - time:
-                    return reduce(merge, [fdict['uids'] for fdict in flist[:pos]])
-                else:
-                    return reduce(merge, [fdict['uids'] for fdict in flist[:pos+1]])
 
 
 class DynamicAnswer:
@@ -300,14 +181,14 @@ class DynamicAnswer:
     def _infer_node(self, action, propagators, times, upvoters_added):
         from client_pool2 import get_client2 as get_client
         # 所有的 user 信息都从 IS 获取
-        followees = self.dqa.get_user_followee(action.uid, action.time)
+        followees = user_manager.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
 
         #  从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
         for cand in reversed(upvoters_added):
             if cand.uid == '':  # 匿名回答者
                 continue
-            followers = self.dqa.get_user_follower(cand.uid, action.time)
+            followers = user_manager.get_user_follower(cand.uid, action.time)
             if followees is not None:
                 if cand.uid in followees:
                     return Relation(cand, action, RelationType.follow)
@@ -320,11 +201,11 @@ class DynamicAnswer:
                 u2 = get_client().author(USER_PREFIX + cand.uid)
                 u1 = get_client().author(USER_PREFIX + action.uid)
                 if u1.followee_num < u2.follower_num:
-                    followees = self.dqa.fetch_user_followee(u1)
+                    followees = user_manager.fetch_user_followee(u1)
                     if cand.uid in followees:
                         return Relation(cand, action, RelationType.follow)
                 else:
-                    followers = self.dqa.fetch_user_follower(u2)
+                    followers = user_manager.fetch_user_follower(u2)
                     if action.uid in followers:
                         return Relation(cand, action, RelationType.follow)
 
@@ -353,7 +234,7 @@ class DynamicAnswer:
                 if cand.uid == '':  # 匿名回答者
                     continue
                 # 逻辑和推断follow完全一样,为了不重复生成followees,不单独写成函数
-                followers = self.dqa.get_user_follower(cand.uid, action.time)
+                followers = user_manager.get_user_follower(cand.uid, action.time)
                 if followees is not None:
                     if cand.uid in followees:
                         # cand is action.uid's followee
@@ -368,12 +249,12 @@ class DynamicAnswer:
                     u1 = get_client().author(USER_PREFIX + action.uid)
                     u2 = get_client().author(USER_PREFIX + cand.uid)
                     if u1.followee_num < u2.follower_num:
-                        followees = self.dqa.fetch_user_followee(u1)
+                        followees = user_manager.fetch_user_followee(u1)
                         if cand.uid in followees:
                             # cand is action.uid's followee
                             return Relation(self.root, action, RelationType.qlink)
                     else:
-                        followers = self.dqa.fetch_user_follower(u2)
+                        followers = user_manager.fetch_user_follower(u2)
                         if action.uid in followers:
                             # action.uid is cand's follower
                             return Relation(self.root, action, RelationType.qlink)
@@ -404,6 +285,7 @@ class DynamicAnswer:
 
             import webbrowser
             webbrowser.open_new_tab('http://127.0.0.1:8000/diffussion_tree.html')
+            sleep(2)
 
         cls.display(operation=load_one)
 
@@ -448,5 +330,5 @@ class DynamicAnswer:
         operation()
 
 if __name__ == '__main__':
-    # Answer.load_and_display_graph('87423946')
-    DynamicAnswer.load_and_display_random_graphs()
+    DynamicAnswer.load_and_display_graph('87423946')
+    # DynamicAnswer.load_and_display_random_graphs()
