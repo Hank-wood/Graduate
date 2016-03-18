@@ -186,8 +186,6 @@ class DynamicQuestionWithAnswer:
 
 
 class DynamicAnswer:
-    USER_PREFIX = 'http://www.zhihu.com/people/'
-
     def __init__(self, tid, aid, dqa):
         self.tid = tid
         self.aid = aid
@@ -319,8 +317,8 @@ class DynamicAnswer:
             else:
                 logger.warning("%s lacks follower,%s lacks followee" %
                                (cand.uid, action.uid))
-                u2 = get_client().author(self.USER_PREFIX + cand.uid)
-                u1 = get_client().author(self.USER_PREFIX + action.uid)
+                u2 = get_client().author(USER_PREFIX + cand.uid)
+                u1 = get_client().author(USER_PREFIX + action.uid)
                 if u1.followee_num < u2.follower_num:
                     followees = self.dqa.fetch_user_followee(u1)
                     if cand.uid in followees:
@@ -367,8 +365,8 @@ class DynamicAnswer:
                 else:
                     logger.warning("%s lacks follower,%s lacks followee" %
                                    (cand.uid, action.uid))
-                    u1 = get_client().author(self.USER_PREFIX + action.uid)
-                    u2 = get_client().author(self.USER_PREFIX + cand.uid)
+                    u1 = get_client().author(USER_PREFIX + action.uid)
+                    u2 = get_client().author(USER_PREFIX + cand.uid)
                     if u1.followee_num < u2.follower_num:
                         followees = self.dqa.fetch_user_followee(u1)
                         if cand.uid in followees:

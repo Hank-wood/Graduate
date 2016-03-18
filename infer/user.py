@@ -173,6 +173,7 @@ class LRUCache:
         prev.next = node
         self.tail.prev = node
 
+    # TODO: 适应 reset cap
     def set(self, key):
         if key not in self.hashtable:
             if len(self.hashtable) >= self.cap:

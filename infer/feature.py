@@ -31,9 +31,12 @@ answer 四元组删除，time = None
 
 from itertools import chain
 
-
 from icommon import *
 from iutils import *
+from user import UserManager
+from client_pool2 import get_client
+
+user_manager = UserManager(db.user)
 
 
 class StaticAnswer:
@@ -96,7 +99,7 @@ class StaticAnswer:
             head = self.affecters[head_index]
             for tail_index in range(head_index+1, len(self.affecters)):
                 tail = self.affecters[tail_index]
-                if self.has_follow_relation(head.uid, tail_index):
+                if self.has_follow_relation(head, tail):
                     self.cand_edges.append(FollowEdge(head, tail))
 
     def gen_features(self):
@@ -113,21 +116,30 @@ class StaticAnswer:
         """
         pass
 
-    def has_follow_relation(self, head, tail):
+    @staticmethod
+    def has_follow_relation(head: UserAction, tail: UserAction):
         """
-        determine if tail follows head
+        determine if tail user follows head user
+        时间以 tail 的时间为准, 因为在传播发生在 tail.time
+        这里牺牲了性能因为每次都要扫 list,没有像 component 里使用set
         :return: bool
         """
-        pass
-
-    @staticmethod
-    def get_followers():
-        # TODO 还是得考虑最接近的时间
-        pass
-
-    @staticmethod
-    def get_followees():
-        pass
+        action_time = tail.time
+        followers = user_manager.get_user_follower(head.uid, action_time)
+        followees = user_manager.get_user_followee(tail.uid, action_time)
+        if followers is not None:
+            return True if tail.uid in followers else False
+        elif followees is not None:
+            return True if head.uid in followees else False
+        else:
+            u1 = get_client().author(USER_PREFIX + tail.uid)
+            u2 = get_client().author(USER_PREFIX + head.uid)
+            if u1.followee_num < u2.follower_num:
+                followees = user_manager.fetch_user_followee(u1)
+                return True if head.uid in followees else False
+            else:
+                followers = user_manager.fetch_user_follower(u2)
+                return True if tail.uid in followers else False
 
 
 class StaticQuestionWithAnswer:

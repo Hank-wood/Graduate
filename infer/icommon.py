@@ -15,6 +15,7 @@ UPVOTE_ANSWER = 0b001000
 COMMENT_ANSWER = 0b010000
 COLLECT_ANSWER = 0b100000
 
+USER_PREFIX = 'http://www.zhihu.com/people/'
 action_table = {
     0b000001: 'ASK_QUESTION',
     0b000010: 'FOLLOW_QUESTION',
