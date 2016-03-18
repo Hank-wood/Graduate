@@ -147,7 +147,6 @@ class DB:
 
     @classmethod
     def get_answer_affected_user_with_limit(cls, tid, aid, limit=5):
-        limit *= -1
         return cls._get_answer_affected_user(
             tid, aid, ['commenters', 'upvoters', 'collectors'], limit=limit)
 
