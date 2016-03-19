@@ -255,7 +255,8 @@ class FetchAnswerInfo():
                         'cid': comment.cid
                     }
             if new_commenters:
-                new_commenters = list(reversed(new_commenters.values()))
+                new_commenters = list(new_commenters.values())
+                new_commenters.sort(key=lambda x: x['time'])
 
         # add collectors
         # 收藏夹不是按时间返回, 所以只能全部扫一遍
