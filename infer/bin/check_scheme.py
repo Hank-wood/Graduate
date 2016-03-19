@@ -5,11 +5,12 @@ database = 'sg1'
 
 a_colls = ["19550517_a", "19551147_a", "19561087_a", "19553298_a"]
 db = pymongo.MongoClient('127.0.0.1', 27017).get_database(database)
+start_search_time = datetime(2016,4,1)
 
 # check upvoters sorted
 for a_coll in a_colls:
     coll = db.get_collection(a_coll)
-    for adoc in coll.find():
+    for adoc in coll.find({'time': {'$gt': start_search_time}}):
         followers = adoc['upvoters']
         last_datetime = datetime(1970,1,1)
         sort = True
@@ -30,7 +31,7 @@ for a_coll in a_colls:
 # check commenters sorted
 for a_coll in a_colls:
     coll = db.get_collection(a_coll)
-    for adoc in coll.find():
+    for adoc in coll.find({'time': {'$gt': start_search_time}}):
         followers = adoc['commenters']
         last_datetime = datetime(1970,1,1)
         sort = True
@@ -51,7 +52,7 @@ for a_coll in a_colls:
 # check commenters sorted
 for a_coll in a_colls:
     coll = db.get_collection(a_coll)
-    for adoc in coll.find():
+    for adoc in coll.find({'time': {'$gt': start_search_time}}):
         followers = adoc['collectors']
         last_datetime = datetime(1970,1,1)
         sort = True
@@ -74,7 +75,7 @@ q_colls = ["19550517_q", "19551147_q", "19561087_q", "19553298_q"]
 
 for q_coll in q_colls:
     coll = db.get_collection(q_coll)
-    for qdoc in coll.find():
+    for qdoc in coll.find({'time': {'$gt': start_search_time}}):
         followers = qdoc['follower']
         last_datetime = datetime(1970,1,1)
         sort = True
