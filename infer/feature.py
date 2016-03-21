@@ -36,8 +36,6 @@ from iutils import *
 from user import UserManager
 from client_pool2 import get_client
 
-user_manager = UserManager(db.user)
-
 
 class StaticAnswer:
     """
@@ -62,12 +60,14 @@ class StaticAnswer:
         # TODO: db 从外部加载
         answer_doc = db[a_col(self.tid)].find_one({'aid': self.aid})
         assert answer_doc is not None
-        self.root = UserAction(answer_doc['time'], self.aid, uid, ANSWER_QUESTION)
+        self.root = UserAction(answer_doc['time'], self.aid, answer_doc['answerer'],
+                               ANSWER_QUESTION)
         self.answer_time = answer_doc['time']
 
         # 和 dynamic 不同, upvote time 设置成 None
         self.upvoters = [
-            UserAction(None, self.aid, u['uid'], UPVOTE_ANSWER)
+            UserAction(u['time'], self.aid, u['uid'], UPVOTE_ANSWER)
+            # UserAction(None, self.aid, u['uid'], UPVOTE_ANSWER)
             for u in answer_doc['upvoters']
         ]
         self.commenters = [
@@ -95,6 +95,9 @@ class StaticAnswer:
         顺序, answerer -> up1 -> up2 -> ... -> upn, 分别作为候选边的起点
         候选边终点分别是 [up1,up2,...up_n,comm1,...,comm_n,coll1,...,coll_n]
         """
+        # TODO: 融合 uid 相同的点
+        # 1. 多个tail uid 相同,type 不同,直接 |
+        # 2. 把uid 相同的 commenters 和 collectors 合并到 upvoters 里面
         for head_index in range(len(self.upvoters) + 1):
             head = self.affecters[head_index]
             for tail_index in range(head_index+1, len(self.affecters)):
@@ -114,7 +117,19 @@ class StaticAnswer:
         只有当用来从 dynamic 数据训练时才使用此方法
         :return: 0, 1 序列表示某关注关系是否是 follow relation
         """
-        pass
+        samples = []
+        tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
+        links = {
+            (l['source'], l['target']) for l in tree_data['links']
+            if l['reltype']==RelationType.follow
+        }
+        for cand in self.cand_edges:
+            if (cand.head.uid, cand.tail.uid) in links:
+                samples.append(1)
+            else:
+                samples.append(0)
+
+        return samples
 
     @staticmethod
     def has_follow_relation(head: UserAction, tail: UserAction):
@@ -149,3 +164,25 @@ class StaticQuestionWithAnswer:
     def __init__(self):
         pass
 
+
+if __name__ == '__main__':
+    import pymongo
+    from pprint import pprint
+    db = pymongo.MongoClient('127.0.0.1', 27017).get_database('sg1')
+    sys.modules[__name__].__dict__['db'] = db
+    sys.modules[__name__].__dict__['user_manager'] = UserManager(db.user)
+    sa = StaticAnswer(tid='19553298', aid="87423946")
+    sa.load_from_dynamic()
+    sa.gen_edges()
+    pprint(sa.cand_edges)
+    pprint(sa.gen_samples())
+
+    with open('upvoters_87423946', 'w') as f:
+        adoc = db.get_collection('19553298_a').find_one({'aid': "87423946"})
+        for upvoter in adoc['upvoters']:
+            f.write("%s %s\n" % (upvoter['uid'], str(upvoter['time'])))
+
+    with open('upvoters_87424209', 'w') as f:
+        adoc = db.get_collection('19550517_a').find_one({'aid': "87424209"})
+        for upvoter in adoc['upvoters']:
+            f.write("%s %s\n" % (upvoter['uid'], str(upvoter['time'])))
