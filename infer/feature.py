@@ -30,11 +30,31 @@ answer 四元组删除，time = None
 """
 
 from itertools import chain
+from typing import Union
+from datetime import datetime
 
 from icommon import *
 from iutils import *
 from user import UserManager
 from client_pool2 import get_client
+
+
+class TimeRange:
+    def __init__(self, start=None, end=None):
+        self.start = start
+        self.end = end
+
+    def __sub__(self, other: datetime):
+        """
+        :param other: comment or collect 时间, upvote已经用相对顺序判定
+        :return: 1, -1, 0
+        """
+        if self.start is not None and self.start > other:
+            return 1  # self > other
+        elif self.end is not None and self.end < other:
+            return -1  # self < other
+        else:
+            return 0  # unknown
 
 
 class StaticAnswer:
@@ -65,6 +85,7 @@ class StaticAnswer:
         self.answer_time = answer_doc['time']
 
         # 和 dynamic 不同, upvote time 设置成 None
+        self.upvote_ids = [u['uid'] for u in answer_doc['upvoters']]
         self.upvoters = [
             UserAction(u['time'], self.aid, u['uid'], UPVOTE_ANSWER)
             # UserAction(None, self.aid, u['uid'], UPVOTE_ANSWER)
@@ -98,6 +119,7 @@ class StaticAnswer:
         # TODO: 融合 uid 相同的点
         # 1. 多个tail uid 相同,type 不同,直接 |
         # 2. 把uid 相同的 commenters 和 collectors 合并到 upvoters 里面
+        # 3. 能添加 TimeRange 的添加 TimeRange
         for head_index in range(len(self.upvoters) + 1):
             head = self.affecters[head_index]
             for tail_index in range(head_index+1, len(self.affecters)):
@@ -111,6 +133,35 @@ class StaticAnswer:
         :return: n_samples * n_features vector
         """
         pass
+
+    def feature_relative_order(self, edge: FollowEdge):
+        """
+        判断 edge.head, edge.tail 相对顺序
+        head 只可能 answer or upvote
+        time 可能是 None, datetime, TimeRange(start, end)
+        :return:
+            -1 if head.time < tail.time;
+            1 if head.time >= tail.time;
+            0 if unknown
+        """
+        head, tail = edge.head, edge.tail
+
+        if is_answer(head):
+            return -1
+
+        # 当且仅当 head 是 upvote 时 tail 才可能是 upvote
+        if is_upvote(tail):
+            if self.upvote_ids.index(head.uid) < self.upvote_ids.index(tail.uid):
+                return -1
+            else:
+                return 1
+
+        # 现在 tail.time 只能是 datetime 了, 因为 tail 必然是 comment or collect
+        if head.time is None:
+            return 0
+
+        # head.time is TimeRange
+        return head.time - tail.time
 
     def gen_samples(self):
         """
