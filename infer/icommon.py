@@ -59,7 +59,17 @@ else:
         smtp_handler.username, smtp_handler.password = \
             smtp_config['username'], smtp_config['password']
 
-UserAction = namedtuple('UserAction', ['time', 'aid', 'uid', 'acttype'])
+
+class UserAction:
+    def __init__(self, time, aid, uid, acttype):
+        self.time = time
+        self.aid = aid
+        self.uid = uid
+        self.acttype = acttype
+
+    def __lt__(self, other):
+        return self.time < other.time
+
 Relation = namedtuple('Relation', ['head', 'tail', 'reltype'])
 FollowEdge = namedtuple('FollowEdge', ['head', 'tail'])  # head/tail is UserAction
 
