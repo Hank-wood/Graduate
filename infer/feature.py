@@ -120,10 +120,8 @@ class StaticAnswer:
         # 1. 多个tail uid 相同,type 不同,直接 |
         # 2. 把uid 相同的 commenters 和 collectors 合并到 upvoters 里面
         # 3. 能添加 TimeRange 的添加 TimeRange
-        for head_index in range(len(self.upvoters) + 1):
-            head = self.affecters[head_index]
-            for tail_index in range(head_index+1, len(self.affecters)):
-                tail = self.affecters[tail_index]
+        for i, head in enumerate(self.affecters[:len(self.upvoters) + 1]):
+            for tail in self.affecters[i+1:]:
                 if self.has_follow_relation(head, tail):
                     self.cand_edges.append(FollowEdge(head, tail))
 
@@ -132,9 +130,40 @@ class StaticAnswer:
         生成 features
         :return: n_samples * n_features vector
         """
-        pass
+        return [
+            [self.feature_head_rank(edge),
+             *self.feature_node_type(edge),
+             self.feature_relative_order(edge)] for edge in self.cand_edges
+        ]
 
-    def feature_relative_order(self, edge: FollowEdge):
+    def feature_head_rank(self, edge: FollowEdge) -> int:
+        """
+        head 在 tail 的候选中排第几
+        """
+        rank = 0
+        head, tail = edge.head, edge.tail
+        for cand in self.cand_edges:
+            if cand.tail is tail:
+                if cand.head is head:
+                    return rank
+                else:
+                    rank += 1
+
+    def feature_node_type(self, edge: FollowEdge) -> list:
+        """
+        因为head不是 answer 就是upvote,所以其实特征只需要提供 is_answer
+        :return:
+        [head_is_answer, tail_is_upvote, tail_is_comment, tail_is_collect]
+        """
+        head, tail = edge.head, edge.tail
+        return [
+            is_answer(head),
+            is_upvote(tail),
+            is_comment(tail),
+            is_collect(tail)
+        ]
+
+    def feature_relative_order(self, edge: FollowEdge) -> int:
         """
         判断 edge.head, edge.tail 相对顺序
         head 只可能 answer or upvote
