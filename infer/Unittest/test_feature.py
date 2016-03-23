@@ -1,10 +1,11 @@
 import sys
 from datetime import datetime
 from unittest.mock import patch, Mock
-from icommon import *
+from pprint import pprint
 
 import pytest
 
+from icommon import *
 from feature import StaticAnswer, TimeRange
 
 
@@ -118,3 +119,5 @@ def test_gen_edges():
     assert sa.cand_edges[18] == \
            FollowEdge(UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER),
                       UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER))
+
+    pprint(sa.gen_features())

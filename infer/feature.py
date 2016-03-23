@@ -186,7 +186,6 @@ class StaticAnswer:
                         self.cand_edges.append(edge)
                         edge_set.add(edge)
 
-
     def gen_features(self):
         """
         生成 features
@@ -248,7 +247,10 @@ class StaticAnswer:
                 return 1
 
         # 现在 tail.time 只能是 datetime 了, 因为 tail 必然是 comment or collect
-        return head.time - tail.time
+        if isinstance(head.time, datetime):
+            return -1 if head.time < tail.time else 1
+        else:
+            return head.time - tail.time  # see TimeRange.__sub__
 
     def gen_samples(self):
         """
