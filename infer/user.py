@@ -1,6 +1,7 @@
 import bisect
 from functools import reduce
 from typing import Union
+from datetime import datetime
 
 
 class UserManager:
@@ -129,7 +130,7 @@ class UserManager:
         else:
             times = [fdict['time'] for fdict in flist]
             # if time is None, return all
-            if None in times:
+            if None in times or not isinstance(time, datetime):
                 pos = len(times)
             else:
                 pos = bisect.bisect(times, time) if time else len(times)

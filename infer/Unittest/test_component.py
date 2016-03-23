@@ -160,17 +160,17 @@ def test_interpolate():
 @pytest.mark.skipif(skip, reason="")
 def test_get_action_type():
     for key in action_table.keys():
-        assert get_action_type(key) == action_table[key]
+        assert acttype2str(key) == action_table[key]
 
-    assert get_action_type(0b100001) == 'ASK_QUESTION,COLLECT_ANSWER'
-    assert get_action_type(0b000110) == 'FOLLOW_QUESTION,ANSWER_QUESTION'
-    assert get_action_type(0b011000) == 'UPVOTE_ANSWER,COMMENT_ANSWER'
+    assert acttype2str(0b100001) == 'ASK_QUESTION,COLLECT_ANSWER'
+    assert acttype2str(0b000110) == 'FOLLOW_QUESTION,ANSWER_QUESTION'
+    assert acttype2str(0b011000) == 'UPVOTE_ANSWER,COMMENT_ANSWER'
 
-    assert get_action_type(0b011100) == \
+    assert acttype2str(0b011100) == \
         'ANSWER_QUESTION,UPVOTE_ANSWER,COMMENT_ANSWER'
-    assert get_action_type(0b101001) == \
+    assert acttype2str(0b101001) == \
         'ASK_QUESTION,UPVOTE_ANSWER,COLLECT_ANSWER'
-    assert get_action_type(0b111111) == \
+    assert acttype2str(0b111111) == \
         'ASK_QUESTION,FOLLOW_QUESTION,ANSWER_QUESTION,UPVOTE_ANSWER,COMMENT_ANSWER,COLLECT_ANSWER'
 
 

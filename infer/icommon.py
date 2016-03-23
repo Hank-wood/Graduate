@@ -70,8 +70,27 @@ class UserAction:
     def __lt__(self, other):
         return self.time < other.time
 
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __eq__(self, other):
+        for key in self.__dict__:
+            assert self.__dict__[key] == other.__dict__[key]
+        return self.__dict__ == other.__dict__
+
 Relation = namedtuple('Relation', ['head', 'tail', 'reltype'])
-FollowEdge = namedtuple('FollowEdge', ['head', 'tail'])  # head/tail is UserAction
+
+
+class FollowEdge:
+    def __init__(self, head, tail):
+        self.head = head
+        self.tail = tail
+
+    def __eq__(self, other):
+        return self.head == other.head and self.tail == other.tail
+
+    def __hash__(self):
+        return hash(self.head.uid + self.tail.uid)
 
 class RelationType(Enum):
     follow = 1

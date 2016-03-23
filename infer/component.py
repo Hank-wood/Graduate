@@ -156,7 +156,7 @@ class DynamicAnswer:
                 i3 += 1
 
         for node in self.graph.nodes():
-            self.graph.node[node]['acttype'] = get_action_type(self.graph.node[node]['acttype'])
+            self.graph.node[node]['acttype'] = acttype2str(self.graph.node[node]['acttype'])
 
         tree_data = json_graph.tree_data(self.graph, root=self.root.uid)
         node_links = json_graph.node_link_data(self.graph)
@@ -184,7 +184,7 @@ class DynamicAnswer:
         followees = user_manager.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
 
-        #  从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
+        # 从已经添加的 upvoter 推断 follow 关系, 注意要逆序扫
         for cand in reversed(upvoters_added):
             if cand.uid == '':  # 匿名回答者
                 continue

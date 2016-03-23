@@ -199,11 +199,16 @@ def interpolate(useraction_list):
             index += 1
 
 
-def get_action_type(number) -> str:
-    assert number != 0
+def acttype2str(acttype) -> str:
+    """
+    不需要 str2acttype, 因为不需要 json -> DB
+    :param acttype:
+    :return: string representation
+    """
+    assert acttype != 0
     actions = []
     for i in range(6):
-        if (number >> i) % 2 == 1:  # ith bit is one
+        if (acttype >> i) % 2 == 1:  # ith bit is one
             actions.append(action_table[1 << i])
     return ','.join(actions)
 
@@ -280,6 +285,6 @@ __all__ = [
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
     'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
-    'get_action_type', 'MyEncoder', 'a_to_q', 'q_to_a', 'Transform',
+    'acttype2str', 'MyEncoder', 'a_to_q', 'q_to_a', 'Transform',
     'trans_before_save', 'is_upvote', 'is_comment', 'is_collect', 'is_answer'
 ]
