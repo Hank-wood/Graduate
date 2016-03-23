@@ -32,6 +32,7 @@ answer 四元组删除，time = None
 from itertools import chain
 from typing import Union
 from datetime import datetime
+from copy import copy
 
 from icommon import *
 from iutils import *
@@ -47,6 +48,7 @@ class TimeRange:
     def __sub__(self, other: datetime):
         """
         :param other: comment or collect 时间, upvote已经用相对顺序判定
+        因此不会发生两个 TimeRange 相减的情况
         :return: 1, -1, 0
         """
         if self.start is not None and self.start > other:
@@ -55,6 +57,12 @@ class TimeRange:
             return -1  # self < other
         else:
             return 0  # unknown
+
+    def __eq__(self, other):
+        return self.start == other.start and self.end == other.end
+
+    def __str__(self):
+        return str(self.__dict__)
 
 
 class StaticAnswer:
@@ -70,7 +78,7 @@ class StaticAnswer:
         self.collectors = []
         self.cand_edges = []  # 候选边
         self.affecters = None
-        self.root = None
+        self.answerer = None
         self.answer_time = None
 
     def load_from_dynamic(self):
@@ -80,15 +88,14 @@ class StaticAnswer:
         # TODO: db 从外部加载
         answer_doc = db[a_col(self.tid)].find_one({'aid': self.aid})
         assert answer_doc is not None
-        self.root = UserAction(answer_doc['time'], self.aid, answer_doc['answerer'],
-                               ANSWER_QUESTION)
+        self.answerer = UserAction(answer_doc['time'], self.aid,
+                                   answer_doc['answerer'], ANSWER_QUESTION)
         self.answer_time = answer_doc['time']
 
         # 和 dynamic 不同, upvote time 设置成 None
         self.upvote_ids = [u['uid'] for u in answer_doc['upvoters']]
         self.upvoters = [
-            UserAction(u['time'], self.aid, u['uid'], UPVOTE_ANSWER)
-            # UserAction(None, self.aid, u['uid'], UPVOTE_ANSWER)
+            UserAction(TimeRange(), self.aid, u['uid'], UPVOTE_ANSWER)
             for u in answer_doc['upvoters']
         ]
         self.commenters = [
@@ -102,7 +109,7 @@ class StaticAnswer:
         # 插值. comment 肯定有时间信息, 不处理
         interpolate(self.collectors)
         self.affecters = list(chain(
-            [self.root], self.upvoters, self.commenters, self.collectors))
+            [self.answerer], self.upvoters, self.commenters, self.collectors))
 
     def load_from_static(self):
         """
@@ -115,15 +122,70 @@ class StaticAnswer:
         生成候选边
         顺序, answerer -> up1 -> up2 -> ... -> upn, 分别作为候选边的起点
         候选边终点分别是 [up1,up2,...up_n,comm1,...,comm_n,coll1,...,coll_n]
-        """
-        # TODO: 融合 uid 相同的点
+        # 融合 uid 相同的点
         # 1. 多个tail uid 相同,type 不同,直接 |
         # 2. 把uid 相同的 commenters 和 collectors 合并到 upvoters 里面
         # 3. 能添加 TimeRange 的添加 TimeRange
+         注意这造成了一个情况: cand_edges 中的 UserAction在upvoters/commenters/
+         collectors 中不存在
+        """
+
+        # step 1, build hashtable, values are useractions used in cand_edges
+        hashtable = {}  # record uid -> UserAction
+        for useraction in self.affecters:
+            uid = useraction.uid
+            if uid not in hashtable:
+                hashtable[uid] = copy(useraction)
+            else:
+                hashtable[uid].acttype |= useraction.acttype
+                # 评论/收藏者点赞,把评论/收藏时间认为是点赞时间
+                if isinstance(hashtable[uid].time, TimeRange):
+                    hashtable[uid].time = useraction.time
+                else:
+                    hashtable[uid].time = min(hashtable[uid].time,
+                                              useraction.time)
+
+        # step 3, set upvote's TimeRange's start and end if possible
+        # 这里修改的都是 hashtable 里的 UserAction, 保持 up/cm/cl 不变
+        # set start
+        i = 1  # 0 is answer
+        while i < len(self.upvote_ids) + 1:
+            time = hashtable[self.affecters[i].uid].time
+            if isinstance(time, datetime):
+                i += 1
+                while not isinstance(hashtable[self.affecters[i].uid].time, datetime):
+                    hashtable[self.affecters[i].uid].time.start = time
+                    i += 1
+            else:
+                i += 1
+
+        # set end
+        i = len(self.upvote_ids)
+        while i > 0:
+            time = hashtable[self.affecters[i].uid].time
+            if isinstance(time, datetime):
+                i -= 1
+                while not isinstance(hashtable[self.affecters[i].uid].time, datetime):
+                    hashtable[self.affecters[i].uid].time.end = time
+                    i -= 1
+            else:
+                i -= 1
+
+        # step 2, append distinct edges into cand_edges
+        edge_set = set()
         for i, head in enumerate(self.affecters[:len(self.upvoters) + 1]):
             for tail in self.affecters[i+1:]:
+                # answerer 不作为 tail, 因为他能自动接收消息, 不需要推断
+                if head.uid == tail.uid or tail.uid == self.answerer.uid:
+                    continue
                 if self.has_follow_relation(head, tail):
-                    self.cand_edges.append(FollowEdge(head, tail))
+                    realhead = hashtable[head.uid]
+                    realtail = hashtable[tail.uid]
+                    edge = FollowEdge(realhead, realtail)
+                    if edge not in edge_set:
+                        self.cand_edges.append(edge)
+                        edge_set.add(edge)
+
 
     def gen_features(self):
         """
@@ -186,10 +248,6 @@ class StaticAnswer:
                 return 1
 
         # 现在 tail.time 只能是 datetime 了, 因为 tail 必然是 comment or collect
-        if head.time is None:
-            return 0
-
-        # head.time is TimeRange
         return head.time - tail.time
 
     def gen_samples(self):
@@ -257,12 +315,12 @@ if __name__ == '__main__':
     pprint(sa.cand_edges)
     pprint(sa.gen_samples())
 
-    with open('upvoters_87423946', 'w') as f:
+    with open('data/upvoters_87423946', 'w') as f:
         adoc = db.get_collection('19553298_a').find_one({'aid': "87423946"})
         for upvoter in adoc['upvoters']:
             f.write("%s %s\n" % (upvoter['uid'], str(upvoter['time'])))
 
-    with open('upvoters_87424209', 'w') as f:
+    with open('data/upvoters_87424209', 'w') as f:
         adoc = db.get_collection('19550517_a').find_one({'aid': "87424209"})
         for upvoter in adoc['upvoters']:
             f.write("%s %s\n" % (upvoter['uid'], str(upvoter['time'])))
