@@ -22,6 +22,8 @@ script:
   - cd dynamic
   - py.test Integrationstest
   - py.test Unittest --cov=.
+  - cd ../infer
+  - py.test Unittest --cov=.
 
 after_success:
   coveralls
