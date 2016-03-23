@@ -5,7 +5,7 @@ from zhihu import ZhihuClient
 from requests.adapters import HTTPAdapter, Retry
 from requests.auth import HTTPProxyAuth
 
-from common import ROOT
+from icommon import ROOT
 
 logger = logging.getLogger(__name__)
 
