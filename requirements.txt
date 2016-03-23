@@ -4,3 +4,4 @@ ezcf
 pymongo
 huey
 redis
+networkx
