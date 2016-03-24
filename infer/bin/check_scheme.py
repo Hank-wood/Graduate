@@ -5,7 +5,7 @@ database = 'sg1'
 
 a_colls = ["19550517_a", "19551147_a", "19561087_a", "19553298_a"]
 db = pymongo.MongoClient('127.0.0.1', 27017).get_database(database)
-start_search_time = datetime(2016,4,1)
+start_search_time = datetime(1970,1,1)  # change this before run
 
 # check upvoters sorted
 for a_coll in a_colls:
@@ -25,8 +25,12 @@ for a_coll in a_colls:
                 break
 
         if not sort:
+            print(f)
             print("upvoters unsorted:", end=' ')
             print("tid:%s aid:%s" % (a_coll, adoc['aid']))
+            with open('../data/upvoters_' + adoc['aid'], 'w') as f:
+                for upvoter in adoc['upvoters']:
+                    f.write("%s %s\n" % (upvoter['uid'], str(upvoter['time'])))
 
 # check commenters sorted
 for a_coll in a_colls:
