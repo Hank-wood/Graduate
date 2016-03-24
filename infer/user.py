@@ -3,6 +3,8 @@ from functools import reduce
 from typing import Union
 from datetime import datetime
 
+from zhihu.author import ANONYMOUS
+
 
 class UserManager:
     """

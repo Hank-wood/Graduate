@@ -117,7 +117,7 @@ class StaticAnswer:
         """
         pass
 
-    def gen_edges(self):
+    def build_cand_edges(self):
         """
         生成候选边
         顺序, answerer -> up1 -> up2 -> ... -> upn, 分别作为候选边的起点
@@ -173,7 +173,10 @@ class StaticAnswer:
 
         # step 2, append distinct edges into cand_edges
         edge_set = set()
-        for i, head in enumerate(self.affecters[:len(self.upvoters) + 1]):
+        start = 0
+        if self.answerer.uid == '':  # 排除匿名回答者
+            start = 1
+        for i, head in enumerate(self.affecters[start:len(self.upvoters) + 1]):
             for tail in self.affecters[i+1:]:
                 # answerer 不作为 tail, 因为他能自动接收消息, 不需要推断
                 if head.uid == tail.uid or tail.uid == self.answerer.uid:
@@ -252,7 +255,7 @@ class StaticAnswer:
         else:
             return head.time - tail.time  # see TimeRange.__sub__
 
-    def gen_samples(self):
+    def gen_target(self):
         """
         只有当用来从 dynamic 数据训练时才使用此方法
         :return: 0, 1 序列表示某关注关系是否是 follow relation
@@ -287,6 +290,7 @@ class StaticAnswer:
         elif followees is not None:
             return True if head.uid in followees else False
         else:
+            print("%s lacks follower,%s lacks followee" % (head.uid, tail.uid))
             u1 = get_client().author(USER_PREFIX + tail.uid)
             u2 = get_client().author(USER_PREFIX + head.uid)
             if u1.followee_num < u2.follower_num:
@@ -313,9 +317,9 @@ if __name__ == '__main__':
     sys.modules[__name__].__dict__['user_manager'] = UserManager(db.user)
     sa = StaticAnswer(tid='19553298', aid="87423946")
     sa.load_from_dynamic()
-    sa.gen_edges()
+    sa.build_cand_edges()
     pprint(sa.cand_edges)
-    pprint(sa.gen_samples())
+    pprint(sa.gen_target())
 
     with open('data/upvoters_87423946', 'w') as f:
         adoc = db.get_collection('19553298_a').find_one({'aid': "87423946"})

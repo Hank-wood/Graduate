@@ -16,7 +16,6 @@ from threading import Thread
 from time import sleep
 
 import networkx
-from zhihu.author import ANONYMOUS
 from networkx.readwrite import json_graph
 
 from icommon import *
