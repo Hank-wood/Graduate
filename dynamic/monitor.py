@@ -5,6 +5,7 @@
 """
 
 import logging
+import concurrent.futures as cf
 from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 
@@ -57,8 +58,10 @@ class TopicMonitor:
         爬取话题页面，寻找新问题
         """
         self.new_questions = set()
+        futures = []
         for topic in self.topics:
-            self.executor.submit(self.execute, topic)
+            futures.append(self.executor.submit(self.execute, topic))
+        cf.wait(futures, timeout=60, return_when=cf.ALL_COMPLETED)
 
     def execute(self, topic):
         tid = str(topic.id)
