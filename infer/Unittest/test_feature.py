@@ -43,7 +43,7 @@ def test_gen_edges():
 
     sa = StaticAnswer('111', aid)
     sa.load_from_dynamic()
-    sa.gen_edges()
+    sa.build_cand_edges()
     assert sa.cand_edges[0] == \
         FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
                    UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER))
