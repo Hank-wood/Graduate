@@ -189,7 +189,7 @@ class StaticAnswer:
                         self.cand_edges.append(edge)
                         edge_set.add(edge)
 
-    def gen_features(self):
+    def gen_features(self) -> list:
         """
         生成 features
         :return: n_samples * n_features vector
@@ -255,7 +255,7 @@ class StaticAnswer:
         else:
             return head.time - tail.time  # see TimeRange.__sub__
 
-    def gen_target(self):
+    def gen_target(self) -> list:
         """
         只有当用来从 dynamic 数据训练时才使用此方法
         :return: 0, 1 序列表示某关注关系是否是 follow relation

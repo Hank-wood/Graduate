@@ -3,6 +3,8 @@
 """
 import sys
 import time
+import os
+import pickle
 
 import pymongo
 from sklearn import svm
@@ -19,6 +21,13 @@ clf = svm.SVC()
 features = []
 samples = []
 start = time.time()
+
+pickle_filename = 'data/feature.pkl'
+if os.path.exists(pickle_filename):
+    data = pickle.load(open(pickle_filename, 'rb'))
+else:
+    data = {}
+
 with open('data/alltime.txt') as f:
     for line in f:
         tid, qid, _ = line.split(',', maxsplit=2)
@@ -27,13 +36,26 @@ with open('data/alltime.txt') as f:
                 a_collection.find({'qid': qid}, {'aid': 1})]
         for aid in aids:
             answer = StaticAnswer(tid, aid)
-            answer.load_from_dynamic()
-            answer.build_cand_edges()
-            samples.extend(answer.gen_target())
-            features.extend(answer.gen_features())
+            if aid not in data:
+                answer.load_from_dynamic()
+                answer.build_cand_edges()
+                target = answer.gen_target()
+                f = answer.gen_features()
+                data[aid] = {
+                    'edge': answer.cand_edges,
+                    'target': target,
+                    'feature': f
+                }
+                samples.extend(target)
+                features.extend(f)
+            else:
+                samples.extend(data[aid]['target'])
+                features.extend(data[aid]['feature'])
+
+pickle.dump(data, open(pickle_filename, 'wb'))
 
 print(len(features))
 print(len(samples))
 print(time.time() - start)
-clf.fit(features, samples)
+print(clf.fit(features, samples))
 print(time.time() - start)
