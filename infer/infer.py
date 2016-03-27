@@ -78,9 +78,15 @@ def infer_many(db_name, filename):
 
 def infer_question_task(tid, qid, aids):
     info_storage = DynamicQuestionWithAnswer(tid, qid)
+    answers = []
+
+    # 注意, 一定要先初始化完一个问题下的所有回答, 再infer!!
     for aid in aids:
         # print("infer " + aid)
-        DynamicAnswer(tid, aid, info_storage).infer(save_to_db=True)
+        answers.append(DynamicAnswer(tid, aid, info_storage))
+
+    for answer in answers:
+        answer.infer(save_to_db=True)
 
     return len(aids)
 
