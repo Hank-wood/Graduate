@@ -248,8 +248,7 @@ class DynamicAnswer:
             if cand.time >= action.time:
                 if i > 0:
                     # at least one action is ahead of current action
-                    return Relation(self.dqa.user_actions[action.uid][i-1],
-                                    action, RelationType.qlink)
+                    return Relation(self.root, action, RelationType.qlink)
                 break
 
         # 使用 copy 出来的 propagators
