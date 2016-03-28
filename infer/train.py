@@ -46,7 +46,7 @@ def gen_traindata_selected():
                     target = answer.gen_target()
                     f = answer.gen_features()
                     data[aid] = {
-                        'edge': answer.cand_edges,
+                        'edge': answer.cand_follow_edges,
                         'target': target,
                         'feature': f
                     }
@@ -78,7 +78,7 @@ def gen_traindata_from_all():
                 target = answer.gen_target()
                 f = answer.gen_features()
                 data[aid] = {
-                    'edge': answer.cand_edges,
+                    'edge': answer.cand_follow_edges,
                     'target': target,
                     'feature': f
                 }

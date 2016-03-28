@@ -76,7 +76,7 @@ class StaticAnswer:
         self.upvoters = []
         self.commenters = []
         self.collectors = []
-        self.cand_edges = []  # 候选边
+        self.cand_follow_edges = []  # 候选边
         self.affecters = None
         self.answerer = None
         self.answer_time = None
@@ -186,7 +186,7 @@ class StaticAnswer:
                     realtail = hashtable[tail.uid]
                     edge = FollowEdge(realhead, realtail)
                     if edge not in edge_set:
-                        self.cand_edges.append(edge)
+                        self.cand_follow_edges.append(edge)
                         edge_set.add(edge)
 
     def gen_features(self) -> list:
@@ -197,7 +197,7 @@ class StaticAnswer:
         return [
             [self.feature_head_rank(edge),
              *self.feature_node_type(edge),
-             self.feature_relative_order(edge)] for edge in self.cand_edges
+             self.feature_relative_order(edge)] for edge in self.cand_follow_edges
         ]
 
     def feature_head_rank(self, edge: FollowEdge) -> int:
@@ -206,7 +206,7 @@ class StaticAnswer:
         """
         rank = 0
         head, tail = edge.head, edge.tail
-        for cand in self.cand_edges:
+        for cand in self.cand_follow_edges:
             if cand.tail is tail:
                 if cand.head is head:
                     return rank
@@ -266,7 +266,7 @@ class StaticAnswer:
             (l['source'], l['target']) for l in tree_data['links']
             if l['reltype']==RelationType.follow
         }
-        for cand in self.cand_edges:
+        for cand in self.cand_follow_edges:
             if (cand.head.uid, cand.tail.uid) in links:
                 samples.append(1)
             else:
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     sa = StaticAnswer(tid='19553298', aid="87423946")
     sa.load_from_dynamic()
     sa.build_cand_edges()
-    pprint(sa.cand_edges)
+    pprint(sa.cand_follow_edges)
     pprint(sa.gen_target())
 
     with open('data/upvoters_87423946', 'w') as f:

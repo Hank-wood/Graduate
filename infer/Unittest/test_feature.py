@@ -44,79 +44,79 @@ def test_gen_edges():
     sa = StaticAnswer('111', aid)
     sa.load_from_dynamic()
     sa.build_cand_edges()
-    assert sa.cand_edges[0] == \
-        FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
+    assert sa.cand_follow_edges[0] == \
+           FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
                    UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER))
 
-    assert sa.cand_edges[1] == \
-        FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
+    assert sa.cand_follow_edges[1] == \
+           FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
                    UserAction(TimeRange(t2, t3), aid, 'u3', UPVOTE_ANSWER))
 
-    assert sa.cand_edges[2] == \
-        FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
+    assert sa.cand_follow_edges[2] == \
+           FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
                    UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER))
 
-    assert sa.cand_edges[3] == \
-        FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
+    assert sa.cand_follow_edges[3] == \
+           FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
                    UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER))
 
-    assert sa.cand_edges[4] == \
+    assert sa.cand_follow_edges[4] == \
            FollowEdge(UserAction(t1, aid, 'u1', ANSWER_QUESTION|COMMENT_ANSWER),
                       UserAction(t5, aid, 'u7', COMMENT_ANSWER))
 
-    assert sa.cand_edges[5] == \
-        FollowEdge(UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER),
+    assert sa.cand_follow_edges[5] == \
+           FollowEdge(UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER),
                    UserAction(TimeRange(t2, t3), aid, 'u3', UPVOTE_ANSWER))
 
-    assert sa.cand_edges[6] == \
-        FollowEdge(UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER),
+    assert sa.cand_follow_edges[6] == \
+           FollowEdge(UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER),
                    UserAction(t3, aid, 'u4', UPVOTE_ANSWER | COLLECT_ANSWER))
 
-    assert sa.cand_edges[7] == \
-        FollowEdge(UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER),
+    assert sa.cand_follow_edges[7] == \
+           FollowEdge(UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER),
                    UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER))
 
-    assert sa.cand_edges[8] == \
+    assert sa.cand_follow_edges[8] == \
            FollowEdge(UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER),
                       UserAction(t5, aid, 'u7', COMMENT_ANSWER))
 
-    assert sa.cand_edges[9] == \
+    assert sa.cand_follow_edges[9] == \
            FollowEdge(UserAction(TimeRange(t2, t3), aid, 'u3', UPVOTE_ANSWER),
                       UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER))
 
-    assert sa.cand_edges[10] == \
+    assert sa.cand_follow_edges[10] == \
            FollowEdge(UserAction(TimeRange(t2, t3), aid, 'u3', UPVOTE_ANSWER),
                       UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER))
 
-    assert sa.cand_edges[11] == \
+    assert sa.cand_follow_edges[11] == \
            FollowEdge(UserAction(TimeRange(t2, t3), aid, 'u3', UPVOTE_ANSWER),
                       UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER))
 
-    assert sa.cand_edges[12] == \
+    assert sa.cand_follow_edges[12] == \
            FollowEdge(UserAction(TimeRange(t2, t3), aid, 'u3', UPVOTE_ANSWER),
                       UserAction(t5, aid, 'u7', COMMENT_ANSWER))
 
-    assert sa.cand_edges[13] == \
-        FollowEdge(UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER),
+    assert sa.cand_follow_edges[13] == \
+           FollowEdge(UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER),
                    UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER))
 
-    assert sa.cand_edges[14] == \
+    assert sa.cand_follow_edges[14] == \
            FollowEdge(UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER),
                       UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER))
 
-    assert sa.cand_edges[15] == \
+    assert sa.cand_follow_edges[15] == \
            FollowEdge(UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER),
                       UserAction(t5, aid, 'u7', COMMENT_ANSWER))
 
-    assert sa.cand_edges[16] == \
-        FollowEdge(UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER),
+    assert sa.cand_follow_edges[16] == \
+           FollowEdge(UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER),
                    UserAction(t2, aid, 'u2', UPVOTE_ANSWER|COMMENT_ANSWER|COLLECT_ANSWER))
 
-    assert sa.cand_edges[17] == \
+    assert sa.cand_follow_edges[17] == \
            FollowEdge(UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER),
                       UserAction(t5, aid, 'u7', COMMENT_ANSWER))
 
-    assert sa.cand_edges[18] == \
+    assert sa.cand_follow_edges[18] == \
            FollowEdge(UserAction(TimeRange(t3), aid, 'u5', UPVOTE_ANSWER),
                       UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER))
 
