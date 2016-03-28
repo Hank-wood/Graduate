@@ -14,6 +14,8 @@ from datetime import datetime
 from os import path
 from threading import Thread
 from time import sleep
+from itertools import groupby
+
 
 import networkx
 from networkx.readwrite import json_graph
@@ -37,6 +39,7 @@ class DynamicQuestionWithAnswer:
         self.answers = {}  # {uid: UserAction(acttype=ANSWER_QUESTION)}
         self.propagators = PriorityQueue()
         self.load_question_followers()
+        self.user_actions = {}  # 记录所有 user action for qlink match
 
     def load_question_followers(self):
         """
@@ -63,6 +66,11 @@ class DynamicQuestionWithAnswer:
         answer_act = propagators[0]
         self.answers[answer_act.uid] = answer_act
         list(map(self.propagators.put, propagators))
+
+    def add_user_actions(self, user_actions: dict):
+        for key, value in user_actions.items():
+            self.user_actions[key] = self.user_actions.get(key, []) + value
+            self.user_actions[key].sort(key=lambda x: x.time)
 
 
 class DynamicAnswer:
@@ -106,6 +114,16 @@ class DynamicAnswer:
         propagators = self.upvoters.copy()
         propagators.insert(0, UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION))
         self.dqa.add_answer_propagator(self.aid, propagators)
+
+        # fill user_actions
+        all_user_actions = [self.root] + self.upvoters + self.commenters + self.collectors
+        key = lambda x: x.uid
+        all_user_actions.sort(key=key)
+        user_actions = {}
+        for key, group in groupby(all_user_actions, key=key):
+            if key != '':  # 排除匿名
+                user_actions[key] = list(group)
+        self.dqa.add_user_actions(user_actions)
 
     def infer(self, save_to_db):
         cp = copy(self.dqa.propagators)  # 防止修改IS.propagators
@@ -219,10 +237,21 @@ class DynamicAnswer:
 
         # 作为回答者接收到新回答提醒
         if action.uid in self.dqa.answers:
-            if self.dqa.answers[action.uid].time < action.time:
+            if self.dqa.answers[action.uid].time < action.time \
+                    and self.dqa.answers[action.uid].time < self.answer_time:
                 return Relation(self.root, action, RelationType.notification)
 
         # 推断 qlink
+        # 如果在另一个回答中出现了同一个uid, 不论是ans/up/cm/col, 都可直接判定 qlink 关系
+        # 当然还得满足时间关系. 此时 Relation 的 head 设置成另一个回答里同uid 的 action
+        for i, cand in enumerate(self.dqa.user_actions[action.uid]):
+            if cand.time >= action.time:
+                if i > 0:
+                    # at least one action is ahead of current action
+                    return Relation(self.dqa.user_actions[action.uid][i-1],
+                                    action, RelationType.qlink)
+                break
+
         # 使用 copy 出来的 propagators
         # 取最靠近 time 的那个propagator，因为在时间线上新的东西会先被看见
         # 为了确定最接近的，使用 bisect_left 找到插入位置，左边的那个就是目标propagator
