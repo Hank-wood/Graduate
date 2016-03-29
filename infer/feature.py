@@ -80,6 +80,7 @@ class StaticAnswer:
         self.affecters = None
         self.answerer = None
         self.answer_time = None
+        self.hashtable = {}  # UserAction Merge result, {uid: UserAction}
 
     def load_from_dynamic(self):
         """
@@ -91,6 +92,7 @@ class StaticAnswer:
         self.answerer = UserAction(answer_doc['time'], self.aid,
                                    answer_doc['answerer'], ANSWER_QUESTION)
         self.answer_time = answer_doc['time']
+        self.root = UserAction(answer_doc['time'], self.aid, uid, ANSWER_QUESTION)
 
         # 和 dynamic 不同, upvote time 设置成 None
         self.upvote_ids = [u['uid'] for u in answer_doc['upvoters']]
@@ -131,7 +133,7 @@ class StaticAnswer:
         """
 
         # step 1, build hashtable, values are useractions used in cand_edges
-        hashtable = {}  # record uid -> UserAction
+        hashtable = self.hashtable  # record uid -> UserAction
         for useraction in self.affecters:
             uid = useraction.uid
             if uid not in hashtable:
@@ -300,14 +302,155 @@ class StaticAnswer:
                 followers = user_manager.fetch_user_follower(u2)
                 return True if tail.uid in followers else False
 
+    def infer_preparation(self, sqa):
+        """
+        :param sqa: StaticQuestionWithAnswer object
+        infer 的准备工作, 填充 StaticQuestionWithAnswer 数据
+        """
+        self.sqa = sqa
+        self.graph = networkx.DiGraph()
+        self.add_node(self.root)
+
+        # fill user_actions
+        all_user_actions = [self.root] + self.upvoters + self.commenters + self.collectors
+        key = lambda x: x.uid
+        all_user_actions.sort(key=key)
+        user_actions = {}
+        for key, group in groupby(all_user_actions, key=key):
+            if key != '':  # 排除匿名
+                user_actions[key] = list(group)
+        self.sqa.add_user_actions(user_actions)
+
+    def infer(self, model):
+        """
+        推断静态传播图
+        :return:
+        """
+        self.add_follow_edges(model)
+        # 筛选出不存在于图中 or in-degree=0 的点
+        for uid, merged_action in self.hashtable.items():
+            if self.graph.has_node(uid) and self.graph.in_degree(uid) > 0:
+                continue
+            self._infer_node(merged_action)
+
+    def add_follow_edges(self, model):
+        """
+        用训练好的模型标注 follow 边, 把 follow 边加入图中
+        :param model: 训练好的模型
+        :return:
+        """
+        result = clf.predict(self.cand_follow_edges)
+        for value, edge in zip(result, self.cand_follow_edges):
+            head, tail = edge.head, edge.tail
+            if value:
+                # 添加标注为 follow 关系的 edge 的 head, tail
+                if not self.graph.has_node(head.uid):
+                    self.graph.add_node(head)
+                if not self.graph.has_node(tail.uid):
+                    self.graph.add_node(tail)
+                self.graph.add_edge(head, tail, RelationType.follow)
+
+    def _infer_node(self, action):
+        """
+        infer noti, qlink, recommendation relation
+        """
+
+        # noti
+        # qlink 如果不是 follow&noti, 且有在其它答案中出现, 那么就认为是 qlink
+
+
+
+    def add_node(self, useraction: UserAction):
+        self.graph.add_node(useraction.uid,
+                            aid=useraction.aid,
+                            acttype=useraction.acttype,
+                            time=useraction.time)
+
+    def add_edge(self, useraction1, useraction2, reltype):
+        self.graph.add_edge(useraction1.uid, useraction2.uid, reltype=reltype)
+
 
 class StaticQuestionWithAnswer:
     """
     表示一个静态问题和它的所有答案, 用于启发式推断 qlink, noti, recomm
+    一定记得在调用 StaticAnswer.infer 之前调用所有 StaticAnswer 的 infer_preparation
+    和 fill_question_follower_time
     """
     def __init__(self):
-        pass
+        self.user_actions = {}  # 记录所有 user action for qlink match
+        self.question_followers = []  # [UserAction]
+        self.load_question_followers()
 
+    def add_user_actions(self, user_actions: dict):
+        for key, value in user_actions.items():
+            self.user_actions[key] = self.user_actions.get(key, []) + value
+            self.user_actions[key].sort(key=lambda x: x.time)
+
+    def fill_question_follower_time(self):
+        """
+        在所有答案的 infer_preparation 调用完之后调用
+        填充 question follower 时间信息. 算法如下
+        生成一个序列
+        [t1, t2, t3, ...]
+        每个元素是
+        1) 唯一的 follower.time
+        2) (user_action[uid][0].time + user_action[uid][-1].time) / 2
+        在这个序列上跑 Longest Increasing Subsequence 算法
+        check 生成的 LIS, 如果一个 meantime 没有被选中, 则看它的时间段和左右两边有无重合
+        如果有重合, 则把这个重合时间段的中点作为时间
+        """
+        time_list = []
+        index_of_followers = []
+
+        for i, follower in enumerate(self.question_followers):
+            uid = follower.uid
+            if uid in self.user_actions:
+                action_list = self.user_actions[uid]
+                index_in_followers.append(i)
+                if len(action_list) == 1:
+                    time_list.append(action_list[0].time)
+                else:
+                    time_list.append((action_list[0].time + action_list[-1].time)/2)
+
+        time_picked, index_of_timelist = longestIncreasingSubsequence(time_list)
+        # 填充在 LIS 中的时间
+        for time, index in zip(time_picked, index_of_timelist):
+            if index == 0:
+                continue    # skip asker
+            index_of_follower = index_of_followers[index]
+            self.question_followers[index_of_follower].time = time
+
+        # 填充 TimeRange.start
+        left_time = self.question_followers[0].time
+        for follower in self.question_followers:
+            if follower.time:
+                left_time = follower.time
+                continue
+            follower.time = TimeRange(start=left_time)
+
+        # 填充 TimeRange.end
+        right_time = None
+        for follower in reversed(self.question_followers):
+            if isinstance(follower.time, datetime):
+                right_time = follower.time
+                continue
+            follower.time.end = right_time
+
+    def load_question_followers(self):
+        """
+        load question followers from database. 同时加入 propagators
+        """
+        q_doc = db[q_col(self.tid)].find_one({'qid': self.qid})
+        assert q_doc is not None
+        self.question_followers.append(
+            UserAction(q_doc['time'], '', q_doc['asker'], ASK_QUESTION)
+        )
+        # follower 是从老到新, 顺序遍历可保证 question_followers 从老到新
+        for f in q_doc['follower']:
+            follow_action = UserAction(None, '', f['uid'], FOLLOW_QUESTION)
+            self.question_followers.append(follow_action)
+
+        # list(map(self.propagators.put, self.question_followers))
 
 if __name__ == '__main__':
     import pymongo
