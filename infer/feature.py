@@ -33,6 +33,7 @@ from itertools import chain
 from typing import Union
 from datetime import datetime
 from copy import copy
+from collections import defaultdict
 
 from icommon import *
 from iutils import *
@@ -45,18 +46,29 @@ class TimeRange:
         self.start = start
         self.end = end
 
-    def __sub__(self, other: datetime):
+    def __sub__(self, other: Union[datetime, TimeRange]):
         """
-        :param other: comment or collect 时间, upvote已经用相对顺序判定
-        因此不会发生两个 TimeRange 相减的情况
-        :return: 1, -1, 0
+        用来判断时间相对顺序
+        :return:
+            -1 if self <= other;
+            1 if self >= other;
+            0 if unknown
         """
-        if self.start is not None and self.start > other:
-            return 1  # self > other
-        elif self.end is not None and self.end < other:
-            return -1  # self < other
+        if isinstance(other, datetime):
+            if self.start and self.start >= other:
+                return 1  # self > other
+            elif self.end and self.end <= other:
+                return -1  # self < other
+            else:
+                return 0  # unknown
         else:
-            return 0  # unknown
+            # TimeRange
+            if self.end and other.start and self.end <= other.start:
+                return -1
+            elif self.start and other.end and self.start >= other.end:
+                return 1
+            else:
+                return 0
 
     def __eq__(self, other):
         return self.start == other.start and self.end == other.end
@@ -80,7 +92,7 @@ class StaticAnswer:
         self.affecters = None
         self.answerer = None
         self.answer_time = None
-        self.hashtable = {}  # UserAction Merge result, {uid: UserAction}
+        self.merged_action_table = {}  # UserAction Merge result, {uid: UserAction}
 
     def load_from_dynamic(self):
         """
@@ -133,7 +145,7 @@ class StaticAnswer:
         """
 
         # step 1, build hashtable, values are useractions used in cand_edges
-        hashtable = self.hashtable  # record uid -> UserAction
+        hashtable = self.merged_action_table  # record uid -> UserAction
         for useraction in self.affecters:
             uid = useraction.uid
             if uid not in hashtable:
@@ -197,12 +209,12 @@ class StaticAnswer:
         :return: n_samples * n_features vector
         """
         return [
-            [self.feature_head_rank(edge),
-             *self.feature_node_type(edge),
-             self.feature_relative_order(edge)] for edge in self.cand_follow_edges
-        ]
+            [self._feature_head_rank(edge),
+             *self._feature_node_type(edge),
+             self._feature_relative_order(edge)] for edge in self.cand_follow_edges
+            ]
 
-    def feature_head_rank(self, edge: FollowEdge) -> int:
+    def _feature_head_rank(self, edge: FollowEdge) -> int:
         """
         head 在 tail 的候选中排第几
         """
@@ -215,7 +227,8 @@ class StaticAnswer:
                 else:
                     rank += 1
 
-    def feature_node_type(self, edge: FollowEdge) -> list:
+    @staticmethod
+    def _feature_node_type(self, edge: FollowEdge) -> list:
         """
         因为head不是 answer 就是upvote,所以其实特征只需要提供 is_answer
         :return:
@@ -229,7 +242,7 @@ class StaticAnswer:
             is_collect(tail)
         ]
 
-    def feature_relative_order(self, edge: FollowEdge) -> int:
+    def _feature_relative_order(self, edge: FollowEdge) -> int:
         """
         判断 edge.head, edge.tail 相对顺序
         head 只可能 answer or upvote
@@ -310,36 +323,16 @@ class StaticAnswer:
         self.sqa = sqa
         self.graph = networkx.DiGraph()
         self.add_node(self.root)
-
-        # fill user_actions
-        all_user_actions = [self.root] + self.upvoters + self.commenters + self.collectors
-        key = lambda x: x.uid
-        all_user_actions.sort(key=key)
-        user_actions = {}
-        for key, group in groupby(all_user_actions, key=key):
-            if key != '':  # 排除匿名
-                user_actions[key] = list(group)
-        self.sqa.add_user_actions(user_actions)
+        self.build_cand_edges()
+        # fill user_actions, 这里用 merged useraction
+        self.sqa.add_user_actions(self.merged_action_table)
 
     def infer(self, model):
         """
         推断静态传播图
-        :return:
         """
-        self.add_follow_edges(model)
-        # 筛选出不存在于图中 or in-degree=0 的点
-        for uid, merged_action in self.hashtable.items():
-            if self.graph.has_node(uid) and self.graph.in_degree(uid) > 0:
-                continue
-            self._infer_node(merged_action)
-
-    def add_follow_edges(self, model):
-        """
-        用训练好的模型标注 follow 边, 把 follow 边加入图中
-        :param model: 训练好的模型
-        :return:
-        """
-        result = clf.predict(self.cand_follow_edges)
+        # 用训练好的模型标注 follow 边, 把 follow 边加入图中
+        result = clf.predict(self.gen_features())
         for value, edge in zip(result, self.cand_follow_edges):
             head, tail = edge.head, edge.tail
             if value:
@@ -350,13 +343,51 @@ class StaticAnswer:
                     self.graph.add_node(tail)
                 self.graph.add_edge(head, tail, RelationType.follow)
 
+        # 筛选出不存在于图中 or in-degree=0 的点
+        for uid, merged_action in self.merged_action_table.items():
+            if self.graph.has_node(uid) and self.graph.in_degree(uid) > 0:
+                continue
+            relation = self._infer_node(merged_action)
+            self.add_node(relation.tail)
+            self.add_edge(*relation)
+
     def _infer_node(self, action):
         """
         infer noti, qlink, recommendation relation
         """
+        # user_manager 由外部加载
+        from client_pool2 import get_client2 as get_client
+        followees = user_manager.get_user_followee(action.uid, action.time)
+        followees = set(followees) if followees is not None else None
+        uid = action.uid
+        action_time = action.time
 
         # noti
-        # qlink 如果不是 follow&noti, 且有在其它答案中出现, 那么就认为是 qlink
+        if uid in self.sqa.question_follower_dict:
+            follow_time = self.sqa.question_follower_dict[action.uid].time
+            # follow_time 不是 datetime 就是 TimeRange
+            if isinstance(follow_time, datetime) and follow_time <= self.answer_time:
+                return Relation(self.root, action, RelationType.notification)
+            elif follow_time - self.answer_time <= 0:
+                # 这里认为只要 follow_time 不确定晚于答案时间, 就是 noti
+                return Relation(self.root, action, RelationType.notification)
+
+        # qlink
+        # 同 uid 在其它答案中出现, 且时间有可能早于当前操作, 就认为是 qlink
+        for cand in self.sqa.user_actions[uid]:
+            if cand.aid == self.aid:
+                continue
+            cand_time_is_datetime = isinstance(cand.time, datetime)
+            cand_time_is_timerange = isinstance(cand.time, TimeRange)
+            action_time_is_datetime = isinstance(action_time, datetime)
+            action_time_is_timerange = isinstance(action_time, TimeRange)
+
+            if cand_time_is_datetime and action_time_is_datetime and cand.time < action_time:
+                return Relation(self.root, action, RelationType.qlink)
+            elif cand_time_is_timerange and cand.time - action_time <= 0:
+                return Relation(self.root, action, RelationType.qlink)
+            elif action_time_is_timerange and action_time - cand.time >= 0:
+                return Relation(self.root, action, RelationType.qlink)
 
 
 
@@ -377,14 +408,15 @@ class StaticQuestionWithAnswer:
     和 fill_question_follower_time
     """
     def __init__(self):
-        self.user_actions = {}  # 记录所有 user action for qlink match
+        self.user_actions = defaultdict(list)  # 记录所有 user action for qlink match
         self.question_followers = []  # [UserAction]
+        self.question_follower_dict = {}  # {uid->UserAction}
         self.load_question_followers()
 
     def add_user_actions(self, user_actions: dict):
-        for key, value in user_actions.items():
-            self.user_actions[key] = self.user_actions.get(key, []) + value
-            self.user_actions[key].sort(key=lambda x: x.time)
+        for uid, merged_action in user_actions.items():
+            # 不按时间排序, 因为存在 None, TimeRange 等无法排序的时间
+            self.user_actions[key].append(merged_action)
 
     def fill_question_follower_time(self):
         """
@@ -450,6 +482,8 @@ class StaticQuestionWithAnswer:
             follow_action = UserAction(None, '', f['uid'], FOLLOW_QUESTION)
             self.question_followers.append(follow_action)
 
+        for follower in self.question_followers:
+            self.question_follower_dict[follower.uid] = follower
         # list(map(self.propagators.put, self.question_followers))
 
 if __name__ == '__main__':

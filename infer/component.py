@@ -200,7 +200,6 @@ class DynamicAnswer:
 
     def _infer_node(self, action, propagators, times, upvoters_added):
         from client_pool2 import get_client2 as get_client
-        # 所有的 user 信息都从 IS 获取
         followees = user_manager.get_user_followee(action.uid, action.time)
         followees = set(followees) if followees is not None else None
 
@@ -244,12 +243,14 @@ class DynamicAnswer:
 
         # 推断 qlink
         # 如果在另一个回答中出现了同一个uid, 不论是ans/up/cm/col, 都可直接判定 qlink 关系
-        # 当然还得满足时间关系. 此时 Relation 的 head 设置成另一个回答里同uid 的 action
-        for i, cand in enumerate(self.dqa.user_actions[action.uid]):
-            if cand.time >= action.time:
-                if i > 0:
-                    # at least one action is ahead of current action
-                    return Relation(self.root, action, RelationType.qlink)
+        # 当然还得满足时间关系. user_actions is sorted by time
+        for cand in self.dqa.user_actions[action.uid]:
+            if cand.aid == self.aid:
+                continue
+
+            if cand.time < action.time:
+                return Relation(self.root, action, RelationType.qlink)
+            else:
                 break
 
         # 使用 copy 出来的 propagators
