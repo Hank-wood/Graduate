@@ -36,6 +36,7 @@ class DynamicQuestionWithAnswer:
         self.qid = qid
         # 记录各个答案提供的能影响其它用户的用户, 推断qlink
         self.question_followers = []  # [UserAction]
+        self.question_follower_dict = {}  # {uid->UserAction}
         self.answers = {}  # {uid: UserAction(acttype=ANSWER_QUESTION)}
         self.propagators = PriorityQueue()
         self.load_question_followers()
@@ -56,6 +57,8 @@ class DynamicQuestionWithAnswer:
             self.question_followers.append(follow_action)
 
         interpolate(self.question_followers)
+        for follower in self.question_followers:
+            self.question_follower_dict[follower.uid] = follower
         list(map(self.propagators.put, self.question_followers))
 
     def add_answer_propagator(self, aid, propagators):
@@ -228,12 +231,10 @@ class DynamicAnswer:
 
         # 如果不是follow 关系, 推断 qlink+notification, 优先级 noti > qlink
         # 推断 notification
-        for follow_action in self.dqa.question_followers:
-            if follow_action.time < self.answer_time:
-                if follow_action.uid == action.uid:
-                    return Relation(self.root, action, RelationType.notification)
-            else:
-                break  # 关注早于答案,才能收到notification
+        if action.uid in self.dqa.question_follower_dict:
+            # 关注早于答案,才能收到notification
+            if self.dqa.question_follower_dict[action.uid].time < self.answer_time:
+                return Relation(self.root, action, RelationType.notification)
 
         # 作为回答者接收到新回答提醒
         if action.uid in self.dqa.answers:
