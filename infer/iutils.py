@@ -279,6 +279,51 @@ def is_answer(action: UserAction):
     acttype = action.acttype
     return True if acttype & 0b000100 else False
 
+"""
+O(nlgn) Solution
+http://www.geeksforgeeks.org/longest-monotonically-increasing-subsequence-size-n-log-n/
+"""
+def longestIncreasingSubsequence(nums):
+
+    if nums is None or len(nums) == 0:
+        return 0
+
+    if len(nums) == 1:
+        return 1
+
+    active_lists = []  # record tail element of active lists
+    index_list = []
+
+    for i, num in enumerate(nums):
+        if not active_lists:
+            active_lists.append(num)
+            index_list.append(i)
+        elif num >= active_lists[-1]:
+            active_lists.append(num)
+            index_list.append(i)
+        elif num < active_lists[0]:
+            active_lists[0] = num
+            index_list[0] = i
+        else:
+            index = ceil_index(active_lists, 0, len(active_lists)-1, num)
+            active_lists[index] = num
+            index_list[index] = i
+
+    return active_lists, index_list
+
+
+def ceil_index(al, start, end, target):
+    while start + 1 < end:
+        mid = start + (end - start)//2
+        if al[mid] <= target:
+            start = mid
+        else:
+            end = mid
+
+    if al[end] <= target:
+        return end + 1
+    else:
+        return end
 
 __all__ = [
     'a_col', 'q_col', 'get_time_string', 'now_string',
@@ -286,5 +331,6 @@ __all__ = [
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
     'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
     'acttype2str', 'MyEncoder', 'a_to_q', 'q_to_a', 'Transform',
-    'trans_before_save', 'is_upvote', 'is_comment', 'is_collect', 'is_answer'
+    'trans_before_save', 'is_upvote', 'is_comment', 'is_collect', 'is_answer',
+    'longestIncreasingSubsequence'
 ]
