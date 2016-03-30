@@ -46,35 +46,38 @@ class TimeRange:
         self.start = start
         self.end = end
 
-    def __sub__(self, other: Union[datetime, TimeRange]):
-        """
-        用来判断时间相对顺序
-        :return:
-            -1 if self <= other;
-            1 if self >= other;
-            0 if unknown
-        """
-        if isinstance(other, datetime):
-            if self.start and self.start >= other:
-                return 1  # self > other
-            elif self.end and self.end <= other:
-                return -1  # self < other
-            else:
-                return 0  # unknown
-        else:
-            # TimeRange
-            if self.end and other.start and self.end <= other.start:
-                return -1
-            elif self.start and other.end and self.start >= other.end:
-                return 1
-            else:
-                return 0
-
     def __eq__(self, other):
         return self.start == other.start and self.end == other.end
 
     def __str__(self):
         return str(self.__dict__)
+
+
+def sub(self, other: Union[datetime, TimeRange]):
+    """
+    用来判断时间相对顺序
+    :return:
+        -1 if self <= other;
+        1 if self >= other;
+        0 if unknown
+    """
+    if isinstance(other, datetime):
+        if self.start and self.start >= other:
+            return 1  # self > other
+        elif self.end and self.end <= other:
+            return -1  # self < other
+        else:
+            return 0  # unknown
+    else:
+        # TimeRange
+        if self.end and other.start and self.end <= other.start:
+            return -1
+        elif self.start and other.end and self.start >= other.end:
+            return 1
+        else:
+            return 0
+
+TimeRange.__sub__ = sub
 
 
 class StaticAnswer:
