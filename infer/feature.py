@@ -29,55 +29,19 @@ answer 四元组删除，time = None
 提取的 feature 只是为了推断 follow，用不到 question 和其它 answer 的信息
 """
 
+import json
 from itertools import chain
 from typing import Union
-from datetime import datetime
 from copy import copy
 from collections import defaultdict
+
+import networkx
+from networkx.readwrite import json_graph
 
 from icommon import *
 from iutils import *
 from user import UserManager
 from client_pool2 import get_client
-
-
-class TimeRange:
-    def __init__(self, start=None, end=None):
-        self.start = start
-        self.end = end
-
-    def __eq__(self, other):
-        return self.start == other.start and self.end == other.end
-
-    def __str__(self):
-        return str(self.__dict__)
-
-
-def sub(self, other: Union[datetime, TimeRange]):
-    """
-    用来判断时间相对顺序
-    :return:
-        -1 if self <= other;
-        1 if self >= other;
-        0 if unknown
-    """
-    if isinstance(other, datetime):
-        if self.start and self.start >= other:
-            return 1  # self > other
-        elif self.end and self.end <= other:
-            return -1  # self < other
-        else:
-            return 0  # unknown
-    else:
-        # TimeRange
-        if self.end and other.start and self.end <= other.start:
-            return -1
-        elif self.start and other.end and self.start >= other.end:
-            return 1
-        else:
-            return 0
-
-TimeRange.__sub__ = sub
 
 
 class StaticAnswer:
@@ -93,7 +57,7 @@ class StaticAnswer:
         self.collectors = []
         self.cand_follow_edges = []  # 候选边
         self.affecters = None
-        self.answerer = None
+        self.root = None
         self.answer_time = None
         self.merged_action_table = {}  # UserAction Merge result, {uid: UserAction}
 
@@ -104,10 +68,9 @@ class StaticAnswer:
         # TODO: db 从外部加载
         answer_doc = db[a_col(self.tid)].find_one({'aid': self.aid})
         assert answer_doc is not None
-        self.answerer = UserAction(answer_doc['time'], self.aid,
-                                   answer_doc['answerer'], ANSWER_QUESTION)
+        self.root = UserAction(answer_doc['time'], self.aid,
+                               answer_doc['answerer'], ANSWER_QUESTION)
         self.answer_time = answer_doc['time']
-        self.root = UserAction(answer_doc['time'], self.aid, uid, ANSWER_QUESTION)
 
         # 和 dynamic 不同, upvote time 设置成 None
         self.upvote_ids = [u['uid'] for u in answer_doc['upvoters']]
@@ -126,7 +89,7 @@ class StaticAnswer:
         # 插值. comment 肯定有时间信息, 不处理
         interpolate(self.collectors)
         self.affecters = list(chain(
-            [self.answerer], self.upvoters, self.commenters, self.collectors))
+            [self.root], self.upvoters, self.commenters, self.collectors))
 
     def load_from_static(self):
         """
@@ -191,12 +154,12 @@ class StaticAnswer:
         # step 2, append distinct edges into cand_edges
         edge_set = set()
         start = 0
-        if self.answerer.uid == '':  # 排除匿名回答者
+        if self.root.uid == '':  # 排除匿名回答者
             start = 1
         for i, head in enumerate(self.affecters[start:len(self.upvoters) + 1]):
             for tail in self.affecters[i+1:]:
                 # answerer 不作为 tail, 因为他能自动接收消息, 不需要推断
-                if head.uid == tail.uid or tail.uid == self.answerer.uid:
+                if head.uid == tail.uid or tail.uid == self.root.uid:
                     continue
                 if self.has_follow_relation(head, tail):
                     realhead = hashtable[head.uid]
@@ -231,7 +194,7 @@ class StaticAnswer:
                     rank += 1
 
     @staticmethod
-    def _feature_node_type(self, edge: FollowEdge) -> list:
+    def _feature_node_type(edge: FollowEdge) -> list:
         """
         因为head不是 answer 就是upvote,所以其实特征只需要提供 is_answer
         :return:
@@ -339,24 +302,64 @@ class StaticAnswer:
         推断静态传播图
         """
         # 用训练好的模型标注 follow 边, 把 follow 边加入图中
-        result = clf.predict(self.gen_features())
+        result = model.predict(self.gen_features())
         for value, edge in zip(result, self.cand_follow_edges):
             head, tail = edge.head, edge.tail
             if value:
                 # 添加标注为 follow 关系的 edge 的 head, tail
                 if not self.graph.has_node(head.uid):
-                    self.graph.add_node(head)
+                    self.add_node(head)
                 if not self.graph.has_node(tail.uid):
-                    self.graph.add_node(tail)
-                self.graph.add_edge(head, tail, RelationType.follow)
+                    self.add_node(tail)
+                self.add_edge(head, tail, RelationType.follow)
 
         # 筛选出不存在于图中 or in-degree=0 的点
         for uid, merged_action in self.merged_action_table.items():
+            if uid == self.root.uid:
+                continue    # skip answerer
             if self.graph.has_node(uid) and self.graph.in_degree(uid) > 0:
                 continue
             relation = self._infer_node(merged_action)
             self.add_node(relation.tail)
             self.add_edge(*relation)
+
+        save_to_db = False
+        for node in self.graph.nodes():
+            self.graph.node[node]['acttype'] = acttype2str(self.graph.node[node]['acttype'])
+            path = [node]
+            while node != self.root.uid:
+                parent = self.graph.predecessors(node)
+                if parent:
+                    node = parent[0]
+                    path.insert(0, node)
+                else:
+                    print(path)
+                    break
+            else:
+                print(path)
+
+        print(self.graph.number_of_nodes())
+        print(self.graph.number_of_edges())
+
+        tree_data = json_graph.tree_data(self.graph, root=self.root.uid)
+        node_links = json_graph.node_link_data(self.graph)
+        links = [
+            {
+                'source': node_links['nodes'][link['source']]['id'],
+                'target': node_links['nodes'][link['target']]['id'],
+                'reltype': link['reltype']
+            }
+            for link in node_links['links']
+            ]
+        tree_data['links'] = links
+
+        if save_to_db:
+            db2.dynamic.replace_one({'aid': self.aid},
+                                    trans_before_save(tree_data),
+                                    upsert=True)
+        else:
+            with open('data/dump2.json', 'w') as f:
+                json.dump(tree_data, f, cls=MyEncoder, indent='\t')
 
     def _infer_node(self, action):
         """
@@ -455,7 +458,9 @@ class StaticQuestionWithAnswer:
     一定记得在调用 StaticAnswer.infer 之前调用所有 StaticAnswer 的 infer_preparation
     和 fill_question_follower_time
     """
-    def __init__(self):
+    def __init__(self, tid, qid):
+        self.tid = tid
+        self.qid = qid
         self.user_actions = defaultdict(list)  # 记录所有 user action for qlink match
         self.question_followers = []  # [UserAction]
         self.question_follower_dict = {}  # {uid->UserAction}
@@ -465,7 +470,8 @@ class StaticQuestionWithAnswer:
     def add_user_actions(self, user_actions: dict):
         for uid, merged_action in user_actions.items():
             # 不按时间排序, 因为存在 None, TimeRange 等无法排序的时间
-            self.user_actions[key].append(merged_action)
+            # 提问者和 question followers 是不在 user_actions 里的
+            self.user_actions[uid].append(merged_action)
 
     def add_answer_propagator(self, propagators):
         self.propagators.extend(propagators)
@@ -486,21 +492,23 @@ class StaticQuestionWithAnswer:
         time_list = []
         index_of_followers = []
 
-        for i, follower in enumerate(self.question_followers):
+        # 不包含提问者, 防止提问者被他的其它操作的时间污染
+        for i, follower in enumerate(self.question_followers[1:], 1):
             uid = follower.uid
             if uid in self.user_actions:
                 action_list = self.user_actions[uid]
-                index_in_followers.append(i)
+                index_of_followers.append(i)
                 if len(action_list) == 1:
-                    time_list.append(action_list[0].time)
+                    time_list.append(timerange2datetime(action_list[0].time))
                 else:
-                    time_list.append((action_list[0].time + action_list[-1].time)/2)
+                    time_list.append(
+                        avg_time(timerange2datetime(action_list[0].time),
+                                timerange2datetime(action_list[-1].time))
+                    )
 
         time_picked, index_of_timelist = longestIncreasingSubsequence(time_list)
         # 填充在 LIS 中的时间
         for time, index in zip(time_picked, index_of_timelist):
-            if index == 0:
-                continue    # skip asker
             index_of_follower = index_of_followers[index]
             self.question_followers[index_of_follower].time = time
 
