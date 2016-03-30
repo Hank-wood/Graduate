@@ -32,6 +32,13 @@ for a_coll in a_colls:
                 for upvoter in adoc['upvoters']:
                     f.write("%s %s\n" % (upvoter['uid'], str(upvoter['time'])))
 
+        collector_count = len(adoc['upvoters'])
+        distinct_upvoter_count = len(set(up['uid'] for up in adoc['upvoters']))
+        if distinct_upvoter_count != collector_count:
+            print("upvoters repeat:", end=' ')
+            print("tid:%s aid:%s" % (a_coll, adoc['aid']))
+
+
 # check commenters sorted
 for a_coll in a_colls:
     coll = db.get_collection(a_coll)
@@ -53,7 +60,13 @@ for a_coll in a_colls:
             print("commenters unsorted:", end=' ')
             print("tid:%s aid:%s" % (a_coll, adoc['aid']))
 
-# check commenters sorted
+        collector_count = len(adoc['commenters'])
+        distinct_commenter_count = len(set(cm['uid'] for cm in adoc['commenters']))
+        if distinct_commenter_count != collector_count:
+            print("commenters repeat:", end=' ')
+            print("tid:%s aid:%s" % (a_coll, adoc['aid']))
+
+# check collectors sorted
 for a_coll in a_colls:
     coll = db.get_collection(a_coll)
     for adoc in coll.find({'time': {'$gt': start_search_time}}):
@@ -74,9 +87,16 @@ for a_coll in a_colls:
             print("collectors unsorted:", end=' ')
             print("tid:%s aid:%s" % (a_coll, adoc['aid']))
 
+        collector_count = len(adoc['collectors'])
+        distinct_collector_count = len(set(col['uid'] for col in adoc['collectors']))
+        if distinct_collector_count != collector_count:
+            print("collectors repeat:", end=' ')
+            print("tid:%s aid:%s" % (a_coll, adoc['aid']))
+
 
 q_colls = ["19550517_q", "19551147_q", "19561087_q", "19553298_q"]
 
+# check question follower sorted
 for q_coll in q_colls:
     coll = db.get_collection(q_coll)
     for qdoc in coll.find({'time': {'$gt': start_search_time}}):
@@ -95,6 +115,11 @@ for q_coll in q_colls:
         if not sort:
             print("question followers unsorted:", end=' ')
             print("tid:%s aid:%s" % (q_coll, qdoc['qid']))
+        follower_count = len(qdoc['follower'])
+        distinct_collector_count = len(set(col['uid'] for col in qdoc['follower']))
+        if distinct_collector_count != follower_count:
+            print("followers repeat:", end=' ')
+            print("tid:%s qid:%s" % (q_coll, qdoc['qid']))
 
 # check 问题唯一, should print []
 for q_coll in q_colls:

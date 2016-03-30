@@ -1,5 +1,5 @@
 """
-sort upvoters and commenters
+sort upvoters and commenters, remove duplicate ones
 """
 
 import pymongo
@@ -13,7 +13,7 @@ db = pymongo.MongoClient('127.0.0.1', 27017).get_database(database)
 for colname in a_colls:
     collection = db.get_collection(colname)
     for adoc in collection.find():
-        # gen sorted upvoters
+        # gen distinct sorted upvoters
         upvoters = adoc['upvoters']
         if len(upvoters) > 1:
             last_upvote_time = datetime(1970,1,1)
@@ -30,13 +30,31 @@ for colname in a_colls:
         else:
             sorted_upvoters = upvoters
 
-        # gen sorted commenters
-        commenters = adoc['commenters']
+        # gen distinct sorted commenters
+        comment_ids = set()
+        commenters = []
+        for commenter in adoc['commenters']:
+            if commenter['uid'] not in comment_ids:
+                comment_ids.add(commenter['uid'])
+                commenters.append(commenter)
         if len(commenters) > 1:
             commenters.sort(key=lambda x: x['time'])
+
+        collector_ids = set()
+        collectors = []
+        for collector in adoc['collectors']:
+            if collector['uid'] not in collector_ids:
+                collector_ids.add(collector['uid'])
+                collectors.append(collector)
 
         # write back
         collection.update(
             {'aid': adoc['aid']},
-            {'$set': {'upvoters': sorted_upvoters, 'commenters': commenters}}
+            {
+                '$set': {
+                    'upvoters': sorted_upvoters,
+                    'commenters': commenters,
+                    'collectors': collectors
+                }
+            }
         )
