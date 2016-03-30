@@ -96,7 +96,7 @@ class DynamicAnswer:
         assert answer_doc is not None
         self.answer_time = answer_doc['time']
         uid = answer_doc['answerer']
-        self.root = UserAction(answer_doc['time'], self.aid, uid, ANSWER_QUESTION)
+        self.root = UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION)
         self.add_node(self.root)
         self.upvoters = [
             UserAction(time=u['time'], aid=self.aid, uid=u['uid'], acttype=UPVOTE_ANSWER)
@@ -115,7 +115,7 @@ class DynamicAnswer:
         interpolate(self.collectors)
 
         propagators = self.upvoters.copy()
-        propagators.insert(0, UserAction(self.answer_time, self.aid, uid, ANSWER_QUESTION))
+        propagators.insert(0, self.root)
         self.dqa.add_answer_propagator(self.aid, propagators)
 
         # fill user_actions

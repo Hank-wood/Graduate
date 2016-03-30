@@ -326,6 +326,10 @@ class StaticAnswer:
         self.build_cand_edges()
         # fill user_actions, 这里用 merged useraction
         self.sqa.add_user_actions(self.merged_action_table)
+        # use merged action too
+        propagators = [self.merged_action_table[upvote.uid] for upvote in self.upvoters]
+        propagators.insert(0, self.root)
+        self.sqa.add_answer_propagator(propagators)
 
     def infer(self, model):
         """
@@ -361,6 +365,8 @@ class StaticAnswer:
         followees = set(followees) if followees is not None else None
         uid = action.uid
         action_time = action.time
+        action_time_is_datetime = isinstance(action_time, datetime)
+        action_time_is_timerange = isinstance(action_time, TimeRange)
 
         # noti
         if uid in self.sqa.question_follower_dict:
@@ -379,8 +385,6 @@ class StaticAnswer:
                 continue
             cand_time_is_datetime = isinstance(cand.time, datetime)
             cand_time_is_timerange = isinstance(cand.time, TimeRange)
-            action_time_is_datetime = isinstance(action_time, datetime)
-            action_time_is_timerange = isinstance(action_time, TimeRange)
 
             if cand_time_is_datetime and action_time_is_datetime and cand.time < action_time:
                 return Relation(self.root, action, RelationType.qlink)
@@ -389,7 +393,48 @@ class StaticAnswer:
             elif action_time_is_timerange and action_time - cand.time >= 0:
                 return Relation(self.root, action, RelationType.qlink)
 
+        # 用关注关系判断 qlink
+        for cand in self.sqa.propagators:
+            if cand.uid == '' or cand.aid == self.aid:  # 同aid不能算qlink
+                continue
+            # 判断时间关系, 如果 cand 确定大, 则排除
+            cand_time_is_datetime = isinstance(cand.time, datetime)
+            cand_time_is_timerange = isinstance(cand.time, TimeRange)
+            if cand_time_is_datetime and action_time_is_datetime and cand.time >= action_time:
+                continue
+            elif cand_time_is_timerange and cand.time - action_time > 0:
+                continue
+            elif action_time_is_timerange and action_time - cand.time < 0:
+                continue
 
+            # 逻辑和推断follow完全一样,为了不重复生成followees,不单独写成函数
+            followers = user_manager.get_user_follower(cand.uid, action.time)
+            if followees is not None:
+                if cand.uid in followees:
+                    # cand is action.uid's followee
+                    return Relation(self.root, action, RelationType.qlink)
+            elif followers is not None:
+                if action.uid in followers:
+                    # action.uid is cand's follower
+                    return Relation(self.root, action, RelationType.qlink)
+            else:
+                logger.warning("%s lacks follower,%s lacks followee" %
+                               (cand.uid, action.uid))
+                u1 = get_client().author(USER_PREFIX + action.uid)
+                u2 = get_client().author(USER_PREFIX + cand.uid)
+                if u1.followee_num < u2.follower_num:
+                    followees = user_manager.fetch_user_followee(u1)
+                    if cand.uid in followees:
+                        # cand is action.uid's followee
+                        return Relation(self.root, action, RelationType.qlink)
+                else:
+                    followers = user_manager.fetch_user_follower(u2)
+                    if action.uid in followers:
+                        # action.uid is cand's follower
+                        return Relation(self.root, action, RelationType.qlink)
+
+        # 之前都不是, 只能是 recommendation 了
+        return Relation(self.root, action, RelationType.recommendation)
 
     def add_node(self, useraction: UserAction):
         self.graph.add_node(useraction.uid,
@@ -411,12 +456,16 @@ class StaticQuestionWithAnswer:
         self.user_actions = defaultdict(list)  # 记录所有 user action for qlink match
         self.question_followers = []  # [UserAction]
         self.question_follower_dict = {}  # {uid->UserAction}
+        self.propagators = []   # 和 dynamic 不同,这里直接用list,不排序
         self.load_question_followers()
 
     def add_user_actions(self, user_actions: dict):
         for uid, merged_action in user_actions.items():
             # 不按时间排序, 因为存在 None, TimeRange 等无法排序的时间
             self.user_actions[key].append(merged_action)
+
+    def add_answer_propagator(self, propagators):
+        self.propagators.extend(propagators)
 
     def fill_question_follower_time(self):
         """
@@ -484,7 +533,7 @@ class StaticQuestionWithAnswer:
 
         for follower in self.question_followers:
             self.question_follower_dict[follower.uid] = follower
-        # list(map(self.propagators.put, self.question_followers))
+        self.propagators.extend(self.question_followers)
 
 if __name__ == '__main__':
     import pymongo
