@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 class TopicMonitor:
 
     def __init__(self):
-        self.lock = Lock()
         self.topics = [
             get_client().topic(TOPIC_PREFIX + tid) for tid in topics
         ]
