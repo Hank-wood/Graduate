@@ -6,7 +6,6 @@
 
 import logging
 import concurrent.futures as cf
-from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -82,12 +81,11 @@ class TopicMonitor:
                     continue
 
                 # 去掉占了多个所选话题的问题
-                with self.lock:
-                    if question.id in self.new_questions:
-                        logger.info("重复话题, 跳过: " + str(question.id))
-                        continue
-                    else:
-                        self.new_questions.add(question.id)
+                if question.id in self.new_questions:
+                    logger.info("重复话题, 跳过: " + str(question.id))
+                    continue
+                else:
+                    self.new_questions.add(question.id)
 
                 asker = '' if question.author is ANONYMOUS else question.author.id
                 QuestionManager.save_question(tid, question._url, question.id,
