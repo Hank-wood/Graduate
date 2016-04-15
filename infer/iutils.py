@@ -283,75 +283,43 @@ O(nlgn) Solution
 http://www.geeksforgeeks.org/longest-monotonically-increasing-subsequence-size-n-log-n/
 """
 def longestIncreasingSubsequence(nums):
+    if not nums or len(nums) <= 1:
+        return nums
 
-    if nums is None or len(nums) == 0:
-        return 0
+    tailIndices = [0] * len(nums)  # record tail element of active lists
+    prevIndices = [-1] * len(nums)
+    length = 1
 
-    if len(nums) == 1:
-        return 1
+    for i, num in enumerate(nums[1:], 1):
+        if num < nums[tailIndices[0]]:
+            tailIndices[0] = i
+        elif num >= nums[tailIndices[length-1]]:
+            prevIndices[i] = tailIndices[length-1]
+            tailIndices[length] = i
+            length += 1
+        else:
+            pos = GetCeilIndex(nums, tailIndices, -1, length-1, num)
+            prevIndices[i] = tailIndices[pos-1]
+            tailIndices[pos] = i
 
-    active_lists = []  # record tail element of active lists
+    result = []
+    i = tailIndices[length-1]
     index_list = []
+    while i >= 0:
+        index_list.append(i)
+        result.append(nums[i])
+        i = prevIndices[i]
 
-    for i, num in enumerate(nums):
-        if not active_lists:
-            active_lists.append(num)
-            index_list.append(i)
-        elif num >= active_lists[-1]:
-            active_lists.append(num)
-            index_list.append(i)
-        elif num < active_lists[0]:
-            active_lists[0] = num
-            index_list[0] = i
-        else:
-            index = ceil_index(active_lists, 0, len(active_lists)-1, num)
-            active_lists[index] = num
-            index_list[index] = i
-
-    return active_lists, index_list
+    index_list.reverse()
+    return list(reversed(result)), index_list
 
 
-def ceil_index(al, start, end, target):
-    while start + 1 < end:
-        mid = start + (end - start)//2
-        if al[mid] <= target:
-            start = mid
-        else:
-            end = mid
+def GetCeilIndex(A, T, l, r, key):
+   while r - l > 1:
+      m = int(l + (r - l)/2)
+      if A[T[m]] >= key:
+         r = m
+      else:
+         l = m
 
-    if al[end] <= target:
-        return end + 1
-    else:
-        return end
-
-
-def avg_time(start, end):
-    delta = end - start
-    return start + delta / 2
-
-
-def timerange2datetime(t: Union[datetime, TimeRange]):
-    """
-    在fill_question_follower 里需要把 timerange 转换成 datetime
-    """
-    if isinstance(t, datetime):
-        return t
-
-    if not any([t.start, t.end]):
-        raise Exception("start and end are both none")
-    elif t.start is None:
-        return t.end - timedelta(seconds=10)
-    elif t.end is None:
-        return t.start + timedelta(seconds=10)
-    else:
-        return avg_time(t.start, t.end)
-
-__all__ = [
-    'a_col', 'q_col', 'get_time_string', 'now_string',
-    'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
-    'get_datetime_full_string', 'validate_config', 'validate_cookie',
-    'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
-    'acttype2str', 'MyEncoder', 'a_to_q', 'q_to_a', 'Transform',
-    'trans_before_save', 'is_upvote', 'is_comment', 'is_collect', 'is_answer',
-    'longestIncreasingSubsequence', 'avg_time', 'timerange2datetime'
-]
+   return r

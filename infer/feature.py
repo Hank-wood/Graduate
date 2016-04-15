@@ -506,9 +506,8 @@ class StaticQuestionWithAnswer:
                                 timerange2datetime(action_list[-1].time))
                     )
 
-        time_picked, index_of_timelist = longestIncreasingSubsequence(time_list)
         # 填充在 LIS 中的时间
-        for time, index in zip(time_picked, index_of_timelist):
+        for time, index in zip(*longestIncreasingSubsequence(time_list)):
             index_of_follower = index_of_followers[index]
             self.question_followers[index_of_follower].time = time
 
