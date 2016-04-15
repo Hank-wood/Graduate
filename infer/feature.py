@@ -482,29 +482,20 @@ class StaticQuestionWithAnswer:
         填充 question follower 时间信息. 算法如下
         生成一个序列
         [t1, t2, t3, ...]
-        每个元素是
-        1) 唯一的 follower.time
-        2) (user_action[uid][0].time + user_action[uid][-1].time) / 2
+        每个元素是 user_action[uid][0].time, 即第一次出现的时间
         在这个序列上跑 Longest Increasing Subsequence 算法
-        check 生成的 LIS, 如果一个 meantime 没有被选中, 则看它的时间段和左右两边有无重合
-        如果有重合, 则把这个重合时间段的中点作为时间
         """
         time_list = []
         index_of_followers = []
 
+        start = 1 if self.question_followers[0].acttype == ASK_QUESTION else 0
         # 不包含提问者, 防止提问者被他的其它操作的时间污染
-        for i, follower in enumerate(self.question_followers[1:], 1):
-            uid = follower.uid
+        for i in range(start, len(self.question_followers)):
+            uid = self.question_followers[i].uid
             if uid in self.user_actions:
                 action_list = self.user_actions[uid]
                 index_of_followers.append(i)
-                if len(action_list) == 1:
-                    time_list.append(timerange2datetime(action_list[0].time))
-                else:
-                    time_list.append(
-                        avg_time(timerange2datetime(action_list[0].time),
-                                timerange2datetime(action_list[-1].time))
-                    )
+                time_list.append(timerange2datetime(action_list[0].time))
 
         # 填充在 LIS 中的时间
         for time, index in zip(*longestIncreasingSubsequence(time_list)):
@@ -533,6 +524,7 @@ class StaticQuestionWithAnswer:
         """
         q_doc = db[q_col(self.tid)].find_one({'qid': self.qid})
         assert q_doc is not None
+        assert self.question_followers == []
         self.question_followers.append(
             UserAction(q_doc['time'], '', q_doc['asker'], ASK_QUESTION)
         )
