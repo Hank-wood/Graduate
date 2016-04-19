@@ -1,7 +1,7 @@
 import pymongo
 from datetime import datetime
 
-database = 'sg1'
+database = 'zhihu_data_0315'
 
 a_colls = ["19550517_a", "19551147_a", "19561087_a", "19553298_a"]
 db = pymongo.MongoClient('127.0.0.1', 27017).get_database(database)
@@ -111,10 +111,11 @@ for q_coll in q_colls:
                 last_datetime = curr_datetime
             else:
                 sort = False
+                print(f)
                 last_datetime = curr_datetime
         if not sort:
             print("question followers unsorted:", end=' ')
-            print("tid:%s aid:%s" % (q_coll, qdoc['qid']))
+            print("tid:%s qid:%s" % (q_coll, qdoc['qid']))
         follower_count = len(qdoc['follower'])
         distinct_collector_count = len(set(col['uid'] for col in qdoc['follower']))
         if distinct_collector_count != follower_count:
