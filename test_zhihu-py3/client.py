@@ -1,5 +1,4 @@
 from zhihu import ZhihuClient
-from settings import cookie
-import requests
 
+cookie = '../cookies/zhuoyi.json'
 client = ZhihuClient(cookie)
