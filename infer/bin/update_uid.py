@@ -3,6 +3,7 @@
 """
 import pymongo
 from copy import deepcopy
+from pprint import pprint
 
 
 def change_uid_in_collection(collection, old, new):
@@ -15,12 +16,15 @@ def change_uid_in_collection(collection, old, new):
                     doc['answerer'] = new
                 for fo in doc['upvoters']:
                     if fo['uid'] == old:
+                        print(3)
                         fo['uid'] = new
                 for fo in doc['commenters']:
                     if fo['uid'] == old:
+                        print(2)
                         fo['uid'] = new
                 for fo in doc['collectors']:
                     if fo['uid'] == old:
+                        print(1)
                         fo['uid'] = new
             elif 'qid' in doc:
                 match = {'qid': doc['qid']}
@@ -46,6 +50,7 @@ def change_uid_in_collection(collection, old, new):
             else:
                 raise Exception()
             if ori_doc != doc:
+                # pprint(ori_doc['upvoters'])  用来定位用户,找到修改后的uid
                 result = collection.replace_one(match, doc)
                 print(result.modified_count)
     except Exception as e:
@@ -198,4 +203,4 @@ def t_change_uid():
 
 
 if __name__ == '__main__':
-    change_uid('zhihu_data_0315', 'YLongJimmy', 'JIMMY666')
+    change_uid('zhihu_data_0315', 'duo-nian-yi-hou-32-91', 'duo-nian-yi-hou-1000')
