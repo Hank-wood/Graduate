@@ -5,7 +5,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import pymongo
 from iutils import *
 from icommon import db2
-from component import DynamicQuestionWithAnswer, DynamicAnswer
+import component
+from component import DynamicQuestionWithAnswer, DynamicAnswer, load_database
 from user import UserManager
 
 
@@ -27,8 +28,6 @@ def infer_one_question(tid, qid, aid, db_name):
 
 def infer_all(db_name):
     db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
-    sys.modules['component'].__dict__['db'] = db
-    sys.modules['component'].__dict__['user_manager'] = UserManager(db.user)
     executor = ProcessPoolExecutor(max_workers=5)
 
     futures = []
@@ -37,12 +36,14 @@ def infer_all(db_name):
             continue
         tid = collection_name[:-2]
         q_collection = db[collection_name]
-        a_collection = q_to_a(db[collection_name])
+        a_collection = db[q_to_a(collection_name)]
         for q_doc in q_collection.find({}, {'qid':1, 'topic':1}):
             qid = q_doc['qid']
             aids = [a_doc['aid'] for a_doc in
                     a_collection.find({'qid': qid}, {'aid': 1})]
-            futures.append(executor.submit(infer_question_task, tid, qid, aids))
+            futures.append(
+                executor.submit(infer_question_task(db_name, tid, qid, aids))
+            )
 
     inferred_answer_count = 0
     for f in as_completed(futures):
@@ -57,8 +58,6 @@ def infer_many(db_name, filename):
     topic,qid,...(后面是什么无所谓)
     """
     db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
-    sys.modules['component'].__dict__['db'] = db
-    sys.modules['component'].__dict__['user_manager'] = UserManager(db.user)
     executor = ProcessPoolExecutor(max_workers=5)
 
     count = 0
@@ -69,14 +68,17 @@ def infer_many(db_name, filename):
             a_collection = db[a_col(tid)]
             aids = [a_doc['aid'] for a_doc in
                     a_collection.find({'qid': qid}, {'aid': 1})]
-            futures.append(executor.submit(infer_question_task, tid, qid, aids))
+            futures.append(
+                executor.submit(infer_question_task, db_name, tid, qid, aids)
+            )
             count += len(aids)
 
     print(count)
     executor.shutdown()
 
 
-def infer_question_task(tid, qid, aids):
+def infer_question_task(db_name, tid, qid, aids):
+    load_database(pymongo.MongoClient('127.0.0.1', 27017), db_name)
     info_storage = DynamicQuestionWithAnswer(tid, qid)
     answers = []
 
@@ -94,5 +96,6 @@ def infer_question_task(tid, qid, aids):
 if __name__ == '__main__':
     # infer_one_question(tid='19551147', qid='40554112', aid='87120100',db_name='zhihu_data_0219')
     # infer_one_question(tid='19551147', qid="40611516", aid="87420652",db_name='sg1')
-    infer_one_question(tid='19553298', qid="40617404", aid="87423946",db_name='sg1')
+    # infer_one_question(tid='19553298', qid="40617404", aid="87423946",db_name='sg1')
     # infer_many(db_name='sg1', filename='data/alltime.txt')
+    infer_all('zhihu_data_0315')

@@ -22,9 +22,15 @@ from networkx.readwrite import json_graph
 
 from icommon import *
 from iutils import *
-
+from user import UserManager
 
 logger = logging.getLogger(__name__)
+
+
+def load_database(mongoclient, db_name):
+    global db, user_manager
+    db = mongoclient.get_database(db_name)
+    user_manager = UserManager(db.user)
 
 
 class DynamicQuestionWithAnswer:
