@@ -34,6 +34,8 @@ from itertools import chain
 from typing import Union
 from copy import copy
 from collections import defaultdict
+from operator import itemgetter
+import pickle
 
 import networkx
 from networkx.readwrite import json_graph
@@ -536,6 +538,48 @@ class StaticQuestionWithAnswer:
         for follower in self.question_followers:
             self.question_follower_dict[follower.uid] = follower
         self.propagators.extend(self.question_followers)
+
+
+class FeatureContainer:
+    """
+    feature 的容器, 可以选择性地返回 feature, 用 pickle 存储
+    每次添加新 feature 都重新计算 feature container
+    需要保证 feature_types 的特征顺序和 gen_features 返回的顺序一致
+    """
+    feature_types = ('h_rank','is_answer','is_upvote','is_comment',
+                     'is_collect', 'r_order')
+
+    def __init__(self, ):
+        self.features = []  # [[f11, f12], [f21, f22], ...]
+        self.target = []  # [1, 0, 0, 1, ...]
+
+    def append(self, flist, target):
+        """
+        :param flist: [[f11, f12], [f21, f22], ...]
+        """
+        self.features.extend(flist)
+        self.target.extend(target)
+
+    def get_features(self, feature_names):
+        choosen_index = [
+            i for i, ftype in enumerate(self.feature_types) if ftype in feature_names
+        ]
+        return [itemgetter(*choosen_index)(f) for f in self.features]
+
+    def dump(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump({
+                'feature': self.features,
+                'target': self.target
+            }, f)
+
+    def load(self, filename):
+        if os.path.exists(filename):
+            with open(filename, 'rb') as f:
+                data = pickle.load(f)
+                self.features = data['feature']
+                self.target = data['target']
+
 
 if __name__ == '__main__':
     import pymongo

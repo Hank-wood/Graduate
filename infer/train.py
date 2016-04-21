@@ -9,20 +9,15 @@ import pickle
 import pymongo
 from sklearn import svm, cross_validation
 
-from feature import StaticAnswer
+from feature import StaticAnswer, FeatureContainer
 from user import UserManager
 from iutils import a_col
 
-db = pymongo.MongoClient('127.0.0.1', 27017).get_database('sg1')
+db = pymongo.MongoClient('127.0.0.1', 27017).get_database('zhihu_data_0315')
 sys.modules['feature'].__dict__['db'] = db
 sys.modules['feature'].__dict__['user_manager'] = UserManager(db.user)
 
-pickle_filename = 'data/feature.pkl'
-if os.path.exists(pickle_filename):
-    with open(pickle_filename, 'rb') as f:
-        data = pickle.load(f)
-else:
-    data = {}
+pickle_filename = 'data/feature_0315.pkl'
 
 
 def gen_traindata_selected():
@@ -60,39 +55,86 @@ def gen_traindata_selected():
 
 def gen_traindata_from_all():
     """
-    生成数据库中全部数据的 features, samples
-    :return: [features] [samples]
+    生成数据库中全部数据的 features, samples. 用于从无到有生成边,特征,所以只需调用一次
     """
-    features = []
-    samples = []
+    fc = FeatureContainer()
     a_colls = ["19550517_a", "19551147_a", "19561087_a", "19553298_a"]
-    for a_coll in a_colls:
-        tid = a_coll[:-2]
-        a_collection = db.get_collection(a_coll)
-        for adoc in a_collection.find({}, {'aid': 1}):
-            aid = adoc['aid']
-            answer = StaticAnswer(tid, aid)
-            if aid not in data:
+    try:
+        for a_coll in a_colls:
+            count = 0
+            print(a_coll)
+            tid = a_coll[:-2]
+            a_collection = db.get_collection(a_coll)
+            # 保证答案的遍历顺序不变
+            for adoc in a_collection.find({}, {'aid': 1}).sort([('aid', 1)]):
+                count += 1
+                aid = adoc['aid']
+                answer = StaticAnswer(tid, aid)
                 answer.load_from_dynamic()
                 answer.build_cand_edges()
-                target = answer.gen_target()
-                f = answer.gen_features()
-                data[aid] = {
-                    'edge': answer.cand_follow_edges,
-                    'target': target,
-                    'feature': f
-                }
-                samples.extend(target)
-                features.extend(f)
-            else:
-                samples.extend(data[aid]['target'])
-                features.extend(data[aid]['feature'])
-    return features, samples
+                fc.append(answer.gen_features(), answer.gen_target())
+    except:
+        print(count)
+        raise
+    fc.dump(pickle_filename)
+    print(len(fc.features))
 
+
+def feature_selection():
+    import numpy as np
+    from sklearn.cross_validation import cross_val_score
+    fc = FeatureContainer()
+    fc.load(pickle_filename)
+    clf = svm.SVC()
+    print("number of 0: %d" % fc.target.count(0))
+    print("number of 1: %d" % fc.target.count(1))
+
+    # 值越小越好
+    print("use all features")
+    print(np.sqrt(-cross_val_score(clf, fc.features, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde h_rank")
+    F = fc.get_features(('is_answer', 'is_upvote','is_comment',
+                         'is_collect', 'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde is_answer")
+    F = fc.get_features(('h_rank','is_upvote','is_comment',
+                        'is_collect', 'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde is_upvote")
+    F = fc.get_features(('h_rank', 'is_answer', 'is_comment',
+                         'is_collect', 'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde is_comment")
+    F = fc.get_features(('h_rank', 'is_answer', 'is_upvote',
+                         'is_collect', 'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde is_collect")
+    F = fc.get_features(('h_rank', 'is_answer', 'is_upvote','is_comment',
+                         'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde r_order")
+    F = fc.get_features(('h_rank', 'is_answer', 'is_upvote','is_comment',
+                         'is_collect'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
 
 def train():
     clf = svm.SVC()
-    features, samples = gen_traindata_selected()
+    # features, samples = gen_traindata_selected()
+    gen_traindata_from_all()
+    """
     print(len(features))
     print(len(samples))
     with open(pickle_filename, 'wb') as f:
@@ -105,6 +147,9 @@ def train():
 
     with open('data/model.pkl', 'wb') as f:
         pickle.dump(clf, f)
+    """
 
 
-train()
+if __name__ == '__main__':
+    feature_selection()
+    # gen_traindata_from_all()
