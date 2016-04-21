@@ -45,10 +45,6 @@ def infer_all(db_name):
                 executor.submit(infer_question_task(db_name, tid, qid, aids))
             )
 
-    inferred_answer_count = 0
-    for f in as_completed(futures):
-        inferred_answer_count += f.result()
-
     executor.shutdown()
 
 
