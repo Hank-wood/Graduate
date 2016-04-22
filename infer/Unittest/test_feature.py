@@ -6,7 +6,7 @@ from pprint import pprint
 import pytest
 
 from icommon import *
-from feature import StaticAnswer, TimeRange
+from feature import StaticAnswer, TimeRange, FeatureContainer
 
 
 @patch('feature.StaticAnswer.has_follow_relation', Mock(return_value=True))
@@ -121,3 +121,14 @@ def test_gen_edges():
                       UserAction(t3, aid, 'u4', UPVOTE_ANSWER|COLLECT_ANSWER))
 
     pprint(sa.gen_features())
+
+
+def test_feature_container():
+    fc = FeatureContainer()
+    fc.features = [[1,2,3,4,5,6]]
+    F = fc.get_features(('h_rank','is_upvote','is_comment',
+                         'is_collect', 'r_order'))
+    assert F == [(1,3,4,5,6)]
+    F = fc.get_features(('h_rank', 'is_comment', 'is_upvote',
+                        'is_collect', 'r_order'))
+    assert F == [(1,3,4,5,6)]

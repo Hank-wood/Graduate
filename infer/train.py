@@ -94,8 +94,9 @@ def feature_selection():
     print(np.sqrt(-cross_val_score(clf, fc.features, fc.target, cv=10,
                                    scoring='mean_squared_error')).mean())
 
+    # 每次排除一个特征
     print("\nexlucde h_rank")
-    F = fc.get_features(('is_answer', 'is_upvote','is_comment',
+    F = fc.get_features(('is_answer', 'is_upvote', 'is_comment',
                          'is_collect', 'r_order'))
     print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
                                    scoring='mean_squared_error')).mean())
@@ -127,6 +128,32 @@ def feature_selection():
     print("\nexlucde r_order")
     F = fc.get_features(('h_rank', 'is_answer', 'is_upvote','is_comment',
                          'is_collect'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    # exclude is_answer and another feature
+    print("\nexlucde is_answer hrank")
+    F = fc.get_features(('is_upvote', 'is_comment', 'is_collect', 'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde is_answer is_upvote ")
+    F = fc.get_features(('h_rank', 'is_comment', 'is_collect', 'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde is_answer is_comment")
+    F = fc.get_features(('h_rank', 'is_upvote', 'is_collect', 'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde is_answer is_collect")
+    F = fc.get_features(('h_rank', 'is_upvote', 'is_comment', 'r_order'))
+    print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
+                                   scoring='mean_squared_error')).mean())
+
+    print("\nexlucde is_answer r_order")
+    F = fc.get_features(('h_rank', 'is_upvote', 'is_comment', 'is_collect'))
     print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
                                    scoring='mean_squared_error')).mean())
 
