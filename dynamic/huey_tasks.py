@@ -21,7 +21,7 @@ from common import *
 if hasattr(os, '_called_from_test'):
     from client_pool import get_client_test as get_client  # don't use proxy
 else:
-    from client_pool import get_client2 as get_client  # use kunpeng proxy
+    from client_pool import get_client_test as get_client  # use kunpeng proxy
 from utils import config_smtp_handler
 
 
@@ -56,13 +56,15 @@ user_coll = db.user
 task_info = {}
 
 
-def replace_database(db_name=None):
+def _replace_database(db_name=None):
     global user_coll
     if db_name is not None:
+        print("replace called")
         user_coll = MongoClient('127.0.0.1', 27017).get_database(db_name).user
+        print(user_coll.full_name)
 
 
-def _fetch_followers_followees(uid, time, db_name=None, limit_to=None):
+def _fetch_followers_followees(uid, time=None, db_name=None, limit_to=None):
     time = time or datetime.now()  # in case time is None
     if uid == '':
         return  # 匿名用户
@@ -124,7 +126,7 @@ def _fetch_followers_followees(uid, time, db_name=None, limit_to=None):
 
 
 def _fetch_followers(user, time, db_name=None):
-    replace_database(db_name)
+    _replace_database(db_name)
     follower_num = user.follower_num
     if follower_num > 2000:
         return
@@ -180,7 +182,7 @@ def _fetch_followers(user, time, db_name=None):
 
 
 def _fetch_followees(user, time, db_name=None):
-    replace_database(db_name)
+    _replace_database(db_name)
     followee_num = user.followee_num
     if followee_num > 2000:
         return
@@ -236,25 +238,25 @@ def _fetch_followees(user, time, db_name=None):
 
 
 def remove_all_users(db_name=None):
-    replace_database(db_name)
+    _replace_database(db_name)
     user_coll.remove({})
 
 
 def show_users(db_name=None):
-    replace_database(db_name)
+    _replace_database(db_name)
     logger.info(list(user_coll.find()))
     pprint(list(user_coll.find()))
 
 
 def get_user(uid, db_name=None):
-    replace_database(db_name)
+    _replace_database(db_name)
     return user_coll.find_one({'uid': uid})
 
 
 def _fetch_question_follower(tid, qid, asker, db_name=None):
     logger.info("fetch question %s follower by asker %s" % (qid, asker))
     from manager import AnswerManager, QuestionManager
-    replace_database(db_name)
+    _replace_database(db_name)
     # 如果是关注问题或回答问题的人就不抓, 因为关注问题事件不会出现在activities
     # 回答者 id 从数据库里取，因为在初始化 FetchAnswerInfo 的时候就入库了
     answerers = AnswerManager.get_question_answerer(tid, qid)
@@ -301,3 +303,4 @@ fetch_followers = huey.task(retries=3, retry_delay=2)(_fetch_followers)
 fetch_followees = huey.task(retries=3, retry_delay=2)(_fetch_followees)
 fetch_followers_followees = huey.task(retries=3, retry_delay=2)(_fetch_followers_followees)
 fetch_question_follower = huey.task(retries=3, retry_delay=2)(_fetch_question_follower)
+replace_database = huey.task()(_replace_database)
