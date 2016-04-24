@@ -25,7 +25,7 @@ def login():
             client.login_with_cookies(f.read())
     else:
         with open(cookie, 'w') as f:
-            cookies = client.login_in_terminal()
+            cookies = client.login_in_terminal(True)
             print(cookies)
             f.write(cookies)
         # code, msg, cookies = client.login(email, password, captcha)
