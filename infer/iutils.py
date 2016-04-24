@@ -323,3 +323,36 @@ def GetCeilIndex(A, T, l, r, key):
          l = m
 
    return r
+
+
+def avg_time(start, end):
+    delta = end - start
+    return start + delta / 2
+
+
+def timerange2datetime(t: Union[datetime, TimeRange]):
+    """
+    在fill_question_follower 里需要把 timerange 转换成 datetime
+    """
+    if isinstance(t, datetime):
+        return t
+
+    if not any([t.start, t.end]):
+        raise Exception("start and end are both none")
+    elif t.start is None:
+        return t.end - timedelta(seconds=10)
+    elif t.end is None:
+        return t.start + timedelta(seconds=10)
+    else:
+        return avg_time(t.start, t.end)
+
+
+__all__ = [
+    'a_col', 'q_col', 'get_time_string', 'now_string',
+    'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
+    'get_datetime_full_string', 'validate_config', 'validate_cookie',
+    'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
+    'acttype2str', 'MyEncoder', 'a_to_q', 'q_to_a', 'Transform',
+    'trans_before_save', 'is_upvote', 'is_comment', 'is_collect', 'is_answer',
+    'longestIncreasingSubsequence', 'avg_time', 'timerange2datetime'
+]
