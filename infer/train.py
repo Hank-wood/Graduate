@@ -8,6 +8,7 @@ import pickle
 
 import pymongo
 from sklearn import svm, cross_validation
+from sklearn.grid_search import GridSearchCV
 
 from feature import StaticAnswer, FeatureContainer
 from user import UserManager
@@ -157,26 +158,57 @@ def feature_selection():
     print(np.sqrt(-cross_val_score(clf, F, fc.target, cv=10,
                                    scoring='mean_squared_error')).mean())
 
+
+def param_tuning():
+    # Set the parameters by cross-validation
+    tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
+                         'C': [1, 10, 100, 1000]},
+                        {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
+
+    scores = ['accuracy', 'recall']
+
+    for score in scores:
+        print("# Tuning hyper-parameters for %s" % score)
+        print()
+
+        clf = GridSearchCV(svm.SVC(C=1), tuned_parameters, cv=10,
+                           scoring=score)
+        fc = FeatureContainer()
+        fc.load(pickle_filename)
+        F = fc.get_features(('h_rank','is_upvote','is_comment',
+                             'is_collect', 'r_order'))
+        print(len(F))
+        print(len(fc.target))
+        clf.fit(F, fc.target)
+
+        print("Best parameters set found on development set:")
+        print()
+        print(clf.best_params_)
+        print()
+        print("Grid scores on development set:")
+        print()
+        for params, mean_score, scores in clf.grid_scores_:
+            print("%0.3f (+/-%0.03f) for %r"
+                  % (mean_score, scores.std() * 2, params))
+        print()
+
+
 def train():
-    clf = svm.SVC()
-    # features, samples = gen_traindata_selected()
-    gen_traindata_from_all()
-    """
-    print(len(features))
-    print(len(samples))
-    with open(pickle_filename, 'wb') as f:
-        pickle.dump(data, f)
+    clf = svm.SVC(**{'C': 1, 'kernel': 'rbf', 'gamma': 0.0001},
+                  probability=True)
+    print(clf.C, clf.kernel, clf.gamma)
+    fc = FeatureContainer()
+    fc.load(pickle_filename)
+    F = fc.get_features(('h_rank', 'is_upvote', 'is_comment',
+                         'is_collect', 'r_order'))
+    clf.fit(F, fc.target)
 
-    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
-        features, samples, test_size=0.4, random_state=0)
-    clf.fit(X_train, y_train)
-    print(clf.score(X_test, y_test))
-
-    with open('data/model.pkl', 'wb') as f:
+    with open('data/model_0315.pkl', 'wb') as f:
         pickle.dump(clf, f)
-    """
 
 
 if __name__ == '__main__':
-    feature_selection()
     # gen_traindata_from_all()
+    # feature_selection()
+    # param_tuning()
+    train()
