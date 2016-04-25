@@ -182,6 +182,16 @@ class StaticAnswer:
              self._feature_relative_order(edge)] for edge in self.cand_follow_edges
             ]
 
+    def gen_features_without_isanswer(self):
+        """
+        :return: 除 is_answer 之外的 feature
+        """
+        return [
+            [self._feature_head_rank(edge),
+             *self._feature_node_type(edge)[1:],
+             self._feature_relative_order(edge)] for edge in self.cand_follow_edges
+            ]
+
     def _feature_head_rank(self, edge: FollowEdge) -> int:
         """
         head 在 tail 的候选中排第几
@@ -244,7 +254,8 @@ class StaticAnswer:
         :return: 0, 1 序列表示某关注关系是否是 follow relation
         """
         samples = []
-        tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
+        # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
+        tree_data = db2.dynamic_sg1.find_one({'aid': self.aid}, {'_id': 0})
         links = {
             (l['source'], l['target']) for l in tree_data['links']
             if l['reltype']==RelationType.follow
@@ -299,13 +310,18 @@ class StaticAnswer:
         propagators.insert(0, self.root)
         self.sqa.add_answer_propagator(propagators)
 
-    def infer(self, model):
+    def infer(self, model, save_to_db=False):
         """
         推断静态传播图
         """
         # 用训练好的模型标注 follow 边, 把 follow 边加入图中
-        result = model.predict(self.gen_features())
-        for value, edge in zip(result, self.cand_follow_edges):
+        if not self.cand_follow_edges:
+            return False
+
+        features = self.gen_features_without_isanswer()
+        result = model.predict(features)
+        probs = model.predict_proba(features)
+        for value, prob, edge in zip(result, probs, self.cand_follow_edges):
             head, tail = edge.head, edge.tail
             if value:
                 # 添加标注为 follow 关系的 edge 的 head, tail
@@ -313,7 +329,20 @@ class StaticAnswer:
                     self.add_node(head)
                 if not self.graph.has_node(tail.uid):
                     self.add_node(tail)
-                self.add_edge(head, tail, RelationType.follow)
+                self.add_edge(head, tail, RelationType.follow, prob=prob)
+
+        # 对同一个接收者的多条边, 选择 prob 最高的
+        # TODO: 处理有两个 prob 一样的情况. 应该不可能吧……
+        for node in self.graph.nodes():
+            if self.graph.in_degree(node) > 1:
+                print(node)
+                print(self.graph.in_degree(node))
+                edges = self.graph.in_edges(node, data=True)
+                max_prob = max([edge[2]['prob'][1] for edge in edges])
+                for edge in edges:
+                    if edge[2]['prob'][1] < max_prob:
+                        print("delete edge: " + str(edge))
+                        self.graph.remove_edge(edge[0], edge[1])
 
         # 筛选出不存在于图中 or in-degree=0 的点
         for uid, merged_action in self.merged_action_table.items():
@@ -325,7 +354,6 @@ class StaticAnswer:
             self.add_node(relation.tail)
             self.add_edge(*relation)
 
-        save_to_db = False
         for node in self.graph.nodes():
             self.graph.node[node]['acttype'] = acttype2str(self.graph.node[node]['acttype'])
             path = [node]
@@ -450,8 +478,16 @@ class StaticAnswer:
                             acttype=useraction.acttype,
                             time=useraction.time)
 
-    def add_edge(self, useraction1, useraction2, reltype):
-        self.graph.add_edge(useraction1.uid, useraction2.uid, reltype=reltype)
+    def add_edge(self, useraction1, useraction2, reltype, prob=None):
+        """
+        :param useraction1:
+        :param useraction2:
+        :param reltype:
+        :param prob: predict_proba value
+        :return:
+        """
+        self.graph.add_edge(useraction1.uid, useraction2.uid, reltype=reltype,
+                            prob=prob)
 
 
 class StaticQuestionWithAnswer:
