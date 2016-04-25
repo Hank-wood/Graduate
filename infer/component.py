@@ -197,7 +197,7 @@ class DynamicAnswer:
         tree_data['links'] = links
 
         if save_to_db:
-            db2.dynamic.replace_one({'aid': self.aid},
+            db2.dynamic_sg1.replace_one({'aid': self.aid},
                                     trans_before_save(tree_data),
                                     upsert=True)
         else:
