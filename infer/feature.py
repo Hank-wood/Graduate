@@ -253,46 +253,21 @@ class StaticAnswer:
         只有当用来从 dynamic 数据训练时才使用此方法
         :return: 0, 1 序列表示某关注关系是否是 follow relation
         """
-        samples = []
+        target = []
         # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
-        tree_data = db2.dynamic_sg1.find_one({'aid': self.aid}, {'_id': 0})
+        tree_data = transform_outgoing(
+            db2.dynamic_sg1.find_one({'aid': self.aid}, {'_id': 0}))
         links = {
             (l['source'], l['target']) for l in tree_data['links']
             if l['reltype']==RelationType.follow
         }
         for cand in self.cand_follow_edges:
             if (cand.head.uid, cand.tail.uid) in links:
-                samples.append(1)
+                target.append(1)
             else:
-                samples.append(0)
+                target.append(0)
 
-        return samples
-
-    @staticmethod
-    def has_follow_relation(head: UserAction, tail: UserAction):
-        """
-        determine if tail user follows head user
-        时间以 tail 的时间为准, 因为在传播发生在 tail.time
-        这里牺牲了性能因为每次都要扫 list,没有像 component 里使用set
-        :return: bool
-        """
-        action_time = tail.time
-        followers = user_manager.get_user_follower(head.uid, action_time)
-        followees = user_manager.get_user_followee(tail.uid, action_time)
-        if followers is not None:
-            return True if tail.uid in followers else False
-        elif followees is not None:
-            return True if head.uid in followees else False
-        else:
-            print("%s lacks follower,%s lacks followee" % (head.uid, tail.uid))
-            u1 = get_client().author(USER_PREFIX + tail.uid)
-            u2 = get_client().author(USER_PREFIX + head.uid)
-            if u1.followee_num < u2.follower_num:
-                followees = user_manager.fetch_user_followee(u1)
-                return True if head.uid in followees else False
-            else:
-                followers = user_manager.fetch_user_follower(u2)
-                return True if tail.uid in followers else False
+        return target
 
     def infer_preparation(self, sqa):
         """
@@ -309,6 +284,27 @@ class StaticAnswer:
         propagators = [self.merged_action_table[upvote.uid] for upvote in self.upvoters]
         propagators.insert(0, self.root)
         self.sqa.add_answer_propagator(propagators)
+
+    def infer_follow(self):
+        """推断follow关系,用于评价follow关系推断的效果. 只有有follow关系边的才能调用
+        :return: result, target
+        """
+        target = self.gen_target()
+        result = []
+        # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
+        tree_data = transform_outgoing(
+            db2.static_sg1.find_one({'aid': self.aid}, {'_id': 0}))
+        links = {
+            (l['source'], l['target']) for l in tree_data['links']
+            if l['reltype']==RelationType.follow
+            }
+        for cand in self.cand_follow_edges:
+            if (cand.head.uid, cand.tail.uid) in links:
+                result.append(1)
+            else:
+                result.append(0)
+
+        return result, target
 
     def infer(self, model, save_to_db=False):
         """
@@ -382,6 +378,7 @@ class StaticAnswer:
             for link in node_links['links']
             ]
         tree_data['links'] = links
+        tree_data['tid'] = self.tid
 
         if save_to_db:
             db2.static_sg1.replace_one({'aid': self.aid},
@@ -486,6 +483,32 @@ class StaticAnswer:
         """
         self.graph.add_edge(useraction1.uid, useraction2.uid, reltype=reltype,
                             prob=prob)
+
+    @staticmethod
+    def has_follow_relation(head: UserAction, tail: UserAction):
+        """
+        determine if tail user follows head user
+        时间以 tail 的时间为准, 因为在传播发生在 tail.time
+        这里牺牲了性能因为每次都要扫 list,没有像 component 里使用set
+        :return: bool
+        """
+        action_time = tail.time
+        followers = user_manager.get_user_follower(head.uid, action_time)
+        followees = user_manager.get_user_followee(tail.uid, action_time)
+        if followers is not None:
+            return True if tail.uid in followers else False
+        elif followees is not None:
+            return True if head.uid in followees else False
+        else:
+            print("%s lacks follower,%s lacks followee" % (head.uid, tail.uid))
+            u1 = get_client().author(USER_PREFIX + tail.uid)
+            u2 = get_client().author(USER_PREFIX + head.uid)
+            if u1.followee_num < u2.follower_num:
+                followees = user_manager.fetch_user_followee(u1)
+                return True if head.uid in followees else False
+            else:
+                followers = user_manager.fetch_user_follower(u2)
+                return True if tail.uid in followers else False
 
 
 class StaticQuestionWithAnswer:
