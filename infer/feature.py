@@ -332,17 +332,15 @@ class StaticAnswer:
                 self.add_edge(head, tail, RelationType.follow, prob=prob)
 
         # 对同一个接收者的多条边, 选择 prob 最高的
-        # TODO: 处理有两个 prob 一样的情况. 应该不可能吧……
         for node in self.graph.nodes():
             if self.graph.in_degree(node) > 1:
-                print(node)
-                print(self.graph.in_degree(node))
                 edges = self.graph.in_edges(node, data=True)
                 max_prob = max([edge[2]['prob'][1] for edge in edges])
                 for edge in edges:
                     if edge[2]['prob'][1] < max_prob:
-                        print("delete edge: " + str(edge))
+                        # print("delete edge: " + str(edge))
                         self.graph.remove_edge(edge[0], edge[1])
+            assert self.graph.in_degree(node) <= 1
 
         # 筛选出不存在于图中 or in-degree=0 的点
         for uid, merged_action in self.merged_action_table.items():
@@ -356,6 +354,7 @@ class StaticAnswer:
 
         for node in self.graph.nodes():
             self.graph.node[node]['acttype'] = acttype2str(self.graph.node[node]['acttype'])
+            """
             path = [node]
             while node != self.root.uid:
                 parent = self.graph.predecessors(node)
@@ -367,9 +366,10 @@ class StaticAnswer:
                     break
             else:
                 print(path)
+            """
 
-        print(self.graph.number_of_nodes())
-        print(self.graph.number_of_edges())
+        # tree
+        assert self.graph.number_of_nodes() == self.graph.number_of_edges() + 1
 
         tree_data = json_graph.tree_data(self.graph, root=self.root.uid)
         node_links = json_graph.node_link_data(self.graph)
@@ -407,10 +407,8 @@ class StaticAnswer:
         # noti
         if uid in self.sqa.question_follower_dict:
             follow_time = self.sqa.question_follower_dict[action.uid].time
-            # follow_time 不是 datetime 就是 TimeRange
-            if isinstance(follow_time, datetime) and follow_time <= self.answer_time:
-                return Relation(self.root, action, RelationType.notification)
-            elif follow_time - self.answer_time <= 0:
+            # answer_time 一定是 datetime
+            if follow_time <= self.answer_time:
                 # 这里认为只要 follow_time 不确定晚于答案时间, 就是 noti
                 return Relation(self.root, action, RelationType.notification)
 
@@ -424,9 +422,9 @@ class StaticAnswer:
 
             if cand_time_is_datetime and action_time_is_datetime and cand.time < action_time:
                 return Relation(self.root, action, RelationType.qlink)
-            elif cand_time_is_timerange and cand.time - action_time <= 0:
+            elif cand_time_is_timerange and cand.time <= action_time:
                 return Relation(self.root, action, RelationType.qlink)
-            elif action_time_is_timerange and action_time - cand.time >= 0:
+            elif action_time_is_timerange and action_time <= cand.time:
                 return Relation(self.root, action, RelationType.qlink)
 
         # 用关注关系判断 qlink
@@ -532,8 +530,10 @@ class StaticQuestionWithAnswer:
             uid = self.question_followers[i].uid
             if uid in self.user_actions:
                 action_list = self.user_actions[uid]
-                index_of_followers.append(i)
-                time_list.append(timerange2datetime(action_list[0].time))
+                t = timerange2datetime(action_list[0].time)
+                if t:
+                    index_of_followers.append(i)
+                    time_list.append(t)
 
         # 填充在 LIS 中的时间
         for time, index in zip(*longestIncreasingSubsequence(time_list)):

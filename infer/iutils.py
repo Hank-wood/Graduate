@@ -278,13 +278,17 @@ def is_answer(action: UserAction):
     acttype = action.acttype
     return True if acttype & 0b000100 else False
 
-"""
-O(nlgn) Solution
-http://www.geeksforgeeks.org/longest-monotonically-increasing-subsequence-size-n-log-n/
-"""
+
 def longestIncreasingSubsequence(nums):
-    if not nums or len(nums) <= 1:
-        return nums
+    """
+    O(nlgn) Solution
+    http://www.geeksforgeeks.org/longest-monotonically-increasing-subsequence-size-n-log-n/
+    """
+    if not nums:
+        return [], []
+
+    if len(nums) == 1:
+        return nums, [0]
 
     tailIndices = [0] * len(nums)  # record tail element of active lists
     prevIndices = [-1] * len(nums)
@@ -338,7 +342,7 @@ def timerange2datetime(t: Union[datetime, TimeRange]):
         return t
 
     if not any([t.start, t.end]):
-        raise Exception("start and end are both none")
+        return None
     elif t.start is None:
         return t.end - timedelta(seconds=10)
     elif t.end is None:

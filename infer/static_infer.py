@@ -41,4 +41,4 @@ for collection_name in db.collection_names():
 
         # infer
         for answer in answers:
-            answer.infer(model=model)
+            answer.infer(model=model, save_to_db=True)

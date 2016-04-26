@@ -17,7 +17,7 @@ UPVOTE_ANSWER = 0b001000
 COMMENT_ANSWER = 0b010000
 COLLECT_ANSWER = 0b100000
 
-USER_PREFIX = 'http://www.zhihu.com/people/'
+USER_PREFIX = 'https://www.zhihu.com/people/'
 action_table = {
     0b000001: 'ASK_QUESTION',
     0b000010: 'FOLLOW_QUESTION',
@@ -131,7 +131,16 @@ class TimeRange:
         return self.start == other.start and self.end == other.end
 
     def __str__(self):
-        return str(self.__dict__)
+        return "(%s,%s)" % (self.start, self.end)
+
+    def __le__(self, other):
+        return self - other <= 0
+
+    def __gt__(self, other):
+        return not self.__le__(other)
+
+    def dump(self):
+        return self.__dict__
 
 
 def sub(self, other: Union[datetime, TimeRange]):
