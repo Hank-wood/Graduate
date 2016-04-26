@@ -198,7 +198,7 @@ class DynamicAnswer:
 
         if save_to_db:
             db2.dynamic_sg1.replace_one({'aid': self.aid},
-                                    trans_before_save(tree_data),
+                                    transform_incoming(tree_data),
                                     upsert=True)
         else:
             with open('data/dump.json', 'w') as f:

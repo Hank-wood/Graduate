@@ -384,8 +384,8 @@ class StaticAnswer:
         tree_data['links'] = links
 
         if save_to_db:
-            db2.dynamic.replace_one({'aid': self.aid},
-                                    trans_before_save(tree_data),
+            db2.static_sg1.replace_one({'aid': self.aid},
+                                    transform_incoming(tree_data),
                                     upsert=True)
         else:
             with open('data/dump2.json', 'w') as f:

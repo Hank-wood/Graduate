@@ -214,6 +214,7 @@ def acttype2str(acttype) -> str:
 
 
 class MyEncoder(json.JSONEncoder):
+    """save to json"""
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
@@ -224,39 +225,38 @@ class MyEncoder(json.JSONEncoder):
 
 
 # http://api.mongodb.org/python/current/examples/custom_type.html#automatic-encoding-and-decoding
-class Transform(SONManipulator):
-    def transform_incoming(self, son, collection):
-        if isinstance(son, list):
-            for i, item in enumerate(son):
-                son[i] = self.transform_incoming(item, collection)
-        else:
-            for (key, value) in son.items():
-                if isinstance(value, RelationType):
-                    son[key] = str(value)
-                elif isinstance(value, dict) or isinstance(value, list):
-                    son[key] = self.transform_incoming(value, collection)
-        return son
-
-    def transform_outgoing(self, son, collection):
-        if isinstance(son, list):
-            for i, item in enumerate(son):
-                son[i] = self.transform_outgoing(item, collection)
-        else:
-            for (key, value) in son.items():
-                if key == 'reltype':
-                    son[key] = match[value]
-                elif isinstance(value, dict) or isinstance(value, list):
-                    son[key] = self.transform_outgoing(value, collection)
-        return son
-
-db2.add_son_manipulator(Transform())
+# SONManipulator is deprecated
+# http://api.mongodb.org/python/current/changelog.html#sonmanipulator-changes
+def transform_incoming(son):
+    """save to mongodb"""
+    if isinstance(son, list):
+        for i, item in enumerate(son):
+            son[i] = transform_incoming(item)
+    else:
+        for (key, value) in son.items():
+            if isinstance(value, RelationType):
+                son[key] = str(value)
+            elif isinstance(value, TimeRange):
+                son[key] = value.dump()
+            elif isinstance(value, dict) or isinstance(value, list):
+                son[key] = transform_incoming(value)
+    return son
 
 
-def trans_before_save(tree_data):
-    if 'links' in tree_data:
-        for link in tree_data['links']:
-            link['reltype'] = str(link['reltype'])
-    return tree_data
+def transform_outgoing(son):
+    """read from mongodb"""
+    if isinstance(son, list):
+        for i, item in enumerate(son):
+            son[i] = transform_outgoing(item)
+    else:
+        for (key, value) in son.items():
+            if key == 'reltype':
+                son[key] = match[value]
+            elif key == 'time' and isinstance(value, dict):
+                son[key] = TimeRange(value['start'], value['end'])
+            elif isinstance(value, dict) or isinstance(value, list):
+                son[key] = transform_outgoing(value)
+    return son
 
 
 def is_upvote(action: UserAction):
@@ -352,7 +352,7 @@ __all__ = [
     'get_datetime_day_month_year', 'get_datetime_hour_min_sec',
     'get_datetime_full_string', 'validate_config', 'validate_cookie',
     'dict_equal', 'is_a_col', 'is_q_col', 'config_smtp_handler', 'interpolate',
-    'acttype2str', 'MyEncoder', 'a_to_q', 'q_to_a', 'Transform',
-    'trans_before_save', 'is_upvote', 'is_comment', 'is_collect', 'is_answer',
+    'acttype2str', 'MyEncoder', 'a_to_q', 'q_to_a', 'transform_incoming',
+    'transform_outgoing', 'is_upvote', 'is_comment', 'is_collect', 'is_answer',
     'longestIncreasingSubsequence', 'avg_time', 'timerange2datetime'
 ]
