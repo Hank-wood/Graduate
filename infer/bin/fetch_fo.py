@@ -8,7 +8,7 @@ from user import UserManager
 import pymongo
 
 
-db = pymongo.MongoClient('127.0.0.1', 27017).get_database('zhihu_data_0315')
+db = pymongo.MongoClient('127.0.0.1', 27017).get_database('sg1')
 user_col = db.user
 user_manager = UserManager(db.user)
 
@@ -59,6 +59,19 @@ def fetch_followee_from_list(uid_list):
         user_manager.fetch_user_followee(u)
 
 
+def fetch_follower_from_list(uid_list):
+    for uid in uid_list:
+        u = client.Author('https://www.zhihu.com/people/' + uid)
+        udoc = user_col.find_one({'uid': uid})
+        assert udoc is not None
+        if 'follower' in udoc:
+            print("skip " + uid)
+            continue
+        print("fetch " + uid)
+        user_manager.fetch_user_follower(u)
+
+
 if __name__ == '__main__':
-    fetch_followee_from_list(['hai-xiao-ai'])
+    # fetch_followee_from_list(['wolf_wu'])
+    fetch_follower_from_list(['li-gang-69-77'])
 
