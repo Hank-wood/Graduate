@@ -36,6 +36,7 @@ from copy import copy
 from collections import defaultdict
 from operator import itemgetter
 import pickle
+from pprint import pprint
 
 import networkx
 from networkx.readwrite import json_graph
@@ -63,11 +64,10 @@ class StaticAnswer:
         self.answer_time = None
         self.merged_action_table = {}  # UserAction Merge result, {uid: UserAction}
 
-    def load_from_dynamic(self):
+    def load_from_raw(self):
         """
         从 zhihu_data 加载 answer 信息
         """
-        # TODO: db 从外部加载
         answer_doc = db[a_col(self.tid)].find_one({'aid': self.aid})
         assert answer_doc is not None
         self.root = UserAction(answer_doc['time'], self.aid,
@@ -93,11 +93,21 @@ class StaticAnswer:
         self.affecters = list(chain(
             [self.root], self.upvoters, self.commenters, self.collectors))
 
+    def load_from_dynamic(self):
+        """
+        从推断出的动态传播图加载 answer
+        """
+        # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
+        return transform_outgoing(
+            db2.dynamic_sg1.find_one({'aid': self.aid}, {'_id': 0}))
+
     def load_from_static(self):
         """
-        从抓取的静态答案数据库加载 answer
+        从推断出的静态传播图加载 answer
         """
-        pass
+        # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
+        return transform_outgoing(
+            db2.static_sg1.find_one({'aid': self.aid}, {'_id': 0}))
 
     def build_cand_edges(self):
         """
@@ -167,7 +177,8 @@ class StaticAnswer:
                     realhead = hashtable[head.uid]
                     realtail = hashtable[tail.uid]
                     edge = FollowEdge(realhead, realtail)
-                    if edge not in edge_set:
+                    reverse_edge = FollowEdge(realtail, realhead)
+                    if edge not in edge_set and reverse_edge not in edge_set:
                         self.cand_follow_edges.append(edge)
                         edge_set.add(edge)
 
@@ -254,12 +265,10 @@ class StaticAnswer:
         :return: 0, 1 序列表示某关注关系是否是 follow relation
         """
         target = []
-        # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
-        tree_data = transform_outgoing(
-            db2.dynamic_sg1.find_one({'aid': self.aid}, {'_id': 0}))
+        tree_data = self.load_from_dynamic()
         links = {
             (l['source'], l['target']) for l in tree_data['links']
-            if l['reltype']==RelationType.follow
+            if l['reltype'] == RelationType.follow
         }
         for cand in self.cand_follow_edges:
             if (cand.head.uid, cand.tail.uid) in links:
@@ -285,19 +294,19 @@ class StaticAnswer:
         propagators.insert(0, self.root)
         self.sqa.add_answer_propagator(propagators)
 
-    def infer_follow(self):
+    def evaluate_follow(self):
         """推断follow关系,用于评价follow关系推断的效果. 只有有follow关系边的才能调用
         :return: result, target
         """
+        if not self.cand_follow_edges:
+            return [], []
         target = self.gen_target()
         result = []
-        # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
-        tree_data = transform_outgoing(
-            db2.static_sg1.find_one({'aid': self.aid}, {'_id': 0}))
+        tree_data = self.load_from_static()
         links = {
             (l['source'], l['target']) for l in tree_data['links']
             if l['reltype']==RelationType.follow
-            }
+        }
         for cand in self.cand_follow_edges:
             if (cand.head.uid, cand.tail.uid) in links:
                 result.append(1)
@@ -306,37 +315,73 @@ class StaticAnswer:
 
         return result, target
 
+    def evaluate_all(self):
+        dynamic_tree = self.load_from_dynamic()
+        dynamic_links = {
+            (l['source'], l['target']): l['reltype']
+            for l in dynamic_tree['links']
+        }
+        answerer = dynamic_tree['id']
+        dynamic_graph = json_graph.tree_graph(dynamic_tree)
+        static_tree = self.load_from_static()
+        static_links = {
+            (l['source'], l['target']): l['reltype']
+            for l in static_tree['links']
+        }
+        static_graph = json_graph.tree_graph(static_tree)
+        if dynamic_graph.number_of_nodes() != static_graph.number_of_nodes():
+            for node in dynamic_graph.nodes():
+                if not static_graph.has_node(node):
+                    print("static graph lack node " + node + ' ' + self.aid)
+            for node in static_graph.nodes():
+                if not dynamic_graph.has_node(node):
+                    print("dynamic graph lack node " + node + ' ' + self.aid)
+
+        target_edges = []
+        result_edges = []
+        for node in dynamic_graph.nodes():
+            if node == answerer:
+                continue
+            assert len(dynamic_graph.in_edges(node)) == 1
+            assert len(static_graph.in_edges(node)) == 1
+            dynamic_edge = dynamic_graph.in_edges(node)[0]
+            dynamic_edge += (dynamic_links[dynamic_edge],)
+            target_edges.append(dynamic_edge)  # set reltype
+            static_edge = static_graph.in_edges(node)[0]
+            static_edge += (static_links[static_edge],)
+            result_edges.append(static_edge)
+
+        return result_edges, target_edges
+
     def infer(self, model, save_to_db=False):
         """
         推断静态传播图
         """
         # 用训练好的模型标注 follow 边, 把 follow 边加入图中
-        if not self.cand_follow_edges:
-            return False
+        if self.cand_follow_edges:
+            features = self.gen_features_without_isanswer()
+            result = model.predict(features)
+            probs = model.predict_proba(features)
+            for value, prob, edge in zip(result, probs, self.cand_follow_edges):
+                head, tail = edge.head, edge.tail
+                if value:
+                    # 添加标注为 follow 关系的 edge 的 head, tail
+                    if not self.graph.has_node(head.uid):
+                        self.add_node(head)
+                    if not self.graph.has_node(tail.uid):
+                        self.add_node(tail)
+                    self.add_edge(head, tail, RelationType.follow, prob=prob)
 
-        features = self.gen_features_without_isanswer()
-        result = model.predict(features)
-        probs = model.predict_proba(features)
-        for value, prob, edge in zip(result, probs, self.cand_follow_edges):
-            head, tail = edge.head, edge.tail
-            if value:
-                # 添加标注为 follow 关系的 edge 的 head, tail
-                if not self.graph.has_node(head.uid):
-                    self.add_node(head)
-                if not self.graph.has_node(tail.uid):
-                    self.add_node(tail)
-                self.add_edge(head, tail, RelationType.follow, prob=prob)
-
-        # 对同一个接收者的多条边, 选择 prob 最高的
-        for node in self.graph.nodes():
-            if self.graph.in_degree(node) > 1:
-                edges = self.graph.in_edges(node, data=True)
-                max_prob = max([edge[2]['prob'][1] for edge in edges])
-                for edge in edges:
-                    if edge[2]['prob'][1] < max_prob:
-                        # print("delete edge: " + str(edge))
-                        self.graph.remove_edge(edge[0], edge[1])
-            assert self.graph.in_degree(node) <= 1
+            # 对同一个接收者的多条边, 选择 prob 最高的
+            for node in self.graph.nodes():
+                if self.graph.in_degree(node) > 1:
+                    edges = self.graph.in_edges(node, data=True)
+                    max_prob = max([edge[2]['prob'][1] for edge in edges])
+                    for edge in edges:
+                        if edge[2]['prob'][1] < max_prob:
+                            # print("delete edge: " + str(edge))
+                            self.graph.remove_edge(edge[0], edge[1])
+                assert self.graph.in_degree(node) <= 1
 
         # 筛选出不存在于图中 or in-degree=0 的点
         for uid, merged_action in self.merged_action_table.items():
@@ -385,7 +430,7 @@ class StaticAnswer:
                                     transform_incoming(tree_data),
                                     upsert=True)
         else:
-            with open('data/dump2.json', 'w') as f:
+            with open('data/%s.json' % self.aid, 'w') as f:
                 json.dump(tree_data, f, cls=MyEncoder, indent='\t')
 
     def _infer_node(self, action):
@@ -647,7 +692,7 @@ if __name__ == '__main__':
     sys.modules[__name__].__dict__['db'] = db
     sys.modules[__name__].__dict__['user_manager'] = UserManager(db.user)
     sa = StaticAnswer(tid='19553298', aid="87423946")
-    sa.load_from_dynamic()
+    sa.load_from_raw()
     sa.build_cand_edges()
     pprint(sa.cand_follow_edges)
     pprint(sa.gen_target())

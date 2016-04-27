@@ -32,7 +32,7 @@ for collection_name in db.collection_names():
         for answer_doc in a_collection.find({'qid': qid}, {'aid': 1}):
             answer = StaticAnswer(tid, answer_doc['aid'])
             # 如果没有侯选边,就不推断
-            answer.load_from_dynamic()
+            answer.load_from_raw()
             answer.infer_preparation(sqa)
             answers.append(answer)
 

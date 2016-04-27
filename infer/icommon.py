@@ -94,6 +94,10 @@ class FollowEdge:
     def __hash__(self):
         return hash(self.head.uid + self.tail.uid)
 
+    def __repr__(self):
+        return self.head.uid + ',' + self.tail.uid
+
+
 class RelationType(Enum):
     follow = 1
     qlink = 2

@@ -37,7 +37,7 @@ def gen_traindata_selected():
             for aid in aids:
                 answer = StaticAnswer(tid, aid)
                 if aid not in data:
-                    answer.load_from_dynamic()
+                    answer.load_from_raw()
                     answer.build_cand_edges()
                     target = answer.gen_target()
                     f = answer.gen_features()
@@ -71,7 +71,7 @@ def gen_traindata_from_all():
                 count += 1
                 aid = adoc['aid']
                 answer = StaticAnswer(tid, aid)
-                answer.load_from_dynamic()
+                answer.load_from_raw()
                 answer.build_cand_edges()
                 fc.append(answer.gen_features(), answer.gen_target())
     except:
