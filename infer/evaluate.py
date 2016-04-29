@@ -3,6 +3,7 @@ import pickle
 import pymongo
 import os.path
 from sklearn import metrics
+import graphsim as gs
 
 from iutils import *
 from icommon import db2
@@ -49,6 +50,9 @@ def evaluate_follow():
 
 
 def evaluate_all():
+    """
+    已经排除了只有一个 answerer 的答案
+    """
     all_result_edges = []
     all_target_edges = []
     for answer_doc in db2.static_sg1.find({}, {'aid': 1, 'tid': 1}):
@@ -74,6 +78,19 @@ def evaluate_all():
     print(metrics.accuracy_score(*pre_and_rel))
 
 
+def graph_similarity():
+    target_graph = []
+    result_graph = []
+    for answer_doc in db2.static_sg1.find({}, {'aid': 1, 'tid': 1})[:1]:
+        answer = StaticAnswer(answer_doc['tid'], answer_doc['aid'])
+        result, target = answer.evaluate_graph_sim()
+        result_graph.append(result)
+        target_graph.append(target)
+
+    print(target_graph)
+    print(gs.nsim_bvd04(target_graph[0], result_graph[0]))
+
 if __name__ == '__main__':
     # evaluate_follow()
-    evaluate_all()
+    # evaluate_all()
+    graph_similarity()
