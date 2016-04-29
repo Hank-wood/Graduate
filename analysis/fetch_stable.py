@@ -21,7 +21,6 @@ from zhihu import ANONYMOUS
 from client import client
 
 db_name = 'analysis'
-db_name = 'test'
 
 FETCH_FOLLOWER = 1
 FETCH_FOLLOWEE = 2
@@ -40,9 +39,10 @@ def fetch_question_info(question_url):
     print(question_url)
     question = client.question(question_url)
     title = question.title
-    followers = [fo.id for fo in question.followers if fo is not ANONYMOUS]
+    followers = [{'uid': fo.id, 'time': None} for fo in question.followers
+                 if fo is not ANONYMOUS]
     ctime = question.creation_time
-    asker = question.author.id
+    asker = question.author.id if question.author is not ANONYMOUS else ''
     qdoc = {
         'qid': str(question.id),
         'url': question_url,
@@ -55,8 +55,8 @@ def fetch_question_info(question_url):
     print("fetch " + asker)
     huey_tasks.fetch_followers_followees(asker, limit_to=FETCH_FOLLOWER)
     for follower in followers:
-        print("fetch " + follower)
-        huey_tasks.fetch_followers_followees(follower)
+        print("fetch " + follower['uid'])
+        huey_tasks.fetch_followers_followees(follower['uid'])
     water_q.update({'qid': qdoc['qid']}, qdoc, upsert=True)
 
     fetch_answer_info(question)
@@ -64,20 +64,21 @@ def fetch_question_info(question_url):
 
 def fetch_answer_info(question):
     for answer in question.answers:
+        author_id = answer.author.id if answer.author is not ANONYMOUS else ''
         adoc = {
             'url': answer.url,
             'aid': str(answer.id),
             'qid': str(answer.question.id),
-            'answerer': answer.author.id,
+            'answerer': author_id,
             'time': answer.creation_time,
             'collectors': []
         }
         # 'upvoters':
-        upvoters = ['' if up is ANONYMOUS else up.id for up in answer.upvoters]
+        upvoters = [up.id for up in answer.upvoters if up is not ANONYMOUS]
         commenters = [{
-            'uid': (cm.author.id, '')[cm.author is ANONYMOUS],
-            'time': cm.creation_time
-        } for cm in answer.comments]
+                      'uid': cm.author.id,
+                      'time': cm.creation_time
+                  } for cm in answer.comments if cm.author is not ANONYMOUS]
         adoc['upvoters'] = [{'uid': up, 'time': None} for up in upvoters]
         commenters.sort(key=lambda x: x['time'])
         adoc['commenters'] = commenters
@@ -96,7 +97,43 @@ def fetch_answer_info(question):
         # 入库
         water_a.update({'aid': adoc['aid']}, adoc, upsert=True)
 
+
+def fetch_single_answer(url):
+    answer = client.answer(url)
+    author_id = answer.author.id if answer.author is not ANONYMOUS else ''
+    adoc = {
+        'url': answer.url,
+        'aid': str(answer.id),
+        'qid': str(answer.question.id),
+        'answerer': author_id,
+        'time': answer.creation_time,
+        'collectors': []
+    }
+    # 'upvoters':
+    upvoters = [up.id for up in answer.upvoters if up is not ANONYMOUS]
+    commenters = [{
+                      'uid': cm.author.id,
+                      'time': cm.creation_time
+                  } for cm in answer.comments if cm.author is not ANONYMOUS]
+    adoc['upvoters'] = [{'uid': up, 'time': None} for up in upvoters]
+    commenters.sort(key=lambda x: x['time'])
+    adoc['commenters'] = commenters
+    pprint(adoc)
+
+    # fetch follower/followee
+    print(adoc['answerer'])
+    huey_tasks.fetch_followers_followees(adoc['answerer'])
+    for upvoter in upvoters:
+        print('fetch ' + upvoter)
+        huey_tasks.fetch_followers_followees(upvoter)
+    for commenter in commenters:
+        print('fetch ' + commenter['uid'])
+        huey_tasks.fetch_followers_followees(commenter['uid'], limit_to=FETCH_FOLLOWEE)
+
+    # 入库
+    water_a.update({'aid': adoc['aid']}, adoc, upsert=True)
+
 if __name__ == '__main__':
-    answer_url = 'https://www.zhihu.com/question/42985161/answer/95096511'
-    question_url = qurl_pattern.match(answer_url).group(1)
-    fetch_question_info(question_url)
+    # fetch_question_info('https://www.zhihu.com/question/42985161')
+    # fetch_question_info('https://www.zhihu.com/question/35107886')
+    fetch_single_answer('https://www.zhihu.com/question/35107886/answer/61219684')

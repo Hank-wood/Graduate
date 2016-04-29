@@ -64,11 +64,15 @@ class StaticAnswer:
         self.answer_time = None
         self.merged_action_table = {}  # UserAction Merge result, {uid: UserAction}
 
-    def load_from_raw(self):
+    def load_from_raw(self, coll_name=None):
         """
         从 zhihu_data 加载 answer 信息
         """
-        answer_doc = db[a_col(self.tid)].find_one({'aid': self.aid})
+        if not coll_name:
+            a_coll = db[a_col(self.tid)]
+        else:
+            a_coll = db[coll_name]
+        answer_doc = a_coll.find_one({'aid': self.aid})
         assert answer_doc is not None
         self.root = UserAction(answer_doc['time'], self.aid,
                                answer_doc['answerer'], ANSWER_QUESTION)
@@ -353,8 +357,14 @@ class StaticAnswer:
 
         return result_edges, target_edges
 
-    def infer(self, model, save_to_db=False):
+    def evaluate_graph_sim(self):
+        dynamic_graph = json_graph.tree_graph(self.load_from_dynamic())
+        static_graph = json_graph.tree_graph(self.load_from_static())
+        return static_graph, dynamic_graph
+
+    def infer(self, model, save_to_db=False, coll_name=None):
         """
+        :param coll_name: 写入的 collection name
         推断静态传播图
         """
         # 用训练好的模型标注 follow 边, 把 follow 边加入图中
@@ -426,9 +436,9 @@ class StaticAnswer:
         tree_data['tid'] = self.tid
 
         if save_to_db:
-            db2.static_sg1.replace_one({'aid': self.aid},
-                                    transform_incoming(tree_data),
-                                    upsert=True)
+            db2.get_collection(coll_name).replace_one({'aid': self.aid},
+                                            transform_incoming(tree_data),
+                                            upsert=True)
         else:
             with open('data/%s.json' % self.aid, 'w') as f:
                 json.dump(tree_data, f, cls=MyEncoder, indent='\t')
@@ -562,13 +572,14 @@ class StaticQuestionWithAnswer:
     一定记得在调用 StaticAnswer.infer 之前调用所有 StaticAnswer 的 infer_preparation
     和 fill_question_follower_time
     """
-    def __init__(self, tid, qid):
+    def __init__(self, tid, qid, coll_name=None):
         self.tid = tid
         self.qid = qid
         self.user_actions = defaultdict(list)  # 记录所有 user action for qlink match
         self.question_followers = []  # [UserAction]
         self.question_follower_dict = {}  # {uid->UserAction}
         self.propagators = []   # 和 dynamic 不同,这里直接用list,不排序
+        self.coll_name = coll_name
         self.load_question_followers()
 
     def add_user_actions(self, user_actions: dict):
@@ -628,16 +639,22 @@ class StaticQuestionWithAnswer:
         """
         load question followers from database. 同时加入 propagators
         """
-        q_doc = db[q_col(self.tid)].find_one({'qid': self.qid})
+        if not self.coll_name:
+            q_coll = db[q_col(self.tid)]
+        else:
+            q_coll = db[self.coll_name]
+        q_doc = q_coll.find_one({'qid': self.qid})
         assert q_doc is not None
         assert self.question_followers == []
+        asker = q_doc['asker']
         self.question_followers.append(
-            UserAction(q_doc['time'], '', q_doc['asker'], ASK_QUESTION)
+            UserAction(q_doc['time'], '', asker, ASK_QUESTION)
         )
         # follower 是从老到新, 顺序遍历可保证 question_followers 从老到新
         for f in q_doc['follower']:
-            follow_action = UserAction(None, '', f['uid'], FOLLOW_QUESTION)
-            self.question_followers.append(follow_action)
+            if f['uid'] != asker:
+                follow_action = UserAction(None, '', f['uid'], FOLLOW_QUESTION)
+                self.question_followers.append(follow_action)
 
         for follower in self.question_followers:
             self.question_follower_dict[follower.uid] = follower
