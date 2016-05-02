@@ -28,7 +28,7 @@ def infer_one_question(tid, qid, aid, db_name):
 
 def infer_all(db_name):
     db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)
-    executor = ProcessPoolExecutor(max_workers=5)
+    executor = ProcessPoolExecutor(max_workers=10)
 
     futures = []
     for collection_name in db.collection_names():
@@ -92,6 +92,7 @@ def infer_question_task(db_name, tid, qid, aids):
 if __name__ == '__main__':
     # infer_one_question(tid='19551147', qid='40554112', aid='87120100',db_name='zhihu_data_0219')
     # infer_one_question(tid='19551147', qid="40611516", aid="87420652",db_name='sg1')
-    # infer_one_question(tid='19553298', qid="40617404", aid="87423946",db_name='sg1')
     # infer_many(db_name='sg1', filename='data/alltime.txt')
-    infer_all('sg1')
+    # infer_one_question(tid='19553298', qid="40617404", aid="87423946",db_name='sg1')
+    infer_all('zhihu_data_0315')
+    # infer_all('sg1')

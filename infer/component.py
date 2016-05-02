@@ -9,7 +9,6 @@ import logging
 import json
 import shutil
 from queue import PriorityQueue
-from copy import copy
 from datetime import datetime
 from os import path
 from threading import Thread
@@ -44,7 +43,7 @@ class DynamicQuestionWithAnswer:
         self.question_followers = []  # [UserAction]
         self.question_follower_dict = {}  # {uid->UserAction}
         self.answers = {}  # {uid: UserAction(acttype=ANSWER_QUESTION)}
-        self.propagators = PriorityQueue()
+        self.propagators = []
         self.load_question_followers()
         self.user_actions = {}  # 记录所有 user action for qlink match
 
@@ -65,7 +64,8 @@ class DynamicQuestionWithAnswer:
         interpolate(self.question_followers)
         for follower in self.question_followers:
             self.question_follower_dict[follower.uid] = follower
-        list(map(self.propagators.put, self.question_followers))
+        list(map(self.propagators.append, self.question_followers))
+        self.propagators.sort()
 
     def add_answer_propagator(self, aid, propagators):
         """
@@ -74,7 +74,8 @@ class DynamicQuestionWithAnswer:
         """
         answer_act = propagators[0]
         self.answers[answer_act.uid] = answer_act
-        list(map(self.propagators.put, propagators))
+        list(map(self.propagators.append, propagators))
+        self.propagators.sort()
 
     def add_user_actions(self, user_actions: dict):
         for key, value in user_actions.items():
@@ -93,6 +94,8 @@ class DynamicAnswer:
         self.commenters = []
         self.collectors = []
         self._load_answer()
+        self.dynamic_collection = db2.dynamic if '0315' in db._Database__name \
+                                    else db2.dynamic_sg1
 
     def _load_answer(self):
         """
@@ -135,15 +138,10 @@ class DynamicAnswer:
         self.dqa.add_user_actions(user_actions)
 
     def infer(self, save_to_db):
-        cp = copy(self.dqa.propagators)  # 防止修改IS.propagators
-        propagators = []
-        times = []  # bisect 不支持 key, 故只能再记录一个时间序列
-        while not cp.empty():
-            action = cp.get()
-            if action.aid != self.aid:
-                propagators.append(action)  # 排除本答案的回答/点赞者
-                times.append(action.time)
-
+        propagators = self.dqa.propagators
+        # bisect 不支持 key, 故只能再记录一个时间序列
+        # 排除本答案的回答/点赞者
+        times = [action.time for action in propagators if action.aid != self.aid]
         upvoters_added = [self.root]  # 记录已经加入图中的点赞者
         # 按时间顺序一起处理
         pq = PriorityQueue()
@@ -197,7 +195,7 @@ class DynamicAnswer:
         tree_data['links'] = links
 
         if save_to_db:
-            db2.dynamic_sg1.replace_one({'aid': self.aid},
+            self.dynamic_collection.replace_one({'aid': self.aid},
                                     transform_incoming(tree_data),
                                     upsert=True)
         else:
