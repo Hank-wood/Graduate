@@ -7,6 +7,7 @@ from networkx.readwrite import json_graph
 from networkx import shortest_path_length, dfs_successors
 from icommon import *
 from user import UserManager
+from zhihu_oauth import ZhihuClient
 from client import client
 
 from iutils import transform_outgoing
@@ -52,8 +53,8 @@ def get_info_from_dynamic_graph(graph, answerer, links):
             if fo is not None:
                 fo_count = len(fo)
             else:
-                u = client.author(USER_PREFIX + uid)
-                fo_count = u.follower_num
+                u = client.people(uid)
+                fo_count = u.follower_count
                 print(fo_count)
             succ_count = 0
             for _, successors in dfs_successors(graph, uid).items():

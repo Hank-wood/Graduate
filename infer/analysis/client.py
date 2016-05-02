@@ -1,5 +1,12 @@
-from zhihu import ZhihuClient
+from zhihu_oauth import ZhihuClient
+import os
 
-cookie = '../../cookies/zhuoyi.json'
-client = ZhihuClient(cookie)
+TOKEN_FILE = '../../cookies/token.pkl'
 
+client = ZhihuClient()
+
+if os.path.isfile(TOKEN_FILE):
+    client.load_token(TOKEN_FILE)
+else:
+    client.login_in_terminal()
+    client.save_token(TOKEN_FILE)
