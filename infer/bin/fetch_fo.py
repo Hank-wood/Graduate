@@ -8,7 +8,7 @@ from user import UserManager
 import pymongo
 
 
-db = pymongo.MongoClient('127.0.0.1', 27017).get_database('sg1')
+db = pymongo.MongoClient('127.0.0.1', 27017).get_database('analysis')
 user_col = db.user
 user_manager = UserManager(db.user)
 
@@ -73,5 +73,5 @@ def fetch_follower_from_list(uid_list):
 
 if __name__ == '__main__':
     # fetch_followee_from_list(['wolf_wu'])
-    fetch_follower_from_list(['li-gang-69-77'])
+    fetch_follower_from_list(['flyFree'])
 

@@ -300,7 +300,7 @@ class StaticAnswer:
 
     def evaluate_follow(self):
         """推断follow关系,用于评价follow关系推断的效果. 只有有follow关系边的才能调用
-        :return: result, target
+        :return: result, target, 形式 [1,1,1,0,1,0,...]
         """
         if not self.cand_follow_edges:
             return [], []
@@ -349,8 +349,8 @@ class StaticAnswer:
             assert len(dynamic_graph.in_edges(node)) == 1
             assert len(static_graph.in_edges(node)) == 1
             dynamic_edge = dynamic_graph.in_edges(node)[0]
-            dynamic_edge += (dynamic_links[dynamic_edge],)
-            target_edges.append(dynamic_edge)  # set reltype
+            dynamic_edge += (dynamic_links[dynamic_edge],)  # set reltype
+            target_edges.append(dynamic_edge)
             static_edge = static_graph.in_edges(node)[0]
             static_edge += (static_links[static_edge],)
             result_edges.append(static_edge)
