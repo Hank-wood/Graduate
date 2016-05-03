@@ -50,9 +50,9 @@ def change_uid_in_collection(collection, old, new):
             else:
                 raise Exception()
             if ori_doc != doc:
-                # pprint(ori_doc['upvoters'])  用来定位用户,找到修改后的uid
-                result = collection.replace_one(match, doc)
-                print(result.modified_count)
+                pprint(ori_doc)  # 用来定位用户,找到修改后的uid
+                # result = collection.replace_one(match, doc)
+                # print(result.modified_count)
     except Exception as e:
         print(doc)
         raise e
@@ -203,4 +203,5 @@ def t_change_uid():
 
 
 if __name__ == '__main__':
-    change_uid('zhihu_data_0315', 'duo-nian-yi-hou-32-91', 'duo-nian-yi-hou-1000')
+    change_uid('zhihu_data_0315','yin-ying-43-25', 'xxxx')
+    # change_uid('sg1', 'yin-ying-43-25', 'xxxx')

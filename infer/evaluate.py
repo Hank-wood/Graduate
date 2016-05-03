@@ -91,6 +91,6 @@ def graph_similarity():
     print(gs.nsim_bvd04(target_graph[0], result_graph[0]))
 
 if __name__ == '__main__':
-    # evaluate_follow()
-    # evaluate_all()
-    graph_similarity()
+    evaluate_follow()
+    evaluate_all()
+    # graph_similarity()

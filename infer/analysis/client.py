@@ -1,7 +1,7 @@
 from zhihu_oauth import ZhihuClient
 import os
 
-TOKEN_FILE = '../../cookies/token.pkl'
+TOKEN_FILE = 'token.pkl'
 
 client = ZhihuClient()
 
