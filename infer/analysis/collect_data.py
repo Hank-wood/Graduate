@@ -1,5 +1,5 @@
 """
-统计, 分析水军
+从 dynamic 中收集整理必要的数据,以供分析
 """
 import pymongo
 import sys
@@ -26,7 +26,16 @@ def get_info_from_dynamic_graph(aid, graph, answerer, links):
     :param data: dynamic graph read from database
     :return:
     传播层数,四种关系的数量,回答者粉丝数,每个非叶节点影响的用户数量
-    answer {fo_count: 回答者粉丝数(maybe None), 'layer': 传播层数, 1: ,2: ,3: ,4: }
+    answer {
+        fo_count: 回答者粉丝数(maybe None),
+        layer: 传播层数,
+        1: ,
+        2: ,
+        3: ,
+        4: ,
+        upvote_num:
+        comment_num:
+    }
     influence {fo_count: x, succ_count: y}
     receiver {'fo_count': answerer_follower_count, 'time': sorted times}
     """
@@ -109,5 +118,22 @@ def coll_all_data():
         get_info_from_dynamic_graph(aid, dynamic_graph, tree_data['id'], tree_data['links'])
         print(i)
 
+
+def add_extra_info():
+    """
+    添加之前没有添加的信息
+    """
+    for adoc in answer_coll.find():
+        aid = adoc['aid']
+        full_doc = db.all_a.find_one({'aid': aid})
+        upvote_num = len(full_doc['upvoters'])
+        comment_num = len(full_doc['commenters'])
+        answer_coll.update({'aid': aid},
+                           {'$set': {
+                               'upvote_num': upvote_num,
+                               'comment_num': comment_num
+                           }})
+
 if __name__ == '__main__':
-    coll_all_data()
+    # coll_all_data()
+    add_extra_info()
