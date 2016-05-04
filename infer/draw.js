@@ -81,7 +81,7 @@ d3.json("data/dump.json", function(error, root) {
                 .duration(200)
                 .style("opacity", .9);
             var acttype = d.acttype.toLowerCase().replace(/_answer/g, '');
-            var text = "uid: " + d.id + "<br>time: " + d.time + "<br>action: "+ acttype;
+            var text = "uid: " + d.id + "<br>time: " + d.time + "<br>action: "+ acttype + "<br>influence: 4";
             div.html("<p>" + text + "</p><br/><br/>")
                 .style("left", (d3.event.pageX) + "px")
                 .style("top", (d3.event.pageY - 28) + "px");
