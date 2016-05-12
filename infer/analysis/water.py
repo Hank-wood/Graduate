@@ -20,7 +20,11 @@ static_links = {
     }
 static_graph = json_graph.tree_graph(water_tree_data)
 
+recommendation_count = 0
 for node in static_graph.nodes(data=True):
     if 'UPVOTE_ANSWER' in node[1]['acttype']:
         edge = static_graph.in_edges(node[0])[0]
-        print(edge + (static_links[edge], ))
+        print('(' + edge[1] + ',' + str(static_links[edge]) + '),', end='')
+        # if static_links[edge] == RelationType.recommendation:
+        #     recommendation_count += 1
+

@@ -123,15 +123,17 @@ def add_extra_info():
     """
     添加之前没有添加的信息
     """
-    for adoc in answer_coll.find():
+    for adoc in answer_coll.find({}, {'aid': 1}):
         aid = adoc['aid']
-        full_doc = db.all_a.find_one({'aid': aid})
-        upvote_num = len(full_doc['upvoters'])
-        comment_num = len(full_doc['commenters'])
+        full_doc = db.all_a.find_one({'aid': aid}, {'collectors': 1})
+        # upvote_num = len(full_doc['upvoters'])
+        # comment_num = len(full_doc['commenters'])
+        collect_num = len(full_doc['collectors'])
         answer_coll.update({'aid': aid},
                            {'$set': {
-                               'upvote_num': upvote_num,
-                               'comment_num': comment_num
+                               # 'upvote_num': upvote_num,
+                               # 'comment_num': comment_num,
+                               'collect_num': collect_num
                            }})
 
 if __name__ == '__main__':
