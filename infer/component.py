@@ -310,7 +310,7 @@ class DynamicAnswer:
         加载之前生成的graph, dump to json, 在浏览器中显示
         """
         def load_one():
-            tree_data = db2.dynamic.find_one({'aid': aid}, {'_id': 0})
+            tree_data = db2.dynamic_sg1.find_one({'aid': aid}, {'_id': 0})
             filename = path.join('data', aid + '.json')
             with open(filename, 'w') as f:
                 json.dump(tree_data, f, cls=MyEncoder, indent='\t')
@@ -342,7 +342,7 @@ class DynamicAnswer:
 
                 import webbrowser
                 webbrowser.open_new_tab('http://127.0.0.1:8000/diffussion_tree.html')
-                sleep(2)
+                sleep(4)
 
         cls.display(operation=load_n)
 
@@ -363,5 +363,6 @@ class DynamicAnswer:
         operation()
 
 if __name__ == '__main__':
-    DynamicAnswer.load_and_display_graph('87423946')
+    # DynamicAnswer.load_and_display_graph('87423946')
+    DynamicAnswer.load_and_display_graph('87351306')
     # DynamicAnswer.load_and_display_random_graphs()

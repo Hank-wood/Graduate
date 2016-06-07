@@ -54,12 +54,18 @@ def evaluate_all():
     已经排除了只有一个 answerer 的答案
     """
     all_result_edges = []
+    all_result_edges_each_answer = []
     all_target_edges = []
+    all_target_edges_each_answer = []
     for answer_doc in db2.static_sg1.find({}, {'aid': 1, 'tid': 1}):
+        if answer_doc['aid'] == '87473698':
+            continue
         answer = StaticAnswer(answer_doc['tid'], answer_doc['aid'])
         result, target = answer.evaluate_all()
         all_result_edges.extend(result)
+        all_result_edges_each_answer.append(result)
         all_target_edges.extend(target)
+        all_target_edges_each_answer.append(target)
 
     predecessor = (
         [e[0] for e in all_target_edges],
@@ -77,20 +83,38 @@ def evaluate_all():
     print(metrics.accuracy_score(*reltype))
     print(metrics.accuracy_score(*pre_and_rel))
 
+    RTA = []
+    RA = []
+    SA = []
+    for result, target in zip(all_result_edges_each_answer, all_target_edges_each_answer):
+        if len(result) == 0:
+            continue
 
-def graph_similarity():
-    target_graph = []
-    result_graph = []
-    for answer_doc in db2.static_sg1.find({}, {'aid': 1, 'tid': 1})[:1]:
-        answer = StaticAnswer(answer_doc['tid'], answer_doc['aid'])
-        result, target = answer.evaluate_graph_sim()
-        result_graph.append(result)
-        target_graph.append(target)
+        assert len(result) == len(target)
+        N = len(result)
+        correct_RTA = correct_RA = correct_SA = 0
+        for r, t in zip(result, target):
+            if r[0] == t[0]:
+                correct_SA += 1
+            if r[2].value == t[2].value:
+                correct_RTA += 1
+            if r[0] == t[0] and r[2].value == t[2].value:
+                correct_RA += 1
+        RTA.append(correct_RTA/N)
+        RA.append(correct_RA/N)
+        SA.append(correct_SA/N)
 
-    print(target_graph)
-    print(gs.nsim_bvd04(target_graph[0], result_graph[0]))
+    print("mean RTA" + str(sum(RTA)/len(RTA)))
+    print("mean SA" + str(sum(SA)/len(SA)))
+    print("mean RA" + str(sum(RA)/len(RA)))
+
+    with open('data/fuck.pkl', 'wb') as f:
+        pickle.dump({
+            'RTA': RTA,
+            'SA': SA,
+            'RA': RA
+        }, f)
 
 if __name__ == '__main__':
     evaluate_follow()
     evaluate_all()
-    # graph_similarity()
