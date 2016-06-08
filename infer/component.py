@@ -310,7 +310,7 @@ class DynamicAnswer:
         加载之前生成的graph, dump to json, 在浏览器中显示
         """
         def load_one():
-            tree_data = db2.dynamic_sg1.find_one({'aid': aid}, {'_id': 0})
+            tree_data = db2.dynamic_test.find_one({'aid': aid}, {'_id': 0})
             filename = path.join('data', aid + '.json')
             with open(filename, 'w') as f:
                 json.dump(tree_data, f, cls=MyEncoder, indent='\t')

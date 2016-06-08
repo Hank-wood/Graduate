@@ -103,7 +103,7 @@ class StaticAnswer:
         """
         # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
         return transform_outgoing(
-            db2.dynamic_sg1.find_one({'aid': self.aid}, {'_id': 0}))
+            db2.dynamic_test.find_one({'aid': self.aid}, {'_id': 0}))
 
     def load_from_static(self):
         """
@@ -111,7 +111,7 @@ class StaticAnswer:
         """
         # tree_data = db2.dynamic.find_one({'aid': self.aid}, {'_id': 0})
         return transform_outgoing(
-            db2.static_sg1.find_one({'aid': self.aid}, {'_id': 0}))
+            db2.static_test.find_one({'aid': self.aid}, {'_id': 0}))
 
     def build_cand_edges(self):
         """

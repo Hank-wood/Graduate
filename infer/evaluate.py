@@ -30,7 +30,7 @@ def evaluate_follow():
         with open('data/sg1_follow_result.pkl', 'rb') as f:
             all_result = pickle.load(f)
     else:
-        for answer_doc in db2.static_sg1.find({}, {'aid': 1, 'tid': 1}):
+        for answer_doc in db2.static_test.find({}, {'aid': 1, 'tid': 1}):
             answer = StaticAnswer(answer_doc['tid'], answer_doc['aid'])
             answer.load_from_raw()
             answer.build_cand_edges()
@@ -57,7 +57,7 @@ def evaluate_all():
     all_result_edges_each_answer = []
     all_target_edges = []
     all_target_edges_each_answer = []
-    for answer_doc in db2.static_sg1.find({}, {'aid': 1, 'tid': 1}):
+    for answer_doc in db2.static_test.find({}, {'aid': 1, 'tid': 1}):
         if answer_doc['aid'] == '87473698':
             continue
         answer = StaticAnswer(answer_doc['tid'], answer_doc['aid'])

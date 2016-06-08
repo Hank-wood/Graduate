@@ -11,9 +11,9 @@ model = pickle.load(open('data/model_0315.pkl', 'rb'))
 print(model)
 
 
-def infer_sg1():
+def infer_test():
     # set db, user_manager
-    db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database('sg1')
+    db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database('test')
     sys.modules['feature'].__dict__['db'] = db
     sys.modules['feature'].__dict__['user_manager'] = UserManager(db.user)
     for collection_name in db.collection_names():

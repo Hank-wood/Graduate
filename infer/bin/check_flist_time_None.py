@@ -5,7 +5,7 @@
 import pymongo
 from pprint import pprint
 
-db = pymongo.MongoClient('127.0.0.1', 27017).sg1
+db = pymongo.MongoClient('127.0.0.1', 27017).test
 print(db.user.find().count())
 count = 0
 

@@ -5,7 +5,7 @@ import pymongo
 
 
 coll1 = pymongo.MongoClient('127.0.0.1', 27017).get_database('analysis').user
-coll2 = pymongo.MongoClient('127.0.0.1', 27017).get_database('sg1').user
+coll2 = pymongo.MongoClient('127.0.0.1', 27017).get_database('test').user
 
 to_add = []
 for udoc in coll2.find({}, {'uid': 1}):
