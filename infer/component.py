@@ -94,8 +94,8 @@ class DynamicAnswer:
         self.commenters = []
         self.collectors = []
         self._load_answer()
-        self.dynamic_collection = db2.dynamic if '0315' in db._Database__name \
-                                    else db2.dynamic_sg1
+        self.dynamic_collection = db2.dynamic_train if 'train' in db._Database__name \
+                                    else db2.dynamic_test
 
     def _load_answer(self):
         """
@@ -329,10 +329,10 @@ class DynamicAnswer:
         """
         def load_n():
             from random import sample
-            aids = [d['aid'] for d in db2.dynamic.find({}, {'_id': 0, 'aid': 1})]
+            aids = [d['aid'] for d in db2.dynamic_train.find({}, {'_id': 0, 'aid': 1})]
             choosen = sample(aids, k=n)
             for aid in choosen:
-                tree_data = db2.dynamic.find_one({'aid': aid}, {'_id': 0})
+                tree_data = db2.dynamic_train.find_one({'aid': aid}, {'_id': 0})
                 filename = path.join('data', aid + '.json')
                 with open(filename, 'w') as f:
                     json.dump(tree_data, f, cls=MyEncoder, indent='\t')

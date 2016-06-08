@@ -179,13 +179,13 @@ def test_transform():
     测试 RelationType 存储进 mongodb 和读取
     """
     data = {'some': 1, 'links': [{'reltype': RelationType.follow, 'v': 1}]}
-    db2.dynamic.insert(deepcopy(data))
-    assert db2.dynamic.find_one({'some': 1}, {'_id': 0}) == data
+    db2.dynamic_train.insert(deepcopy(data))
+    assert db2.dynamic_train.find_one({'some': 1}, {'_id': 0}) == data
     data = {'some': 2, 'links': [
         {'reltype': RelationType.follow, 'v': 1},
         {'reltype': RelationType.qlink, 'v': 1},
         {'reltype': RelationType.notification, 'v': 1},
         {'reltype': RelationType.recommendation, 'v': 1}
     ]}
-    db2.dynamic.insert(deepcopy(data))
-    assert db2.dynamic.find_one({'some': 2}, {'_id': 0}) == data
+    db2.dynamic_train.insert(deepcopy(data))
+    assert db2.dynamic_train.find_one({'some': 2}, {'_id': 0}) == data

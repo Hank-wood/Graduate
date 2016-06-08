@@ -110,7 +110,7 @@ def coll_all_data():
     # answer_coll.remove()
     # influence_coll.remove()
     # receiver_coll.remove()
-    it = chain(db.dynamic_test.find(), db.dynamic.find())
+    it = chain(db.dynamic_test.find(), db.dynamic_train.find())
     for i, adoc in enumerate(it):
         aid = adoc['aid']
         tree_data = transform_outgoing(adoc)
