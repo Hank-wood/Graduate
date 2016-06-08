@@ -14,7 +14,7 @@ from feature import StaticAnswer, FeatureContainer
 from user import UserManager
 from iutils import a_col
 
-db = pymongo.MongoClient('127.0.0.1', 27017).get_database('zhihu_data_0315')
+db = pymongo.MongoClient('127.0.0.1', 27017).get_database('train')
 sys.modules['feature'].__dict__['db'] = db
 sys.modules['feature'].__dict__['user_manager'] = UserManager(db.user)
 

@@ -203,5 +203,5 @@ def t_change_uid():
 
 
 if __name__ == '__main__':
-    change_uid('zhihu_data_0315','yin-ying-43-25', 'xxxx')
+    change_uid('train','yin-ying-43-25', 'xxxx')
     # change_uid('test', 'yin-ying-43-25', 'xxxx')

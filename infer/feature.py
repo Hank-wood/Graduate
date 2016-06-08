@@ -705,7 +705,7 @@ class FeatureContainer:
 if __name__ == '__main__':
     import pymongo
     from pprint import pprint
-    db = pymongo.MongoClient('127.0.0.1', 27017).get_database('sg1')
+    db = pymongo.MongoClient('127.0.0.1', 27017).get_database('test')
     sys.modules[__name__].__dict__['db'] = db
     sys.modules[__name__].__dict__['user_manager'] = UserManager(db.user)
     sa = StaticAnswer(tid='19553298', aid="87423946")

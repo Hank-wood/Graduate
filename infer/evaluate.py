@@ -10,7 +10,7 @@ from icommon import db2
 from feature import StaticQuestionWithAnswer, StaticAnswer
 from user import UserManager
 
-db_name = 'sg1'
+db_name = 'test'
 
 # set db, user_manager
 db = pymongo.MongoClient('127.0.0.1', 27017, connect=False).get_database(db_name)

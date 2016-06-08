@@ -46,4 +46,4 @@ def sort_followers(db_name):
 
 if __name__ == '__main__':
     # sort_followers('zhihu_data_0219')
-    sort_followers('sg1')
+    sort_followers('test')

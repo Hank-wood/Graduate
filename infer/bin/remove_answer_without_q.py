@@ -4,7 +4,7 @@
 import pymongo
 
 
-db = pymongo.MongoClient('127.0.0.1', 27017).get_database('zhihu_data_0315')
+db = pymongo.MongoClient('127.0.0.1', 27017).get_database('train')
 a_colls = ["19550517_a", "19551147_a", "19561087_a", "19553298_a"]
 for a_coll in a_colls:
     q_coll = a_coll[:-1] + 'q'

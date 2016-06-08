@@ -40,7 +40,7 @@ def infer_test():
 
             # infer
             for answer in answers:
-                answer.infer(model=model, save_to_db=True, coll_name='static_sg1')
+                answer.infer(model=model, save_to_db=True, coll_name='static_test')
 
 
 def infer_water():
