@@ -5,3 +5,8 @@ pymongo
 huey
 redis
 networkx
+ipython
+numpy
+scipy
+scikit-learn
+matplotlib
