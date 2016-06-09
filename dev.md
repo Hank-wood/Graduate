@@ -1,3 +1,7 @@
+# Git
+Graduate文件夹本身是个git repo,如果你会git的话可以继续使用,不使用git的功能也无所谓
+目前的项目地址是 https://github.com/laike9m/Graduate, 你可以自行修改
+
 # MongoDB Database/Collection 含义说明
 建议使用软件 MongoBooster 查看, 在台式机上已经安装并购买授权
 ```
