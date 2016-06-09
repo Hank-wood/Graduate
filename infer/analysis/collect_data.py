@@ -27,14 +27,16 @@ def get_info_from_dynamic_graph(aid, graph, answerer, links):
     :return:
     传播层数,四种关系的数量,回答者粉丝数,每个非叶节点影响的用户数量
     answer {
+        aid: 答案id,
         fo_count: 回答者粉丝数(maybe None),
         layer: 传播层数,
-        1: ,
-        2: ,
-        3: ,
-        4: ,
-        upvote_num:
-        comment_num:
+        follow: follow关系数量,
+        notification: notification关系数量,
+        qlink: qlink关系数量,
+        recommendation: recommendation关系数量,
+        upvote_num: 点赞数量,
+        comment_num: 评论数量,
+        collect_num: 收藏数量
     }
     influence {fo_count: x, succ_count: y}
     receiver {'fo_count': answerer_follower_count, 'time': sorted times}
